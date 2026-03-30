@@ -9,12 +9,20 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ITEMS_PER_PAGE = 8;
+const CATEGORY_OPTIONS = [
+  { value: 'healthcare-medical', label: 'Saúde' },
+  { value: 'call-center-customer-service', label: 'Atendimento / Call Center' },
+  { value: 'sales', label: 'Vendas' },
+  { value: 'mfg-transport-logistics', label: 'Logística' },
+  { value: 'trades-services', label: 'Serviços' },
+];
 
 const JobList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const city = searchParams.get('ciudad') || '';
+  const category = searchParams.get('categoria') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
 
   // Fetch unique cities
@@ -33,7 +41,7 @@ const JobList = () => {
 
   // Fetch jobs
   const { data, isLoading } = useQuery({
-    queryKey: ['jobs', city, page],
+    queryKey: ['jobs', city, category, page],
     queryFn: async () => {
       let query = supabase
         .from('jobs')
@@ -46,6 +54,10 @@ const JobList = () => {
         query = query.eq('location', city);
       }
 
+      if (category) {
+        query = query.eq('category', category);
+      }
+
       const { data, error, count } = await query;
       if (error) throw error;
       return { jobs: data, count: count || 0 };
@@ -56,6 +68,16 @@ const JobList = () => {
   const pageTitle = city
     ? `${t('joblist.title')} ${city}`
     : t('joblist.allJobs');
+
+  const handleCategoryChange = (value: string) => {
+    if (value === '__all__') {
+      searchParams.delete('categoria');
+    } else {
+      searchParams.set('categoria', value);
+    }
+    searchParams.set('page', '1');
+    setSearchParams(searchParams);
+  };
 
   const handleCityChange = (value: string) => {
     if (value === '__all__') {
@@ -84,17 +106,30 @@ const JobList = () => {
         {/* Filter Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <h1 className="text-3xl font-extrabold text-foreground">{pageTitle}</h1>
-          <Select value={city || '__all__'} onValueChange={handleCityChange}>
-            <SelectTrigger className="w-[220px] rounded-xl">
-              <SelectValue placeholder={t('joblist.filterCity')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">{t('joblist.allCities')}</SelectItem>
-              {cities?.map((c) => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <Select value={category || '__all__'} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-full sm:w-[260px] rounded-xl">
+                <SelectValue placeholder="Filtrar por categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas as categorias</SelectItem>
+                {CATEGORY_OPTIONS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={city || '__all__'} onValueChange={handleCityChange}>
+              <SelectTrigger className="w-full sm:w-[220px] rounded-xl">
+                <SelectValue placeholder={t('joblist.filterCity')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t('joblist.allCities')}</SelectItem>
+                {cities?.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Job Feed */}

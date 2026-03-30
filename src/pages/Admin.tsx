@@ -82,6 +82,7 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [editing, setEditing] = useState<JobForm | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [autoSeedState, setAutoSeedState] = useState<'idle' | 'checking' | 'seeding' | 'done' | 'skipped'>('idle');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,7 +104,7 @@ const Admin = () => {
 
   const handleLogout = () => supabase.auth.signOut();
 
-  const { data: jobs, isLoading } = useQuery({
+  const { data: jobs, isLoading, error: jobsError } = useQuery({
     queryKey: ['adminJobs'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -199,7 +200,7 @@ const Admin = () => {
       industry: job.industry || '',
       language_req: job.language_req || '',
       experience: job.experience || '',
-      is_active: job.is_active,
+      is_active: Boolean(job.is_active),
     });
     setShowForm(true);
   };
@@ -257,15 +258,15 @@ const Admin = () => {
           const { error } = await supabase.from('jobs').upsert(payload);
           if (error) throw error;
           
-          toast.success(`Se importaron ${payload.length} empleos correctamente.`);
+          toast.success(`Importadas ${payload.length} vagas com sucesso.`);
           queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
         } catch (err: any) {
-          toast.error(`Error al importar: ${err.message}`);
+          toast.error(`Erro ao importar: ${err.message}`);
         }
         if (fileInputRef.current) fileInputRef.current.value = '';
       },
       error: (error) => {
-        toast.error(`Error al leer CSV: ${error.message}`);
+        toast.error(`Erro ao ler CSV: ${error.message}`);
       }
     });
   };
@@ -294,6 +295,18 @@ const Admin = () => {
         const titles = titleByCategory[combo.category] || ['Assistente'];
         const baseTitle = titles[(k + i) % titles.length];
         const title = `${baseTitle} - ${combo.location}`;
+        const salary = 1800 + (i % 12) * 150;
+        const payment = i % 2 === 0 ? 'Mensal' : 'Quinzenal';
+        const workplace = i % 4 === 0 ? 'Híbrido' : 'Presencial';
+        const jobType = i % 3 === 0 ? 'Meio Período' : 'Tempo Integral';
+        const highlights = [
+          'Vale Transporte',
+          'Vale Refeição',
+          'Plano de Saúde',
+          'Seguro de Vida',
+          'Treinamento',
+          'Bônus por desempenho',
+        ].slice(0, 4 + (i % 3));
         items.push({
           id: `mock-${runId}-${String(i).padStart(4, '0')}`,
           b_name: 'MyJob',
@@ -301,14 +314,33 @@ const Admin = () => {
           title,
           category: combo.category,
           location: combo.location,
-          salary_amount: `R$ ${String(1800 + (i % 12) * 150).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')}`,
-          payment_frequency: i % 2 === 0 ? 'Mensal' : 'Quinzenal',
-          job_type: i % 3 === 0 ? 'Meio Período' : 'Tempo Integral',
-          workplace_type: i % 4 === 0 ? 'Híbrido' : 'Presencial',
-          summary: `Vaga para ${baseTitle} em ${combo.location}. Candidate-se pelo WhatsApp.`,
-          description: `Sobre a vaga:\nBuscamos ${baseTitle} para atuar em ${combo.location}.\n\nComo se candidatar:\nEnvie uma mensagem pelo WhatsApp e fale com o recrutador.`,
-          requirements: `Requisitos:\n- Comprometimento e pontualidade\n- Boa comunicação\n- Disponibilidade para atuar em ${combo.location}`,
-          highlights: ['Vale Transporte', 'Vale Refeição', 'Plano de Saúde', 'Seguro de Vida'],
+          salary_amount: `R$ ${String(salary).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')}`,
+          payment_frequency: payment,
+          job_type: jobType,
+          workplace_type: workplace,
+          summary: `Vaga para ${baseTitle} em ${combo.location}. Processo rápido e 100% via WhatsApp.`,
+          description:
+            `Sobre a vaga:\n` +
+            `Buscamos ${baseTitle} para atuar em ${combo.location} (${workplace}). Você fará parte de um time focado em atendimento rápido e eficiente.\n\n` +
+            `Atividades:\n` +
+            `- Rotina operacional da função\n` +
+            `- Atendimento e suporte a demandas do dia a dia\n` +
+            `- Organização de informações e comunicação com a equipe\n\n` +
+            `O que oferecemos:\n` +
+            `${highlights.map((h) => `- ${h}`).join('\n')}\n\n` +
+            `Processo seletivo:\n` +
+            `1) Triagem pelo WhatsApp\n` +
+            `2) Conversa rápida com recrutador\n` +
+            `3) Entrevista (online ou presencial)\n\n` +
+            `Como se candidatar:\n` +
+            `Clique no botão “Candidatar-se pelo WhatsApp” e envie: nome completo, cidade, disponibilidade e experiência.\n`,
+          requirements:
+            `Requisitos:\n` +
+            `- Comprometimento e pontualidade\n` +
+            `- Boa comunicação\n` +
+            `- Disponibilidade para atuar em ${combo.location}\n` +
+            `- Vontade de aprender e crescer\n`,
+          highlights,
           is_active: true,
         });
         i++;
@@ -333,6 +365,42 @@ const Admin = () => {
     onError: (err: any) => toast.error(err.message),
   });
 
+  useEffect(() => {
+    if (!session) return;
+    if (autoSeedState !== 'idle') return;
+
+    const storageKey = 'myjob_auto_seeded_v1';
+    if (localStorage.getItem(storageKey) === '1') {
+      setAutoSeedState('skipped');
+      return;
+    }
+
+    (async () => {
+      setAutoSeedState('checking');
+      const { count, error } = await supabase.from('jobs').select('*', { count: 'exact', head: true });
+      if (error) {
+        setAutoSeedState('idle');
+        return;
+      }
+
+      const total = count || 0;
+      if (total >= 200) {
+        localStorage.setItem(storageKey, '1');
+        setAutoSeedState('skipped');
+        return;
+      }
+
+      setAutoSeedState('seeding');
+      try {
+        await seedMocksMutation.mutateAsync();
+        localStorage.setItem(storageKey, '1');
+        setAutoSeedState('done');
+      } catch {
+        setAutoSeedState('idle');
+      }
+    })();
+  }, [session, autoSeedState, seedMocksMutation]);
+
   return (
     <div className="min-h-screen bg-secondary">
       <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
@@ -343,6 +411,16 @@ const Admin = () => {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
+        {autoSeedState === 'seeding' && (
+          <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm">
+            正在自动生成 200 条帖子数据…（Aguarde）
+          </div>
+        )}
+        {jobsError && (
+          <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm text-destructive">
+            {(jobsError as Error).message}
+          </div>
+        )}
         {showForm && editing ? (
           <div className="bg-card rounded-2xl shadow-sm p-6 space-y-4">
             <h2 className="text-lg font-bold">{editing.id.startsWith('job-') ? t('admin.addJob') : t('admin.editJob')}</h2>
@@ -392,7 +470,7 @@ const Admin = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Plantilla CSV
+                  <Download className="h-4 w-4 mr-2" /> Template CSV
                 </Button>
                 <input
                   type="file"
@@ -430,6 +508,13 @@ const Admin = () => {
                   </tr>
                 </thead>
                 <tbody>
+                  {isLoading && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                        Carregando...
+                      </td>
+                    </tr>
+                  )}
                   {jobs?.map((job) => (
                     <tr key={job.id} className="border-t border-border">
                       <td className="px-4 py-3 font-mono text-xs">{job.id}</td>
@@ -438,7 +523,7 @@ const Admin = () => {
                       <td className="px-4 py-3">{job.location}</td>
                       <td className="px-4 py-3">
                         <Switch
-                          checked={job.is_active}
+                          checked={Boolean(job.is_active)}
                           onCheckedChange={(v) => toggleActive.mutate({ id: job.id, is_active: v })}
                         />
                       </td>
@@ -450,7 +535,7 @@ const Admin = () => {
                     </tr>
                   ))}
                   {(!jobs || jobs.length === 0) && !isLoading && (
-                    <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No hay empleos</td></tr>
+                    <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma vaga</td></tr>
                   )}
                 </tbody>
               </table>

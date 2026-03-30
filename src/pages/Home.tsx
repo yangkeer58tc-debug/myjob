@@ -16,11 +16,11 @@ const CITIES = [
   'Uberlândia'
 ];
 const CATEGORIES = [
-  { name: 'Saúde', count: '1.200+' },
-  { name: 'Atendimento / Call Center', count: '850+' },
-  { name: 'Vendas', count: '640+' },
-  { name: 'Logística', count: '420+' },
-  { name: 'Serviços', count: '300+' },
+  { value: 'healthcare-medical', name: 'Saúde' },
+  { value: 'call-center-customer-service', name: 'Atendimento / Call Center' },
+  { value: 'sales', name: 'Vendas' },
+  { value: 'mfg-transport-logistics', name: 'Logística' },
+  { value: 'trades-services', name: 'Serviços' },
 ];
 
 const PhoneMockup = () => {
@@ -75,6 +75,23 @@ const Home = () => {
         .limit(8);
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: categoryCounts } = useQuery({
+    queryKey: ['categoryCounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('category')
+        .eq('is_active', true);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data) {
+        if (!row.category) continue;
+        counts[row.category] = (counts[row.category] || 0) + 1;
+      }
+      return counts;
     },
   });
 
@@ -216,11 +233,17 @@ const Home = () => {
             </Button>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {CATEGORIES.map((cat, i) => (
-              <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-[#25D366]/50 hover:shadow-md transition-all cursor-pointer group">
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {CATEGORIES.map((cat) => (
+              <div
+                key={cat.value}
+                className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-[#25D366]/50 hover:shadow-md transition-all cursor-pointer group min-w-[220px] flex-shrink-0"
+                onClick={() => navigate(`/empleos?categoria=${encodeURIComponent(cat.value)}`)}
+              >
                 <h3 className="font-bold text-slate-900 group-hover:text-[#128C7E] transition-colors mb-2">{cat.name}</h3>
-                <p className="text-sm text-slate-500">{cat.count} vagas</p>
+                <p className="text-sm text-slate-500">
+                  {(categoryCounts?.[cat.value] ?? 0).toLocaleString('pt-BR')} vagas
+                </p>
               </div>
             ))}
           </div>
