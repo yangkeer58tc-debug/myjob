@@ -8,12 +8,19 @@ import JobCard from '@/components/JobCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-const CITIES = ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Querétaro', 'Tijuana'];
+const CITIES = [
+  'Rio de Janeiro',
+  'Belo Horizonte',
+  'São Paulo',
+  'Brasília',
+  'Uberlândia'
+];
 const CATEGORIES = [
-  { name: 'Ventas y Comercial', count: '1,200+' },
-  { name: 'Atención al Cliente', count: '850+' },
-  { name: 'Logística y Transporte', count: '640+' },
-  { name: 'Administración', count: '420+' },
+  { name: 'Saúde', count: '1.200+' },
+  { name: 'Atendimento / Call Center', count: '850+' },
+  { name: 'Vendas', count: '640+' },
+  { name: 'Logística', count: '420+' },
+  { name: 'Serviços', count: '300+' },
 ];
 
 const PhoneMockup = () => {
@@ -28,23 +35,23 @@ const PhoneMockup = () => {
           </div>
           <div>
             <p className="text-sm font-bold">MyJob Oficial</p>
-            <p className="text-xs text-white/80">Cuenta de empresa verificada</p>
+            <p className="text-xs text-white/80">Conta empresarial verificada</p>
           </div>
         </div>
         {/* Chat Area */}
         <div className="flex-1 p-4 flex flex-col gap-3 relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundSize: 'cover', opacity: 0.9 }}>
           <div className="self-start bg-white rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[85%] shadow-sm">
-            <p className="text-sm text-slate-800 font-medium mb-1">¡Hola! 👋 Tengo una vacante de Asesor de Ventas en CDMX. Sueldo: $15,000 mensuales.</p>
+            <p className="text-sm text-slate-800 font-medium mb-1">Olá! 👋 Tenho uma vaga de Atendente em São Paulo. Salário: R$ 2.200/mês.</p>
             <p className="text-[10px] text-slate-500 text-right mt-1">10:30 AM</p>
           </div>
           <div className="self-end bg-[#dcf8c6] rounded-2xl rounded-tr-none px-4 py-2.5 max-w-[85%] shadow-sm">
-            <p className="text-sm text-slate-800">¡Me interesa! ¿Cómo aplico?</p>
+            <p className="text-sm text-slate-800">Tenho interesse! Como faço para me candidatar?</p>
             <p className="text-[10px] text-slate-500 text-right mt-1 flex items-center justify-end gap-1">
               10:31 AM <span className="text-[#34b7f1]">✓✓</span>
             </p>
           </div>
           <div className="self-start bg-white rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[85%] shadow-sm">
-            <p className="text-sm text-slate-800">Solo envía tu CV por aquí y agendamos entrevista hoy mismo. 🚀</p>
+            <p className="text-sm text-slate-800">Envie seu currículo por aqui e agendamos entrevista ainda hoje. 🚀</p>
             <p className="text-[10px] text-slate-500 text-right mt-1">10:31 AM</p>
           </div>
         </div>
@@ -74,19 +81,19 @@ const Home = () => {
   return (
     <PublicLayout>
       <Helmet>
-        <title>MyJob - Consigue trabajo chateando por WhatsApp en México</title>
-        <meta name="description" content="Encuentra los mejores empleos en México. Conecta directamente con empresas a través de WhatsApp. Rápido, seguro y sin registros complicados." />
-        <meta property="og:title" content="MyJob - Encuentra empleo fácil y rápido" />
-        <meta property="og:description" content="Miles de vacantes disponibles. Aplica directamente enviando un WhatsApp al reclutador." />
+        <title>MyJob - Encontre emprego rápido pelo WhatsApp</title>
+        <meta name="description" content="Encontre vagas no Brasil e fale direto com as empresas via WhatsApp. Rápido, seguro e sem cadastros complicados." />
+        <meta property="og:title" content="MyJob - Encontre emprego rápido" />
+        <meta property="og:description" content="Vagas no Brasil. Candidate-se rapidamente enviando um WhatsApp." />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": "MyJob",
-            "url": "https://myjob.mx/",
+            "url": "https://myjob.com/",
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://myjob.mx/empleos?q={search_term_string}",
+              "target": "https://myjob.com/empleos?q={search_term_string}",
               "query-input": "required name=search_term_string"
             }
           })}
@@ -110,18 +117,18 @@ const Home = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-[#25D366]"></span>
                 </span>
-                Reclutamiento 100% por WhatsApp
+                Recrutamento 100% via WhatsApp
               </div>
               
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">
-                Consigue trabajo <br/>
+                Consiga emprego <br/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#128C7E] to-[#25D366]">
-                  chateando.
+                  conversando.
                 </span>
               </h1>
               
               <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-medium">
-                Olvida los portales complicados y los correos que nadie lee. En MyJob, conectas directamente con las empresas a través de WhatsApp. Rápido, seguro y sin rodeos.
+                Esqueça portais complicados e e-mails que ninguém responde. No MyJob, você fala direto com as empresas pelo WhatsApp. Rápido, seguro e sem enrolação.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
@@ -131,11 +138,11 @@ const Home = () => {
                   onClick={() => navigate('/empleos')}
                 >
                   <MessageCircle className="h-6 w-6 mr-3" />
-                  Ver Vacantes Ahora
+                  Ver Vagas Agora
                 </Button>
                 <div className="flex items-center gap-3 px-4 py-2 text-slate-500 font-medium text-sm">
                   <CheckCircle2 className="h-5 w-5 text-[#25D366]" />
-                  <span>Sin registro previo</span>
+                  <span>Sem cadastro prévio</span>
                 </div>
               </div>
             </div>
@@ -148,8 +155,8 @@ const Home = () => {
                   <Zap className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 font-bold">Respuesta en</p>
-                  <p className="text-sm font-black text-slate-800">Menos de 2 hrs</p>
+                  <p className="text-xs text-slate-500 font-bold">Resposta em</p>
+                  <p className="text-sm font-black text-slate-800">menos de 2h</p>
                 </div>
               </div>
               
@@ -164,8 +171,8 @@ const Home = () => {
       <section className="py-24 bg-white border-y border-slate-100">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">¿Por qué buscar empleo por WhatsApp?</h2>
-            <p className="text-lg text-slate-600 font-medium">Hemos revolucionado la forma de contratar. Es más humano, más rápido y lo tienes en la palma de tu mano.</p>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Por que buscar emprego pelo WhatsApp?</h2>
+            <p className="text-lg text-slate-600 font-medium">Uma forma mais humana e rápida de se candidatar — direto do seu celular.</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
@@ -173,24 +180,24 @@ const Home = () => {
               <div className="w-16 h-16 mx-auto bg-[#25D366]/10 rounded-2xl flex items-center justify-center mb-6">
                 <Zap className="h-8 w-8 text-[#25D366]" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Contacto Directo</h3>
-              <p className="text-slate-600">Habla directamente con el reclutador. Sin intermediarios ni filtros automáticos que descarten tu CV.</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Contato direto</h3>
+              <p className="text-slate-600">Fale com o recrutador sem intermediários nem filtros automáticos.</p>
             </div>
             
             <div className="bg-slate-50 rounded-[2rem] p-8 text-center hover:shadow-lg transition-all border border-slate-100">
               <div className="w-16 h-16 mx-auto bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
                 <MessageCircle className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Seguimiento Real</h3>
-              <p className="text-slate-600">Conoce el estado de tu proceso con las palomitas azules. Sabrás al instante si leyeron tu mensaje.</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Acompanhamento em tempo real</h3>
+              <p className="text-slate-600">Veja rapidamente se sua mensagem foi recebida e lida.</p>
             </div>
             
             <div className="bg-slate-50 rounded-[2rem] p-8 text-center hover:shadow-lg transition-all border border-slate-100">
               <div className="w-16 h-16 mx-auto bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6">
                 <ShieldCheck className="h-8 w-8 text-amber-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Empresas Verificadas</h3>
-              <p className="text-slate-600">Todas las empresas en MyJob pasan por un estricto proceso de verificación para garantizar tu seguridad.</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Empresas verificadas</h3>
+              <p className="text-slate-600">Mais segurança com empresas verificadas e processos transparentes.</p>
             </div>
           </div>
         </div>
@@ -201,11 +208,11 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Explora por Categoría</h2>
-              <p className="text-slate-600 font-medium">Encuentra el trabajo que mejor se adapte a tus habilidades.</p>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Explore por categoria</h2>
+              <p className="text-slate-600 font-medium">Encontre a vaga ideal para você.</p>
             </div>
             <Button variant="outline" className="rounded-xl border-slate-200 font-bold bg-white" onClick={() => navigate('/empleos')}>
-              Ver todas las categorías
+              Ver todas as categorias
             </Button>
           </div>
           
@@ -213,7 +220,7 @@ const Home = () => {
             {CATEGORIES.map((cat, i) => (
               <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-[#25D366]/50 hover:shadow-md transition-all cursor-pointer group">
                 <h3 className="font-bold text-slate-900 group-hover:text-[#128C7E] transition-colors mb-2">{cat.name}</h3>
-                <p className="text-sm text-slate-500">{cat.count} vacantes</p>
+                <p className="text-sm text-slate-500">{cat.count} vagas</p>
               </div>
             ))}
           </div>
@@ -225,8 +232,8 @@ const Home = () => {
         <section className="py-24 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Vacantes Destacadas Hoy</h2>
-              <p className="text-lg text-slate-600 font-medium">Aplica ahora mismo enviando un WhatsApp.</p>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Vagas em destaque</h2>
+              <p className="text-lg text-slate-600 font-medium">Candidate-se agora pelo WhatsApp.</p>
             </div>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -241,7 +248,7 @@ const Home = () => {
                 className="rounded-xl h-14 px-10 text-base font-bold shadow-lg"
                 onClick={() => navigate('/empleos')}
               >
-                Ver más de 5,000 empleos
+                Ver mais vagas
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
@@ -252,7 +259,7 @@ const Home = () => {
       {/* 📍 CITIES SECTION */}
       <section className="py-20 bg-slate-900 text-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center">Encuentra trabajo en tu ciudad</h2>
+          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center">Encontre vagas na sua cidade</h2>
           <div className="flex flex-wrap justify-center gap-4">
             {CITIES.map((city) => (
               <button

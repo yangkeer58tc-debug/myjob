@@ -9,7 +9,9 @@ const Footer = () => {
     <footer className="border-t bg-background">
       <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
         <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-          <Briefcase className="h-6 w-6 text-primary" />
+          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center overflow-hidden">
+            <img src="https://i.postimg.cc/VLyx9gfK/Gemini-Generated-Image-eiv43beiv43beiv4-(2).png" alt="MyJob Logo" className="w-full h-full object-cover" />
+          </div>
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
             Built by{" "}
             <span className="font-bold text-foreground tracking-tight">

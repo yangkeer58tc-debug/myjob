@@ -9,9 +9,12 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <Briefcase className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold tracking-tight text-foreground">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 group">
+          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-colors overflow-hidden">
+            <img src="https://i.postimg.cc/VLyx9gfK/Gemini-Generated-Image-eiv43beiv43beiv4-(2).png" alt="MyJob Logo" className="w-full h-full object-cover" />
+          </div>
+          <span className="text-xl font-black tracking-tight text-foreground">
             My<span className="text-primary">Job</span>
           </span>
         </Link>

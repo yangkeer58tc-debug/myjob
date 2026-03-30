@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { LogOut, Plus, Pencil, Upload, Download } from 'lucide-react';
+import { LogOut, Plus, Pencil, Upload, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
@@ -55,6 +55,24 @@ const emptyForm: JobForm = {
   experience: '',
   is_active: true,
 };
+
+const CATEGORY_OPTIONS = [
+  { value: 'healthcare-medical', label: 'Saúde' },
+  { value: 'call-center-customer-service', label: 'Atendimento / Call Center' },
+  { value: 'sales', label: 'Vendas' },
+  { value: 'mfg-transport-logistics', label: 'Indústria / Transporte / Logística' },
+  { value: 'trades-services', label: 'Serviços' },
+];
+
+const CITY_OPTIONS = [
+  'Rio de Janeiro',
+  'Belo Horizonte',
+  'São Paulo',
+  'Brasília',
+  'Uberlândia',
+];
+
+const LOGO_URL = 'https://i.postimg.cc/VLyx9gfK/Gemini-Generated-Image-eiv43beiv43beiv4-(2).png';
 
 const Admin = () => {
   const { t } = useLanguage();
@@ -252,6 +270,69 @@ const Admin = () => {
     });
   };
 
+  const generateMockJobs = () => {
+    const combos: { category: string; location: string }[] = [];
+    for (const c of CATEGORY_OPTIONS) {
+      for (const city of CITY_OPTIONS) {
+        combos.push({ category: c.value, location: city });
+      }
+    }
+
+    const titleByCategory: Record<string, string[]> = {
+      'healthcare-medical': ['Enfermeiro(a)', 'Técnico em Enfermagem', 'Recepcionista de Clínica', 'Fisioterapeuta', 'Assistente de Laboratório'],
+      'call-center-customer-service': ['Operador de Telemarketing', 'Atendente de SAC', 'Analista de Suporte', 'Assistente de Relacionamento', 'Consultor de Atendimento'],
+      sales: ['Vendedor(a)', 'Consultor(a) de Vendas', 'Representante Comercial', 'Assistente Comercial', 'Gerente de Contas'],
+      'mfg-transport-logistics': ['Auxiliar de Logística', 'Motorista Entregador', 'Operador de Empilhadeira', 'Ajudante Geral', 'Conferente'],
+      'trades-services': ['Auxiliar de Limpeza', 'Técnico de Manutenção', 'Eletricista', 'Encanador', 'Mecânico'],
+    };
+
+    const items: any[] = [];
+    const runId = Date.now();
+    let i = 0;
+    for (const combo of combos) {
+      for (let k = 0; k < 8; k++) {
+        const titles = titleByCategory[combo.category] || ['Assistente'];
+        const baseTitle = titles[(k + i) % titles.length];
+        const title = `${baseTitle} - ${combo.location}`;
+        items.push({
+          id: `mock-${runId}-${String(i).padStart(4, '0')}`,
+          b_name: 'MyJob',
+          b_logo_url: LOGO_URL,
+          title,
+          category: combo.category,
+          location: combo.location,
+          salary_amount: `R$ ${String(1800 + (i % 12) * 150).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')}`,
+          payment_frequency: i % 2 === 0 ? 'Mensal' : 'Quinzenal',
+          job_type: i % 3 === 0 ? 'Meio Período' : 'Tempo Integral',
+          workplace_type: i % 4 === 0 ? 'Híbrido' : 'Presencial',
+          summary: `Vaga para ${baseTitle} em ${combo.location}. Candidate-se pelo WhatsApp.`,
+          description: `Sobre a vaga:\nBuscamos ${baseTitle} para atuar em ${combo.location}.\n\nComo se candidatar:\nEnvie uma mensagem pelo WhatsApp e fale com o recrutador.`,
+          requirements: `Requisitos:\n- Comprometimento e pontualidade\n- Boa comunicação\n- Disponibilidade para atuar em ${combo.location}`,
+          highlights: ['Vale Transporte', 'Vale Refeição', 'Plano de Saúde', 'Seguro de Vida'],
+          is_active: true,
+        });
+        i++;
+      }
+    }
+
+    return items;
+  };
+
+  const seedMocksMutation = useMutation({
+    mutationFn: async () => {
+      const jobs = generateMockJobs();
+      for (let i = 0; i < jobs.length; i += 100) {
+        const { error } = await supabase.from('jobs').upsert(jobs.slice(i, i + 100));
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+      toast.success('200 mocks criados');
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   return (
     <div className="min-h-screen bg-secondary">
       <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
@@ -270,10 +351,26 @@ const Admin = () => {
               <div><Label>Título</Label><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Empresa</Label><Input value={editing.b_name} onChange={(e) => setEditing({ ...editing, b_name: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Logo URL</Label><Input value={editing.b_logo_url} onChange={(e) => setEditing({ ...editing, b_logo_url: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Categoría</Label><Input value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div>
+                <Label>Categoria</Label>
+                <Input list="category-options" value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="rounded-xl mt-1" />
+                <datalist id="category-options">
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </datalist>
+              </div>
               <div><Label>Salario</Label><Input value={editing.salary_amount} onChange={(e) => setEditing({ ...editing, salary_amount: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Frecuencia</Label><Input value={editing.payment_frequency} onChange={(e) => setEditing({ ...editing, payment_frequency: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Ciudad</Label><Input value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div>
+                <Label>Cidade</Label>
+                <Input list="city-options" value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} className="rounded-xl mt-1" />
+                <datalist id="city-options">
+                  {CITY_OPTIONS.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </div>
               <div><Label>Tipo de empleo</Label><Input value={editing.job_type} onChange={(e) => setEditing({ ...editing, job_type: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Modalidad</Label><Input value={editing.workplace_type} onChange={(e) => setEditing({ ...editing, workplace_type: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Highlights (separados por coma)</Label><Input value={editing.highlights} onChange={(e) => setEditing({ ...editing, highlights: e.target.value })} className="rounded-xl mt-1" /></div>
@@ -306,6 +403,14 @@ const Admin = () => {
                 />
                 <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="rounded-xl">
                   <Upload className="h-4 w-4 mr-2" /> Importar CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => seedMocksMutation.mutate()}
+                  className="rounded-xl"
+                  disabled={seedMocksMutation.isPending}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" /> 200 mocks
                 </Button>
               </div>
               <Button onClick={openNew} className="rounded-xl">
