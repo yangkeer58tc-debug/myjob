@@ -161,116 +161,6 @@ const Admin = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminJobs'] }),
   });
 
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-secondary flex items-center justify-center">
-        <form onSubmit={handleLogin} className="bg-card rounded-2xl shadow-lg p-8 w-full max-w-sm space-y-4">
-          <h1 className="text-2xl font-bold text-foreground text-center">{t('admin.login')}</h1>
-          <div>
-            <Label>{t('admin.email')}</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="rounded-xl mt-1" />
-          </div>
-          <div>
-            <Label>{t('admin.password')}</Label>
-            <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" className="rounded-xl mt-1" />
-          </div>
-          <Button type="submit" className="w-full rounded-xl">{t('admin.login')}</Button>
-        </form>
-      </div>
-    );
-  }
-
-  const openEdit = (job: typeof jobs extends (infer T)[] ? T : never) => {
-    setEditing({
-      id: job.id,
-      b_name: job.b_name,
-      b_logo_url: job.b_logo_url || '',
-      title: job.title,
-      category: job.category || '',
-      salary_amount: job.salary_amount,
-      payment_frequency: job.payment_frequency,
-      location: job.location,
-      job_type: job.job_type,
-      workplace_type: job.workplace_type,
-      summary: job.summary || '',
-      description: job.description || '',
-      requirements: job.requirements || '',
-      highlights: job.highlights?.join(', ') || '',
-      education_level: job.education_level || '',
-      industry: job.industry || '',
-      language_req: job.language_req || '',
-      experience: job.experience || '',
-      is_active: Boolean(job.is_active),
-    });
-    setShowForm(true);
-  };
-
-  const openNew = () => {
-    setEditing({ ...emptyForm, id: `job-${Date.now()}` });
-    setShowForm(true);
-  };
-
-  const downloadTemplate = () => {
-    const template = [
-      ['id', 'b_name', 'b_logo_url', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
-      ['job-exemplo', 'Empresa Exemplo', 'https://exemplo.com/logo.png', 'Atendente de Call Center', 'call-center-customer-service', 'São Paulo', 'R$ 2.200', 'Mensal', 'Tempo Integral', 'Presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Descreva a vaga em texto puro. Inclua como se candidatar pelo WhatsApp.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'Ensino Médio', 'Sem experiência', 'Serviços', 'Português', 'true']
-    ];
-    const csv = Papa.unparse(template);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'myjob_imc_template_br.csv';
-    link.click();
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const rows = results.data as Record<string, string>[];
-          const payload = rows.map((row) => ({
-            id: row.id || `job-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            b_name: row.b_name || 'Empresa',
-            b_logo_url: row.b_logo_url || null,
-            title: row.title || 'Sem título',
-            category: row.category || null,
-            location: row.location || 'Brasil',
-            salary_amount: row.salary_amount || 'A combinar',
-            payment_frequency: row.payment_frequency || 'Mensal',
-            job_type: row.job_type || 'Tempo Integral',
-            workplace_type: row.workplace_type || 'Presencial',
-            summary: row.summary || null,
-            description: row.description || null,
-            requirements: row.requirements || null,
-            highlights: row.highlights ? row.highlights.split(',').map(s => s.trim()) : null,
-            education_level: row.education_level || null,
-            industry: row.industry || null,
-            language_req: row.language_req || null,
-            experience: row.experience || null,
-            is_active: row.is_active === 'true' || row.is_active === '1',
-          }));
-
-          const { error } = await supabase.from('jobs').upsert(payload);
-          if (error) throw error;
-          
-          toast.success(`Importadas ${payload.length} vagas com sucesso.`);
-          queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-        } catch (err: any) {
-          toast.error(`Erro ao importar: ${err.message}`);
-        }
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      },
-      error: (error) => {
-        toast.error(`Erro ao ler CSV: ${error.message}`);
-      }
-    });
-  };
-
   const generateMockJobs = () => {
     const combos: { category: string; location: string }[] = [];
     for (const c of CATEGORY_OPTIONS) {
@@ -400,6 +290,116 @@ const Admin = () => {
       }
     })();
   }, [session, autoSeedState, seedMocksMutation]);
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-secondary flex items-center justify-center">
+        <form onSubmit={handleLogin} className="bg-card rounded-2xl shadow-lg p-8 w-full max-w-sm space-y-4">
+          <h1 className="text-2xl font-bold text-foreground text-center">{t('admin.login')}</h1>
+          <div>
+            <Label>{t('admin.email')}</Label>
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="rounded-xl mt-1" />
+          </div>
+          <div>
+            <Label>{t('admin.password')}</Label>
+            <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" className="rounded-xl mt-1" />
+          </div>
+          <Button type="submit" className="w-full rounded-xl">{t('admin.login')}</Button>
+        </form>
+      </div>
+    );
+  }
+
+  const openEdit = (job: typeof jobs extends (infer T)[] ? T : never) => {
+    setEditing({
+      id: job.id,
+      b_name: job.b_name,
+      b_logo_url: job.b_logo_url || '',
+      title: job.title,
+      category: job.category || '',
+      salary_amount: job.salary_amount,
+      payment_frequency: job.payment_frequency,
+      location: job.location,
+      job_type: job.job_type,
+      workplace_type: job.workplace_type,
+      summary: job.summary || '',
+      description: job.description || '',
+      requirements: job.requirements || '',
+      highlights: job.highlights?.join(', ') || '',
+      education_level: job.education_level || '',
+      industry: job.industry || '',
+      language_req: job.language_req || '',
+      experience: job.experience || '',
+      is_active: Boolean(job.is_active),
+    });
+    setShowForm(true);
+  };
+
+  const openNew = () => {
+    setEditing({ ...emptyForm, id: `job-${Date.now()}` });
+    setShowForm(true);
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      ['id', 'b_name', 'b_logo_url', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
+      ['job-exemplo', 'Empresa Exemplo', 'https://exemplo.com/logo.png', 'Atendente de Call Center', 'call-center-customer-service', 'São Paulo', 'R$ 2.200', 'Mensal', 'Tempo Integral', 'Presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Descreva a vaga em texto puro. Inclua como se candidatar pelo WhatsApp.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'Ensino Médio', 'Sem experiência', 'Serviços', 'Português', 'true']
+    ];
+    const csv = Papa.unparse(template);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'myjob_imc_template_br.csv';
+    link.click();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const rows = results.data as Record<string, string>[];
+          const payload = rows.map((row) => ({
+            id: row.id || `job-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            b_name: row.b_name || 'Empresa',
+            b_logo_url: row.b_logo_url || null,
+            title: row.title || 'Sem título',
+            category: row.category || null,
+            location: row.location || 'Brasil',
+            salary_amount: row.salary_amount || 'A combinar',
+            payment_frequency: row.payment_frequency || 'Mensal',
+            job_type: row.job_type || 'Tempo Integral',
+            workplace_type: row.workplace_type || 'Presencial',
+            summary: row.summary || null,
+            description: row.description || null,
+            requirements: row.requirements || null,
+            highlights: row.highlights ? row.highlights.split(',').map(s => s.trim()) : null,
+            education_level: row.education_level || null,
+            industry: row.industry || null,
+            language_req: row.language_req || null,
+            experience: row.experience || null,
+            is_active: row.is_active === 'true' || row.is_active === '1',
+          }));
+
+          const { error } = await supabase.from('jobs').upsert(payload);
+          if (error) throw error;
+          
+          toast.success(`Importadas ${payload.length} vagas com sucesso.`);
+          queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+        } catch (err: any) {
+          toast.error(`Erro ao importar: ${err.message}`);
+        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      },
+      error: (error) => {
+        toast.error(`Erro ao ler CSV: ${error.message}`);
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-secondary">
