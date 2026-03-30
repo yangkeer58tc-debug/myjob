@@ -11,7 +11,6 @@ interface JobCardProps {
   job: {
     id: string;
     title: string;
-    title_en?: string | null;
     b_name: string;
     b_logo_url: string | null;
     location: string;
@@ -20,9 +19,7 @@ interface JobCardProps {
     salary_amount: string;
     payment_frequency: string;
     summary: string | null;
-    summary_en?: string | null;
     highlights: string[] | null;
-    highlights_en?: string[] | null;
     created_at: string;
     is_active: boolean;
   };

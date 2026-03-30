@@ -17,7 +17,6 @@ interface JobForm {
   b_name: string;
   b_logo_url: string;
   title: string;
-  title_en?: string;
   category: string;
   salary_amount: string;
   payment_frequency: string;
@@ -25,13 +24,9 @@ interface JobForm {
   job_type: string;
   workplace_type: string;
   summary: string;
-  summary_en?: string;
   description: string;
-  description_en?: string;
   requirements: string;
-  requirements_en?: string;
   highlights: string;
-  highlights_en?: string;
   education_level?: string;
   industry?: string;
   language_req?: string;
@@ -44,21 +39,16 @@ const emptyForm: JobForm = {
   b_name: '',
   b_logo_url: '',
   title: '',
-  title_en: '',
   category: '',
   salary_amount: '',
-  payment_frequency: 'Quincenal',
+  payment_frequency: 'Mensal',
   location: '',
-  job_type: 'Tiempo Completo',
+  job_type: 'Tempo Integral',
   workplace_type: 'Presencial',
   summary: '',
-  summary_en: '',
   description: '',
-  description_en: '',
   requirements: '',
-  requirements_en: '',
   highlights: '',
-  highlights_en: '',
   education_level: '',
   industry: '',
   language_req: '',
@@ -115,7 +105,6 @@ const Admin = () => {
         b_name: form.b_name,
         b_logo_url: form.b_logo_url || null,
         title: form.title,
-        title_en: form.title_en || null,
         category: form.category || null,
         salary_amount: form.salary_amount,
         payment_frequency: form.payment_frequency,
@@ -123,13 +112,9 @@ const Admin = () => {
         job_type: form.job_type,
         workplace_type: form.workplace_type,
         summary: form.summary || null,
-        summary_en: form.summary_en || null,
         description: form.description || null,
-        description_en: form.description_en || null,
         requirements: form.requirements || null,
-        requirements_en: form.requirements_en || null,
         highlights: form.highlights ? form.highlights.split(',').map((s) => s.trim()) : null,
-        highlights_en: form.highlights_en ? form.highlights_en.split(',').map((s) => s.trim()) : null,
         education_level: form.education_level || null,
         industry: form.industry || null,
         language_req: form.language_req || null,
@@ -182,7 +167,6 @@ const Admin = () => {
       b_name: job.b_name,
       b_logo_url: job.b_logo_url || '',
       title: job.title,
-      title_en: job.title_en || '',
       category: job.category || '',
       salary_amount: job.salary_amount,
       payment_frequency: job.payment_frequency,
@@ -190,13 +174,9 @@ const Admin = () => {
       job_type: job.job_type,
       workplace_type: job.workplace_type,
       summary: job.summary || '',
-      summary_en: job.summary_en || '',
       description: job.description || '',
-      description_en: job.description_en || '',
       requirements: job.requirements || '',
-      requirements_en: job.requirements_en || '',
       highlights: job.highlights?.join(', ') || '',
-      highlights_en: job.highlights_en?.join(', ') || '',
       education_level: job.education_level || '',
       industry: job.industry || '',
       language_req: job.language_req || '',
@@ -236,23 +216,19 @@ const Admin = () => {
           const rows = results.data as Record<string, string>[];
           const payload = rows.map((row) => ({
             id: row.id || `job-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            b_name: row.b_name || 'Desconocido',
-            title: row.title || 'Sin Título',
-            title_en: row.title_en || null,
+            b_name: row.b_name || 'Empresa',
+            b_logo_url: row.b_logo_url || null,
+            title: row.title || 'Sem título',
             category: row.category || null,
-            location: row.location || 'México',
-            salary_amount: row.salary_amount || 'A convenir',
-            payment_frequency: row.payment_frequency || 'Mensual',
-            job_type: row.job_type || 'Tiempo Completo',
+            location: row.location || 'Brasil',
+            salary_amount: row.salary_amount || 'A combinar',
+            payment_frequency: row.payment_frequency || 'Mensal',
+            job_type: row.job_type || 'Tempo Integral',
             workplace_type: row.workplace_type || 'Presencial',
             summary: row.summary || null,
-            summary_en: row.summary_en || null,
             description: row.description || null,
-            description_en: row.description_en || null,
             requirements: row.requirements || null,
-            requirements_en: row.requirements_en || null,
             highlights: row.highlights ? row.highlights.split(',').map(s => s.trim()) : null,
-            highlights_en: row.highlights_en ? row.highlights_en.split(',').map(s => s.trim()) : null,
             education_level: row.education_level || null,
             industry: row.industry || null,
             language_req: row.language_req || null,
