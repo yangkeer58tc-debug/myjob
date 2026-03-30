@@ -389,8 +389,8 @@ const Admin = () => {
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
                   <Download className="h-4 w-4 mr-2" /> Plantilla CSV
                 </Button>
