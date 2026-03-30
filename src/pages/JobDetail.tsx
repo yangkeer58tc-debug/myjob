@@ -28,11 +28,11 @@ const JobDetail = () => {
     enabled: !!id,
   });
 
-  const title = job ? (lang === 'en' && job.title_en ? job.title_en : job.title) : '';
-  const description = job ? (lang === 'en' && job.description_en ? job.description_en : job.description) : '';
-  const summary = job ? (lang === 'en' && job.summary_en ? job.summary_en : job.summary) : '';
-  const requirements = job ? (lang === 'en' && job.requirements_en ? job.requirements_en : job.requirements) : '';
-  const highlights = job ? (lang === 'en' && job.highlights_en && job.highlights_en.length > 0 ? job.highlights_en : job.highlights) : null;
+  const title = job?.title || '';
+  const description = job?.description || '';
+  const summary = job?.summary || '';
+  const requirements = job?.requirements || '';
+  const highlights = job?.highlights || null;
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job?.b_name || '');
 

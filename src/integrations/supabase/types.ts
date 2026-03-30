@@ -21,11 +21,9 @@ export type Database = {
           category: string | null
           created_at: string
           description: string | null
-          description_en: string | null
           education_level: string | null
           experience: string | null
           highlights: string[] | null
-          highlights_en: string[] | null
           id: string
           industry: string | null
           is_active: boolean
@@ -34,13 +32,10 @@ export type Database = {
           location: string
           payment_frequency: string
           requirements: string | null
-          requirements_en: string | null
           salary_amount: string
           slug: string | null
           summary: string | null
-          summary_en: string | null
           title: string
-          title_en: string | null
           workplace_type: string
         }
         Insert: {
@@ -49,39 +44,9 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
-          description_en?: string | null
           education_level?: string | null
           experience?: string | null
           highlights?: string[] | null
-          highlights_en?: string[] | null
-          id: string
-          industry?: string | null
-          is_active?: boolean
-          job_type: string
-          language_req?: string | null
-          location: string
-          payment_frequency: string
-          requirements?: string | null
-          requirements_en?: string | null
-          salary_amount: string
-          slug?: string | null
-          summary?: string | null
-          summary_en?: string | null
-          title: string
-          title_en?: string | null
-          workplace_type: string
-        }
-        Update: {
-          b_logo_url?: string | null
-          b_name?: string
-          category?: string | null
-          created_at?: string
-          description?: string | null
-          description_en?: string | null
-          education_level?: string | null
-          experience?: string | null
-          highlights?: string[] | null
-          highlights_en?: string[] | null
           id?: string
           industry?: string | null
           is_active?: boolean
@@ -90,13 +55,33 @@ export type Database = {
           location?: string
           payment_frequency?: string
           requirements?: string | null
-          requirements_en?: string | null
           salary_amount?: string
           slug?: string | null
           summary?: string | null
-          summary_en?: string | null
           title?: string
-          title_en?: string | null
+          workplace_type?: string
+        }
+        Update: {
+          b_logo_url?: string | null
+          b_name?: string
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          education_level?: string | null
+          experience?: string | null
+          highlights?: string[] | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean
+          job_type?: string
+          language_req?: string | null
+          location?: string
+          payment_frequency?: string
+          requirements?: string | null
+          salary_amount?: string
+          slug?: string | null
+          summary?: string | null
+          title?: string
           workplace_type?: string
         }
         Relationships: []

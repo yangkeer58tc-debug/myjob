@@ -32,9 +32,9 @@ const JobCard = ({ job }: JobCardProps) => {
   const navigate = useNavigate();
   const { lang, t } = useLanguage();
 
-  const title = lang === 'en' && job.title_en ? job.title_en : job.title;
-  const summary = lang === 'en' && job.summary_en ? job.summary_en : job.summary;
-  const highlights = lang === 'en' && job.highlights_en && job.highlights_en.length > 0 ? job.highlights_en : job.highlights;
+  const title = job.title;
+  const summary = job.summary;
+  const highlights = job.highlights;
   const highlightPreview = highlights && highlights.length > 0 ? highlights.slice(0, 2).join(' • ') : '';
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job.b_name);
