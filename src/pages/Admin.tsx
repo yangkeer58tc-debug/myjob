@@ -213,14 +213,14 @@ const Admin = () => {
 
   const downloadTemplate = () => {
     const template = [
-      ['id', 'b_name', 'title', 'title_en', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'summary_en', 'description', 'description_en', 'requirements', 'requirements_en', 'highlights', 'highlights_en', 'education_level', 'industry', 'language_req', 'experience', 'is_active'],
-      ['job-example', 'Empresa de Prueba', 'Desarrollador Web', 'Web Developer', 'Tecnología', 'Ciudad de México', '$20,000', 'Mensual', 'Tiempo Completo', 'Híbrido', 'Buscamos desarrollador...', 'Looking for developer...', 'Detalles del puesto...', 'Job details...', 'React, Node.js', 'React, Node.js', 'Bono anual, Seguro médico', 'Annual bonus, Health insurance', 'Universidad', 'IT', 'Inglés intermedio', '2 años', 'true']
+      ['id', 'b_name', 'b_logo_url', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
+      ['job-exemplo', 'Empresa Exemplo', 'https://exemplo.com/logo.png', 'Atendente de Call Center', 'call-center-customer-service', 'São Paulo', 'R$ 2.200', 'Mensal', 'Tempo Integral', 'Presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Descreva a vaga em texto puro. Inclua como se candidatar pelo WhatsApp.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'Ensino Médio', 'Sem experiência', 'Serviços', 'Português', 'true']
     ];
     const csv = Papa.unparse(template);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'myjob_imc_template.csv';
+    link.download = 'myjob_imc_template_br.csv';
     link.click();
   };
 
