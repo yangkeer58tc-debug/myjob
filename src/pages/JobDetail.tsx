@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
 import { Briefcase, MapPin, Clock, Building2, MessageCircle, ChevronRight, AlertTriangle } from 'lucide-react';
@@ -143,14 +143,45 @@ const JobDetail = () => {
       }
     : null;
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: window.location.origin },
+      { '@type': 'ListItem', position: 2, name: 'Vagas', item: `${window.location.origin}/empleos` },
+      { '@type': 'ListItem', position: 3, name: title, item: window.location.href }
+    ]
+  };
+
+  const pageTitle = `${title} em ${job.location || 'Brasil'} | MyJob`;
+  const pageDescription = (summary || description || '').slice(0, 160);
+  const pageImage = job.b_logo_url || `${window.location.origin}/placeholder.svg`;
+  const pageUrl = window.location.href;
+
   return (
     <PublicLayout>
       <Helmet>
-        <title>{title} en {job.location} | MyJob</title>
-        <meta name="description" content={summary || `${title} en ${job.b_name} - ${job.location}`} />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <link rel="canonical" href={pageUrl} />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={pageImage} />
+        <meta property="og:url" content={pageUrl} />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={pageImage} />
+        
         {jsonLd && (
           <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
         )}
+        <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

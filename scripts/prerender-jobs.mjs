@@ -78,7 +78,7 @@ const fetchJobs = async () => {
   return jobs;
 };
 
-const applyHead = ({ html, title, description, canonical, jsonLd }) => {
+const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, ogImage }) => {
   let out = html;
 
   out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
@@ -86,6 +86,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd }) => {
     out = out.replace(/<head([^>]*)>/i, `<head$1><title>${escapeHtml(title)}</title>`);
   }
 
+  // Update description
   if (/<meta[^>]+name=["']description["'][^>]*>/i.test(out)) {
     out = out.replace(
       /<meta[^>]+name=["']description["'][^>]*>/i,
@@ -95,6 +96,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd }) => {
     out = out.replace(/<head([^>]*)>/i, `<head$1><meta name="description" content="${escapeHtml(description)}" />`);
   }
 
+  // Update canonical
   if (/<link[^>]+rel=["']canonical["'][^>]*>/i.test(out)) {
     out = out.replace(
       /<link[^>]+rel=["']canonical["'][^>]*>/i,
@@ -104,9 +106,32 @@ const applyHead = ({ html, title, description, canonical, jsonLd }) => {
     out = out.replace(/<head([^>]*)>/i, `<head$1><link rel="canonical" href="${escapeHtml(canonical)}" />`);
   }
 
-  const ld = `<script type="application/ld+json">${escapeJsonLd(JSON.stringify(jsonLd))}</script>`;
+  // Update Open Graph tags
+  const ogTags = `
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="${escapeHtml(canonical)}" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:image" content="${escapeHtml(ogImage)}" />
+    <meta name="twitter:url" content="${escapeHtml(canonical)}" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
+  `;
+
+  // Remove existing OG and Twitter tags if present, to avoid duplicates
+  out = out.replace(/<meta[^>]+property=["']og:[^>]+>/gi, '');
+  out = out.replace(/<meta[^>]+name=["']twitter:[^>]+>/gi, '');
+  
+  out = out.replace(/<\/head>/i, `${ogTags}</head>`);
+
+  const ld = `
+<script type="application/ld+json">${escapeJsonLd(JSON.stringify(jsonLd))}</script>
+<script type="application/ld+json">${escapeJsonLd(JSON.stringify(breadcrumbLd))}</script>
+`;
   if (/<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/i.test(out)) {
-    out = out.replace(/<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/i, ld);
+    // If we have an existing ld+json, append our new ones
+    out = out.replace(/(<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>)/i, `$1${ld}`);
   } else {
     out = out.replace(/<\/head>/i, `${ld}</head>`);
   }
@@ -174,6 +199,33 @@ const buildJobPostingJsonLd = (job) => {
   return base;
 };
 
+const buildBreadcrumbLd = (job) => {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: SITE_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Vagas',
+        item: `${SITE_URL}/vagas`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: job.title || 'Vaga',
+        item: `${SITE_URL}/empleo/${job.id}`,
+      },
+    ],
+  };
+};
+
 const main = async () => {
   const distDir = path.resolve('dist');
   const templatePath = path.join(distDir, 'index.html');
@@ -191,7 +243,9 @@ const main = async () => {
     const title = `${job.title || 'Vaga'} em ${job.location || 'Brasil'} | MyJob`;
     const desc = (job.summary || job.description || `Vaga em ${job.location || 'Brasil'}`).slice(0, 170);
     const jsonLd = buildJobPostingJsonLd(job);
-    const html = applyHead({ html: template, title, description: desc, canonical: jobUrl, jsonLd });
+    const breadcrumbLd = buildBreadcrumbLd(job);
+    const ogImage = job.b_logo_url || `${SITE_URL}/placeholder.svg`;
+    const html = applyHead({ html: template, title, description: desc, canonical: jobUrl, jsonLd, breadcrumbLd, ogImage });
 
     const outDir = path.join(distDir, 'empleo', String(job.id));
     await mkdir(outDir, { recursive: true });

@@ -24,6 +24,32 @@
     
     <!-- Canonical Tag -->
     <link rel="canonical" href="https://myjob.com/" />
+
+    <!-- Site and Organization Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "url": "https://myjob.com/",
+          "name": "MyJob",
+          "description": "Encontre as melhores vagas de emprego no Brasil.",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://myjob.com/vagas?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "name": "MyJob",
+          "url": "https://myjob.com/",
+          "logo": "https://myjob.com/placeholder.svg"
+        }
+      ]
+    }
+    </script>
   </head>
 
   <body>
