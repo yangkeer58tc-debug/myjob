@@ -387,6 +387,24 @@ const Admin = () => {
     link.click();
   };
 
+  const downloadOptionsCsv = () => {
+    const rows: Array<[string, string, string]> = [['field', 'id', 'label']];
+    CATEGORY_OPTIONS.forEach((o) => rows.push(['category', o.id, o.label]));
+    CITY_OPTIONS.forEach((o) => rows.push(['location', o.id, o.label]));
+    JOB_TYPE_OPTIONS.forEach((o) => rows.push(['job_type', o.id, o.label]));
+    WORKPLACE_TYPE_OPTIONS.forEach((o) => rows.push(['workplace_type', o.id, o.label]));
+    EDUCATION_LEVEL_OPTIONS.forEach((o) => rows.push(['education_level', o.id, o.label]));
+    EXPERIENCE_OPTIONS.forEach((o) => rows.push(['experience', o.id, o.label]));
+    PAYMENT_FREQUENCY_OPTIONS.forEach((o) => rows.push(['payment_frequency', o.id, o.label]));
+
+    const csv = Papa.unparse(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'myjob_options.csv';
+    link.click();
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -506,6 +524,9 @@ const Admin = () => {
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
                   <Download className="h-4 w-4 mr-2" /> Template CSV
+                </Button>
+                <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
+                  <Download className="h-4 w-4 mr-2" /> Options CSV
                 </Button>
                 <input
                   type="file"
