@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://myjob.mx').replace(/\/+$/, '');
+const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://myjob.com').replace(/\/+$/, '');
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -102,6 +102,16 @@ const main = async () => {
   const outFile = path.join(outDir, 'sitemap.xml');
   await mkdir(outDir, { recursive: true });
   await writeFile(outFile, xml, 'utf8');
+
+  const robots = [
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /admin',
+    '',
+    `Sitemap: ${SITE_URL}/sitemap.xml`,
+    '',
+  ].join('\n');
+  await writeFile(path.join(outDir, 'robots.txt'), robots, 'utf8');
   console.log(`Sitemap written: ${outFile} (${urls.length} URLs)`);
 };
 

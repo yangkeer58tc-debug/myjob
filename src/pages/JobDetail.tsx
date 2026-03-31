@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { formatRelativeTime } from '@/lib/timeUtils';
-import { formatSalaryBRL } from '@/lib/salaryUtils';
+import { formatSalaryBRL, salaryNumberForSchema } from '@/lib/salaryUtils';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ const JobDetail = () => {
   const summary = job?.summary || '';
   const requirements = job?.requirements || '';
   const highlights = job?.highlights || null;
+  const salaryValue = salaryNumberForSchema(job?.salary_amount);
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job?.b_name || '');
 
@@ -113,15 +114,26 @@ const JobDetail = () => {
             addressCountry: 'BR',
           },
         },
-        baseSalary: {
-          '@type': 'MonetaryAmount',
-          currency: 'BRL',
-          value: {
-            '@type': 'QuantitativeValue',
-            value: job.salary_amount.replace(/[^0-9.]/g, ''),
-            unitText: job.payment_frequency === 'mensal' ? 'MONTH' : job.payment_frequency === 'quinzenal' ? 'WEEK' : job.payment_frequency === 'hora' ? 'HOUR' : 'OTHER',
-          },
-        },
+        ...(salaryValue !== null
+          ? {
+              baseSalary: {
+                '@type': 'MonetaryAmount',
+                currency: 'BRL',
+                value: {
+                  '@type': 'QuantitativeValue',
+                  value: salaryValue,
+                  unitText:
+                    job.payment_frequency === 'mensal'
+                      ? 'MONTH'
+                      : job.payment_frequency === 'quinzenal'
+                        ? 'WEEK'
+                        : job.payment_frequency === 'hora'
+                          ? 'HOUR'
+                          : 'OTHER',
+                },
+              },
+            }
+          : {}),
         directApply: true,
         applicantLocationRequirements: {
           '@type': 'Country',

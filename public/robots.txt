@@ -1,21 +1,5 @@
-User-agent: Googlebot
-Allow: /
-Disallow: /admin
-
-User-agent: Bingbot
-Allow: /
-Disallow: /admin
-
-User-agent: Twitterbot
-Allow: /
-Disallow: /admin
-
-User-agent: facebookexternalhit
-Allow: /
-Disallow: /admin
-
 User-agent: *
 Allow: /
 Disallow: /admin
 
-Sitemap: https://myjob.mx/sitemap.xml
+Sitemap: https://myjob.com/sitemap.xml

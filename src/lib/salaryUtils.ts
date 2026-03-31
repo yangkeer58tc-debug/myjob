@@ -33,6 +33,12 @@ const parseSalaryNumber = (input: string) => {
   return { num, hasDecimals };
 };
 
+export const salaryNumberForSchema = (value: string | null | undefined) => {
+  if (!value) return null;
+  const parsed = parseSalaryNumber(String(value));
+  return parsed ? parsed.num : null;
+};
+
 export const formatSalaryBRL = (value: string | null | undefined) => {
   if (!value) return '';
   const parsed = parseSalaryNumber(String(value));
@@ -45,4 +51,3 @@ export const formatSalaryBRL = (value: string | null | undefined) => {
 
   return `R$ ${formatted}`;
 };
-
