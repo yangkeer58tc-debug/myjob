@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { LogOut, Plus, Pencil, Upload, Download, Sparkles } from 'lucide-react';
+import { LogOut, Plus, Pencil, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
@@ -33,6 +33,52 @@ interface JobForm {
   experience?: string;
   is_active: boolean;
 }
+
+const simplifyText = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^\p{L}\s]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+const normalizeCity = (value: string) => {
+  const s = simplifyText(value);
+  const mapping: Array<{ key: string; label: string }> = [
+    { key: 'rio de janeiro', label: 'Rio de Janeiro' },
+    { key: 'belo horizonte', label: 'Belo Horizonte' },
+    { key: 'sao paulo', label: 'São Paulo' },
+    { key: 'brasilia', label: 'Brasília' },
+    { key: 'uberlandia', label: 'Uberlândia' },
+  ];
+  const match = mapping.find((m) => s === m.key);
+  return match ? match.label : value;
+};
+
+const parseBoolean = (value: unknown, defaultValue: boolean) => {
+  if (value === null || value === undefined) return defaultValue;
+  const raw = String(value).trim();
+  if (!raw) return defaultValue;
+  const s = raw.toLowerCase();
+  if (['true', '1', 'yes', 'y', 'sim'].includes(s)) return true;
+  if (['false', '0', 'no', 'n', 'nao', 'não'].includes(s)) return false;
+  return defaultValue;
+};
+
+const decodeCsvFile = async (file: File) => {
+  const buffer = await file.arrayBuffer();
+  const decode = (encoding: string) => new TextDecoder(encoding, { fatal: false }).decode(buffer);
+  const utf8 = decode('utf-8');
+  if (!utf8.includes('\uFFFD')) return utf8;
+  try {
+    const win1252 = decode('windows-1252');
+    if (!win1252.includes('\uFFFD')) return win1252;
+    return win1252;
+  } catch {
+    return utf8;
+  }
+};
 
 const emptyForm: JobForm = {
   id: '',
@@ -255,6 +301,18 @@ const Admin = () => {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const activateAllMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('jobs').update({ is_active: true }).neq('is_active', true);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+      toast.success('Todas as vagas foram ativadas');
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   useEffect(() => {
     if (!session) return;
     if (autoSeedState !== 'idle') return;
@@ -290,6 +348,14 @@ const Admin = () => {
       }
     })();
   }, [session, autoSeedState, seedMocksMutation]);
+
+  useEffect(() => {
+    if (!session) return;
+    const key = 'myjob_auto_activated_v1';
+    if (localStorage.getItem(key) === '1') return;
+    activateAllMutation.mutate();
+    localStorage.setItem(key, '1');
+  }, [session, activateAllMutation]);
 
   if (!session) {
     return (
@@ -357,19 +423,27 @@ const Admin = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const rows = results.data as Record<string, string>[];
-          const payload = rows.map((row) => ({
-            id: row.id || `job-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            b_name: row.b_name || 'Empresa',
-            b_logo_url: row.b_logo_url || null,
+    (async () => {
+      try {
+        const text = await decodeCsvFile(file);
+        const results = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true });
+        if (results.errors?.length) {
+          const msg = results.errors[0]?.message || 'CSV inválido';
+          throw new Error(msg);
+        }
+
+        const rows = (results.data || []).filter((r) => Object.values(r || {}).some((v) => String(v ?? '').trim() !== ''));
+        const payload = rows.map((row) => {
+          const locationRaw = row.location || 'Brasil';
+          const location = normalizeCity(locationRaw);
+          const bLogo = row.b_logo_url ? row.b_logo_url : LOGO_URL;
+          return {
+            id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            b_name: row.b_name || 'MyJob',
+            b_logo_url: bLogo || null,
             title: row.title || 'Sem título',
             category: row.category || null,
-            location: row.location || 'Brasil',
+            location,
             salary_amount: row.salary_amount || 'A combinar',
             payment_frequency: row.payment_frequency || 'Mensal',
             job_type: row.job_type || 'Tempo Integral',
@@ -377,28 +451,26 @@ const Admin = () => {
             summary: row.summary || null,
             description: row.description || null,
             requirements: row.requirements || null,
-            highlights: row.highlights ? row.highlights.split(',').map(s => s.trim()) : null,
+            highlights: row.highlights ? row.highlights.split(',').map((s) => s.trim()).filter(Boolean) : null,
             education_level: row.education_level || null,
             industry: row.industry || null,
             language_req: row.language_req || null,
             experience: row.experience || null,
-            is_active: row.is_active === 'true' || row.is_active === '1',
-          }));
+            is_active: parseBoolean(row.is_active, true),
+          };
+        });
 
-          const { error } = await supabase.from('jobs').upsert(payload);
-          if (error) throw error;
-          
-          toast.success(`Importadas ${payload.length} vagas com sucesso.`);
-          queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-        } catch (err: any) {
-          toast.error(`Erro ao importar: ${err.message}`);
-        }
+        const { error } = await supabase.from('jobs').upsert(payload);
+        if (error) throw error;
+
+        toast.success(`Importadas ${payload.length} vagas com sucesso.`);
+        queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+      } catch (err: any) {
+        toast.error(`Erro ao importar: ${err.message}`);
+      } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';
-      },
-      error: (error) => {
-        toast.error(`Erro ao ler CSV: ${error.message}`);
       }
-    });
+    })();
   };
 
   return (
@@ -481,14 +553,6 @@ const Admin = () => {
                 />
                 <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="rounded-xl">
                   <Upload className="h-4 w-4 mr-2" /> Importar CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => seedMocksMutation.mutate()}
-                  className="rounded-xl"
-                  disabled={seedMocksMutation.isPending}
-                >
-                  <Sparkles className="h-4 w-4 mr-2" /> 200 mocks
                 </Button>
               </div>
               <Button onClick={openNew} className="rounded-xl">
