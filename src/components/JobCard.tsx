@@ -7,6 +7,7 @@ import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
 import { formatSalaryBRL } from '@/lib/salaryUtils';
+import { parseHighlights } from '@/lib/highlightUtils';
 
 interface JobCardProps {
   job: {
@@ -32,8 +33,7 @@ const JobCard = ({ job }: JobCardProps) => {
 
   const title = job.title;
   const summary = job.summary;
-  const highlights = job.highlights;
-  const highlightPreview = highlights && highlights.length > 0 ? highlights.slice(0, 2).join(' • ') : '';
+  const highlightPreview = job.highlights ? parseHighlights(job.highlights.join('\n')).slice(0, 2).join(' • ') : '';
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job.b_name);
 

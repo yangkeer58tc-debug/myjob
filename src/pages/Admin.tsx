@@ -11,6 +11,7 @@ import { LogOut, Plus, Pencil, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
+import { parseHighlights } from '@/lib/highlightUtils';
 
 interface JobForm {
   id: string;
@@ -243,7 +244,7 @@ const Admin = () => {
         summary: form.summary || null,
         description: form.description || null,
         requirements: form.requirements || null,
-        highlights: form.highlights ? form.highlights.split(',').map((s) => s.trim()) : null,
+        highlights: form.highlights ? parseHighlights(form.highlights) : null,
         education_level: form.education_level || null,
         industry: form.industry || null,
         language_req: form.language_req || null,
@@ -431,7 +432,7 @@ const Admin = () => {
             summary: row.summary || null,
             description: row.description || null,
             requirements: row.requirements || null,
-            highlights: row.highlights ? row.highlights.split(',').map((s) => s.trim()).filter(Boolean) : null,
+            highlights: row.highlights ? parseHighlights(row.highlights) : null,
             education_level: row.education_level || null,
             industry: row.industry || null,
             language_req: row.language_req || null,

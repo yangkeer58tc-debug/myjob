@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { formatRelativeTime } from '@/lib/timeUtils';
 import { formatSalaryBRL } from '@/lib/salaryUtils';
+import { parseHighlights } from '@/lib/highlightUtils';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ const JobDetail = () => {
   const summary = job?.summary || '';
   const requirements = job?.requirements || '';
   const highlights = job?.highlights || null;
+  const safeHighlights = parseHighlights((highlights || []).join('\n'));
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job?.b_name || '');
 
@@ -234,12 +236,12 @@ const JobDetail = () => {
             </article>
           )}
 
-          {highlights && highlights.length > 0 && (
+          {safeHighlights.length > 0 && (
             <div aria-label="Beneficios y Destacados">
               <h2 className="sr-only">Beneficios</h2>
               <div className="flex flex-wrap gap-2">
-                {highlights.map((h, i) => (
-                  <span key={i} className="bg-secondary text-secondary-foreground text-sm px-4 py-2 rounded-full font-medium">
+                {safeHighlights.map((h, i) => (
+                  <span key={i} className="bg-secondary text-secondary-foreground text-sm px-4 py-2 rounded-full font-medium max-w-[260px] truncate">
                     {h}
                   </span>
                 ))}
