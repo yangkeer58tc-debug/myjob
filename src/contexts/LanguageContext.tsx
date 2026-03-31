@@ -33,6 +33,7 @@ const translations: Translations = {
   // Job Detail
   'detail.breadHome': { pt: 'Início' },
   'detail.breadJobs': { pt: 'Vagas' },
+  'detail.summary': { pt: 'Resumo da Vaga' },
   'detail.description': { pt: 'Descrição da Vaga' },
   'detail.requirements': { pt: 'Requisitos' },
   'detail.expired': { pt: '⚠️ Esta vaga não está mais disponível.' },
