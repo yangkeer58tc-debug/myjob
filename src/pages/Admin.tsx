@@ -357,6 +357,33 @@ const Admin = () => {
     localStorage.setItem(key, '1');
   }, [session, activateAllMutation]);
 
+  useEffect(() => {
+    if (!session) return;
+    const key = 'myjob_fixed_locations_v1';
+    if (localStorage.getItem(key) === '1') return;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('jobs').select('id, location');
+        if (error) throw error;
+        const changed = (data || [])
+          .map((row) => ({
+            id: row.id,
+            before: row.location || '',
+            after: normalizeCity(row.location || ''),
+          }))
+          .filter((row) => row.after && row.after !== row.before)
+          .map((row) => ({ id: row.id, location: row.after }));
+        if (changed.length > 0) {
+          const { error: upsertError } = await supabase.from('jobs').upsert(changed);
+          if (upsertError) throw upsertError;
+          queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+        }
+      } catch {}
+      localStorage.setItem(key, '1');
+    })();
+  }, [session, queryClient]);
+
   if (!session) {
     return (
       <div className="min-h-screen bg-secondary flex items-center justify-center">
