@@ -193,7 +193,6 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [editing, setEditing] = useState<JobForm | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [autoSeedState, setAutoSeedState] = useState<'idle' | 'checking' | 'seeding' | 'done' | 'skipped'>('idle');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -272,100 +271,6 @@ const Admin = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminJobs'] }),
   });
 
-  const generateMockJobs = () => {
-    const combos: { category: string; location: string }[] = [];
-    for (const c of CATEGORY_OPTIONS) {
-      for (const city of CITY_OPTIONS) {
-        combos.push({ category: c.value, location: city });
-      }
-    }
-
-    const titleByCategory: Record<string, string[]> = {
-      'healthcare-medical': ['Enfermeiro(a)', 'Técnico em Enfermagem', 'Recepcionista de Clínica', 'Fisioterapeuta', 'Assistente de Laboratório'],
-      'call-center-customer-service': ['Operador de Telemarketing', 'Atendente de SAC', 'Analista de Suporte', 'Assistente de Relacionamento', 'Consultor de Atendimento'],
-      sales: ['Vendedor(a)', 'Consultor(a) de Vendas', 'Representante Comercial', 'Assistente Comercial', 'Gerente de Contas'],
-      'mfg-transport-logistics': ['Auxiliar de Logística', 'Motorista Entregador', 'Operador de Empilhadeira', 'Ajudante Geral', 'Conferente'],
-      'trades-services': ['Auxiliar de Limpeza', 'Técnico de Manutenção', 'Eletricista', 'Encanador', 'Mecânico'],
-    };
-
-    const items: any[] = [];
-    const runId = Date.now();
-    let i = 0;
-    for (const combo of combos) {
-      for (let k = 0; k < 8; k++) {
-        const titles = titleByCategory[combo.category] || ['Assistente'];
-        const baseTitle = titles[(k + i) % titles.length];
-        const title = `${baseTitle} - ${combo.location}`;
-        const salary = 1800 + (i % 12) * 150;
-        const payment = i % 2 === 0 ? 'Mensal' : 'Quinzenal';
-        const workplace = i % 4 === 0 ? 'Híbrido' : 'Presencial';
-        const jobType = i % 3 === 0 ? 'Meio Período' : 'Tempo Integral';
-        const highlights = [
-          'Vale Transporte',
-          'Vale Refeição',
-          'Plano de Saúde',
-          'Seguro de Vida',
-          'Treinamento',
-          'Bônus por desempenho',
-        ].slice(0, 4 + (i % 3));
-        items.push({
-          id: `mock-${runId}-${String(i).padStart(4, '0')}`,
-          b_name: 'MyJob',
-          b_logo_url: LOGO_URL,
-          title,
-          category: combo.category,
-          location: combo.location,
-          salary_amount: `R$ ${String(salary).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')}`,
-          payment_frequency: payment,
-          job_type: jobType,
-          workplace_type: workplace,
-          summary: `Vaga para ${baseTitle} em ${combo.location}. Processo rápido e 100% via WhatsApp.`,
-          description:
-            `Sobre a vaga:\n` +
-            `Buscamos ${baseTitle} para atuar em ${combo.location} (${workplace}). Você fará parte de um time focado em atendimento rápido e eficiente.\n\n` +
-            `Atividades:\n` +
-            `- Rotina operacional da função\n` +
-            `- Atendimento e suporte a demandas do dia a dia\n` +
-            `- Organização de informações e comunicação com a equipe\n\n` +
-            `O que oferecemos:\n` +
-            `${highlights.map((h) => `- ${h}`).join('\n')}\n\n` +
-            `Processo seletivo:\n` +
-            `1) Triagem pelo WhatsApp\n` +
-            `2) Conversa rápida com recrutador\n` +
-            `3) Entrevista (online ou presencial)\n\n` +
-            `Como se candidatar:\n` +
-            `Clique no botão “Candidatar-se pelo WhatsApp” e envie: nome completo, cidade, disponibilidade e experiência.\n`,
-          requirements:
-            `Requisitos:\n` +
-            `- Comprometimento e pontualidade\n` +
-            `- Boa comunicação\n` +
-            `- Disponibilidade para atuar em ${combo.location}\n` +
-            `- Vontade de aprender e crescer\n`,
-          highlights,
-          is_active: true,
-        });
-        i++;
-      }
-    }
-
-    return items;
-  };
-
-  const seedMocksMutation = useMutation({
-    mutationFn: async () => {
-      const jobs = generateMockJobs();
-      for (let i = 0; i < jobs.length; i += 100) {
-        const { error } = await supabase.from('jobs').upsert(jobs.slice(i, i + 100));
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-      toast.success('200 mocks criados');
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
-
   const activateAllMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('jobs').update({ is_active: true }).neq('is_active', true);
@@ -377,42 +282,6 @@ const Admin = () => {
     },
     onError: (err: any) => toast.error(err.message),
   });
-
-  useEffect(() => {
-    if (!session) return;
-    if (autoSeedState !== 'idle') return;
-
-    const storageKey = 'myjob_auto_seeded_v1';
-    if (localStorage.getItem(storageKey) === '1') {
-      setAutoSeedState('skipped');
-      return;
-    }
-
-    (async () => {
-      setAutoSeedState('checking');
-      const { count, error } = await supabase.from('jobs').select('*', { count: 'exact', head: true });
-      if (error) {
-        setAutoSeedState('idle');
-        return;
-      }
-
-      const total = count || 0;
-      if (total >= 200) {
-        localStorage.setItem(storageKey, '1');
-        setAutoSeedState('skipped');
-        return;
-      }
-
-      setAutoSeedState('seeding');
-      try {
-        await seedMocksMutation.mutateAsync();
-        localStorage.setItem(storageKey, '1');
-        setAutoSeedState('done');
-      } catch {
-        setAutoSeedState('idle');
-      }
-    })();
-  }, [session, autoSeedState, seedMocksMutation]);
 
   useEffect(() => {
     if (!session) return;
@@ -448,6 +317,25 @@ const Admin = () => {
       localStorage.setItem(key, '1');
     })();
   }, [session, queryClient]);
+
+  const deleteAllJobsMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('jobs').delete().neq('id', '');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+      toast.success('Todas as vagas foram excluídas');
+    },
+    onError: (err: any) => {
+      const msg = String(err?.message || err || '');
+      if (msg.toLowerCase().includes('row level security') || msg.toLowerCase().includes('row-level security')) {
+        toast.error('权限不足：需要在 Supabase 给 authenticated 增加 jobs 的 DELETE policy');
+        return;
+      }
+      toast.error(msg);
+    },
+  });
 
   if (!session) {
     return (
@@ -575,11 +463,6 @@ const Admin = () => {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
-        {autoSeedState === 'seeding' && (
-          <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm">
-            正在自动生成 200 条帖子数据…（Aguarde）
-          </div>
-        )}
         {jobsError && (
           <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm text-destructive">
             {(jobsError as Error).message}
@@ -645,6 +528,18 @@ const Admin = () => {
                 />
                 <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="rounded-xl">
                   <Upload className="h-4 w-4 mr-2" /> Importar CSV
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="rounded-xl"
+                  disabled={deleteAllJobsMutation.isPending}
+                  onClick={() => {
+                    const v = window.prompt('输入 DELETE 确认清空所有帖子');
+                    if (v !== 'DELETE') return;
+                    deleteAllJobsMutation.mutate();
+                  }}
+                >
+                  清空全部帖子
                 </Button>
               </div>
               <Button onClick={openNew} className="rounded-xl">
