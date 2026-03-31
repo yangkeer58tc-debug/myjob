@@ -7,7 +7,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { formatRelativeTime } from '@/lib/timeUtils';
 import { formatSalaryBRL } from '@/lib/salaryUtils';
-import { parseHighlights } from '@/lib/highlightUtils';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
@@ -34,8 +33,6 @@ const JobDetail = () => {
   const description = job?.description || '';
   const summary = job?.summary || '';
   const requirements = job?.requirements || '';
-  const highlights = job?.highlights || null;
-  const safeHighlights = parseHighlights((highlights || []).join('\n'));
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job?.b_name || '');
 
@@ -186,6 +183,16 @@ const JobDetail = () => {
             <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
               <Building2 className="h-3.5 w-3.5" /> {job.workplace_type}
             </span>
+            {job.education_level && (
+              <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
+                {job.education_level}
+              </span>
+            )}
+            {job.experience && (
+              <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
+                {job.experience}
+              </span>
+            )}
           </div>
 
           {/* Salary */}
@@ -236,18 +243,7 @@ const JobDetail = () => {
             </article>
           )}
 
-          {safeHighlights.length > 0 && (
-            <div aria-label="Beneficios y Destacados">
-              <h2 className="sr-only">Beneficios</h2>
-              <div className="flex flex-wrap gap-2">
-                {safeHighlights.map((h, i) => (
-                  <span key={i} className="bg-secondary text-secondary-foreground text-sm px-4 py-2 rounded-full font-medium max-w-[260px] truncate">
-                    {h}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {highlights && highlights.length > 0 ? null : null}
         </div>
 
         {/* Related Jobs */}

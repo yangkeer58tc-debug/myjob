@@ -7,7 +7,6 @@ import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
 import { formatSalaryBRL } from '@/lib/salaryUtils';
-import { parseHighlights } from '@/lib/highlightUtils';
 
 interface JobCardProps {
   job: {
@@ -22,6 +21,8 @@ interface JobCardProps {
     payment_frequency: string;
     summary: string | null;
     highlights: string[] | null;
+    education_level?: string | null;
+    experience?: string | null;
     created_at: string;
     is_active: boolean;
   };
@@ -33,7 +34,7 @@ const JobCard = ({ job }: JobCardProps) => {
 
   const title = job.title;
   const summary = job.summary;
-  const highlightPreview = job.highlights ? parseHighlights(job.highlights.join('\n')).slice(0, 2).join(' • ') : '';
+  const tagsPreview = [job.education_level, job.experience].filter(Boolean).slice(0, 2).join(' • ');
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job.b_name);
 
@@ -65,16 +66,16 @@ const JobCard = ({ job }: JobCardProps) => {
           <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
             {title}
           </CardTitle>
-          {(summary || highlightPreview) && (
+          {(summary || tagsPreview) && (
             <div className="mt-2 min-h-[2.5rem] space-y-1">
               {summary && (
                 <CardDescription className="text-xs line-clamp-2">
                   {summary}
                 </CardDescription>
               )}
-              {highlightPreview && (
+              {tagsPreview && (
                 <p className="text-muted-foreground text-[11px] line-clamp-1">
-                  {highlightPreview}
+                  {tagsPreview}
                 </p>
               )}
             </div>
