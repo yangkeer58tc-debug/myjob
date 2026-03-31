@@ -12,6 +12,16 @@ import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 import { parseHighlights } from '@/lib/highlightUtils';
+import {
+  CATEGORY_OPTIONS,
+  CITY_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  EXPERIENCE_OPTIONS,
+  JOB_TYPE_OPTIONS,
+  PAYMENT_FREQUENCY_OPTIONS,
+  WORKPLACE_TYPE_OPTIONS,
+  normalizeOptionId,
+} from '@/lib/jobOptions';
 
 interface JobForm {
   id: string;
@@ -72,19 +82,12 @@ const levenshteinDistance = (a: string, b: string) => {
 
 const normalizeCity = (value: string) => {
   const s = simplifyText(value);
-  const mapping: Array<{ key: string; label: string }> = [
-    { key: 'rio de janeiro', label: 'Rio de Janeiro' },
-    { key: 'belo horizonte', label: 'Belo Horizonte' },
-    { key: 'sao paulo', label: 'São Paulo' },
-    { key: 'brasilia', label: 'Brasília' },
-    { key: 'uberlandia', label: 'Uberlândia' },
-  ];
-  const exact = mapping.find((m) => s === m.key);
+  const exact = CITY_OPTIONS.find((m) => simplifyText(m.label) === s || simplifyText(m.id) === s);
   if (exact) return exact.label;
 
   let best: { label: string; dist: number } | null = null;
-  for (const m of mapping) {
-    const dist = levenshteinDistance(s, m.key);
+  for (const m of CITY_OPTIONS) {
+    const dist = levenshteinDistance(s, simplifyText(m.label));
     if (!best || dist < best.dist) best = { label: m.label, dist };
   }
   if (best && best.dist <= 2) return best.label;
@@ -168,22 +171,6 @@ const emptyForm: JobForm = {
   is_active: true,
 };
 
-const CATEGORY_OPTIONS = [
-  { value: 'healthcare-medical', label: 'Saúde' },
-  { value: 'call-center-customer-service', label: 'Atendimento / Call Center' },
-  { value: 'sales', label: 'Vendas' },
-  { value: 'mfg-transport-logistics', label: 'Indústria / Transporte / Logística' },
-  { value: 'trades-services', label: 'Serviços' },
-];
-
-const CITY_OPTIONS = [
-  'Rio de Janeiro',
-  'Belo Horizonte',
-  'São Paulo',
-  'Brasília',
-  'Uberlândia',
-];
-
 const LOGO_URL = 'https://i.postimg.cc/VLyx9gfK/Gemini-Generated-Image-eiv43beiv43beiv4-(2).png';
 
 const Admin = () => {
@@ -235,20 +222,20 @@ const Admin = () => {
         b_name: form.b_name,
         b_logo_url: form.b_logo_url || null,
         title: form.title,
-        category: form.category || null,
+        category: normalizeOptionId(form.category, CATEGORY_OPTIONS) || null,
         salary_amount: form.salary_amount,
-        payment_frequency: form.payment_frequency,
-        location: form.location,
-        job_type: form.job_type,
-        workplace_type: form.workplace_type,
+        payment_frequency: normalizeOptionId(form.payment_frequency, PAYMENT_FREQUENCY_OPTIONS) || form.payment_frequency,
+        location: normalizeCity(form.location),
+        job_type: normalizeOptionId(form.job_type, JOB_TYPE_OPTIONS) || form.job_type,
+        workplace_type: normalizeOptionId(form.workplace_type, WORKPLACE_TYPE_OPTIONS) || form.workplace_type,
         summary: form.summary || null,
         description: form.description || null,
         requirements: form.requirements || null,
         highlights: form.highlights ? parseHighlights(form.highlights) : null,
-        education_level: form.education_level || null,
+        education_level: normalizeOptionId(form.education_level, EDUCATION_LEVEL_OPTIONS) || null,
         industry: form.industry || null,
         language_req: form.language_req || null,
-        experience: form.experience || null,
+        experience: normalizeOptionId(form.experience, EXPERIENCE_OPTIONS) || null,
         is_active: form.is_active,
       };
 
@@ -390,7 +377,7 @@ const Admin = () => {
   const downloadTemplate = () => {
     const template = [
       ['id', 'b_name', 'b_logo_url', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
-      ['job-exemplo', 'Empresa Exemplo', 'https://exemplo.com/logo.png', 'Atendente de Call Center', 'call-center-customer-service', 'São Paulo', 'R$ 2.200', 'Mensal', 'Tempo Integral', 'Presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Descreva a vaga em texto puro. Inclua como se candidatar pelo WhatsApp.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'Ensino Médio', 'Sem experiência', 'Serviços', 'Português', 'true']
+      ['job-exemplo', 'MyJob', LOGO_URL, 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '2200', 'mensal', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Descreva a vaga em texto puro. Inclua como se candidatar pelo WhatsApp.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
     ];
     const csv = Papa.unparse(template);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -423,20 +410,20 @@ const Admin = () => {
             b_name: row.b_name || 'MyJob',
             b_logo_url: bLogo || null,
             title: row.title || 'Sem título',
-            category: row.category || null,
+            category: row.category ? normalizeOptionId(row.category, CATEGORY_OPTIONS) : null,
             location,
             salary_amount: row.salary_amount ? normalizeSalaryInput(row.salary_amount) : 'A combinar',
-            payment_frequency: row.payment_frequency || 'Mensal',
-            job_type: row.job_type || 'Tempo Integral',
-            workplace_type: row.workplace_type || 'Presencial',
+            payment_frequency: row.payment_frequency ? normalizeOptionId(row.payment_frequency, PAYMENT_FREQUENCY_OPTIONS) : 'mensal',
+            job_type: row.job_type ? normalizeOptionId(row.job_type, JOB_TYPE_OPTIONS) : 'tempo-integral',
+            workplace_type: row.workplace_type ? normalizeOptionId(row.workplace_type, WORKPLACE_TYPE_OPTIONS) : 'presencial',
             summary: row.summary || null,
             description: row.description || null,
             requirements: row.requirements || null,
             highlights: row.highlights ? parseHighlights(row.highlights) : null,
-            education_level: row.education_level || null,
+            education_level: row.education_level ? normalizeOptionId(row.education_level, EDUCATION_LEVEL_OPTIONS) : null,
             industry: row.industry || null,
             language_req: row.language_req || null,
-            experience: row.experience || null,
+            experience: row.experience ? normalizeOptionId(row.experience, EXPERIENCE_OPTIONS) : null,
             is_active: parseBoolean(row.is_active, true),
           };
         });
@@ -482,7 +469,7 @@ const Admin = () => {
                 <Input list="category-options" value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="rounded-xl mt-1" />
                 <datalist id="category-options">
                   {CATEGORY_OPTIONS.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
+                    <option key={c.id} value={c.id}>{c.label}</option>
                   ))}
                 </datalist>
               </div>
@@ -493,7 +480,7 @@ const Admin = () => {
                 <Input list="city-options" value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} className="rounded-xl mt-1" />
                 <datalist id="city-options">
                   {CITY_OPTIONS.map((c) => (
-                    <option key={c} value={c} />
+                    <option key={c.id} value={c.id}>{c.label}</option>
                   ))}
                 </datalist>
               </div>

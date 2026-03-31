@@ -7,15 +7,9 @@ import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 
 const ITEMS_PER_PAGE = 30;
-const CATEGORY_OPTIONS = [
-  { value: 'healthcare-medical', label: 'Saúde' },
-  { value: 'call-center-customer-service', label: 'Atendimento / Call Center' },
-  { value: 'sales', label: 'Vendas' },
-  { value: 'mfg-transport-logistics', label: 'Logística' },
-  { value: 'trades-services', label: 'Serviços' },
-];
 
 const buildPagination = (current: number, total: number) => {
   if (total <= 1) return [];
@@ -136,7 +130,7 @@ const JobList = () => {
               <SelectContent>
                 <SelectItem value="__all__">Todas as categorias</SelectItem>
                 {CATEGORY_OPTIONS.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

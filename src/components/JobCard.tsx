@@ -7,6 +7,7 @@ import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
 import { formatSalaryBRL } from '@/lib/salaryUtils';
+import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 
 interface JobCardProps {
   job: {
@@ -34,7 +35,10 @@ const JobCard = ({ job }: JobCardProps) => {
 
   const title = job.title;
   const summary = job.summary;
-  const tagsPreview = [job.education_level, job.experience].filter(Boolean).slice(0, 2).join(' • ');
+  const tagsPreview = [job.education_level ? optionLabel(job.education_level, EDUCATION_LEVEL_OPTIONS) : '', job.experience ? optionLabel(job.experience, EXPERIENCE_OPTIONS) : '']
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(' • ');
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job.b_name);
 
@@ -88,16 +92,16 @@ const JobCard = ({ job }: JobCardProps) => {
               <MapPin className="mr-1 h-3 w-3" /> {job.location}
             </Badge>
             <Badge variant="secondary" className="rounded-md font-medium text-[10px] px-2 py-0">
-              <Briefcase className="mr-1 h-3 w-3" /> {job.job_type}
+              <Briefcase className="mr-1 h-3 w-3" /> {optionLabel(job.job_type, JOB_TYPE_OPTIONS)}
             </Badge>
             <Badge variant="secondary" className="rounded-md font-medium text-[10px] px-2 py-0">
-              <Building2 className="mr-1 h-3 w-3" /> {job.workplace_type}
+              <Building2 className="mr-1 h-3 w-3" /> {optionLabel(job.workplace_type, WORKPLACE_TYPE_OPTIONS)}
             </Badge>
           </div>
           
           <div className="flex items-baseline space-x-1">
             <span className="text-xl font-bold text-primary">{formatSalaryBRL(job.salary_amount)}</span>
-            <span className="text-[10px] text-muted-foreground font-medium">{job.payment_frequency}</span>
+            <span className="text-[10px] text-muted-foreground font-medium">{optionLabel(job.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)}</span>
           </div>
         </CardContent>
 

@@ -7,6 +7,7 @@ import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 
 const CITIES = [
   'Rio de Janeiro',
@@ -15,13 +16,7 @@ const CITIES = [
   'Brasília',
   'Uberlândia'
 ];
-const CATEGORIES = [
-  { value: 'healthcare-medical', name: 'Saúde' },
-  { value: 'call-center-customer-service', name: 'Atendimento / Call Center' },
-  { value: 'sales', name: 'Vendas' },
-  { value: 'mfg-transport-logistics', name: 'Logística' },
-  { value: 'trades-services', name: 'Serviços' },
-];
+const CATEGORIES = CATEGORY_OPTIONS.map((c) => ({ value: c.id, name: c.label }));
 
 const PhoneMockup = () => {
   return (

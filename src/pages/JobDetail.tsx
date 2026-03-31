@@ -10,6 +10,7 @@ import { formatSalaryBRL } from '@/lib/salaryUtils';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
+import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 
 const JobDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -90,11 +91,18 @@ const JobDetail = () => {
         `,
         datePosted: job.created_at,
         validThrough: new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Assume valid for 30 days
-        employmentType: job.job_type === 'Tiempo Completo' ? 'FULL_TIME' : job.job_type === 'Medio Tiempo' ? 'PART_TIME' : 'OTHER',
+        employmentType:
+          job.job_type === 'tempo-integral'
+            ? 'FULL_TIME'
+            : job.job_type === 'meio-periodo'
+              ? 'PART_TIME'
+              : job.job_type === 'estagio'
+                ? 'INTERN'
+                : 'OTHER',
         hiringOrganization: {
           '@type': 'Organization',
           name: job.b_name,
-          sameAs: 'https://myjob.mx',
+          sameAs: 'https://myjob.com',
           ...(job.b_logo_url && { logo: job.b_logo_url }),
         },
         jobLocation: {
@@ -102,24 +110,24 @@ const JobDetail = () => {
           address: {
             '@type': 'PostalAddress',
             addressLocality: job.location,
-            addressCountry: 'MX',
+            addressCountry: 'BR',
           },
         },
         baseSalary: {
           '@type': 'MonetaryAmount',
-          currency: 'MXN',
+          currency: 'BRL',
           value: {
             '@type': 'QuantitativeValue',
             value: job.salary_amount.replace(/[^0-9.]/g, ''),
-            unitText: job.payment_frequency === 'Mensual' ? 'MONTH' : job.payment_frequency === 'Quincenal' ? 'WEEK' : 'HOUR',
+            unitText: job.payment_frequency === 'mensal' ? 'MONTH' : job.payment_frequency === 'quinzenal' ? 'WEEK' : job.payment_frequency === 'hora' ? 'HOUR' : 'OTHER',
           },
         },
         directApply: true,
         applicantLocationRequirements: {
           '@type': 'Country',
-          name: 'MX'
+          name: 'BR'
         },
-        jobLocationType: job.workplace_type === 'Remoto' ? 'TELECOMMUTE' : undefined,
+        jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
       }
     : null;
 
@@ -152,7 +160,7 @@ const JobDetail = () => {
           {job.category && (
             <>
               <ChevronRight className="h-3.5 w-3.5" />
-              <span className="text-foreground">{job.category}</span>
+              <span className="text-foreground">{optionLabel(job.category, CATEGORY_OPTIONS)}</span>
             </>
           )}
         </nav>
@@ -179,19 +187,19 @@ const JobDetail = () => {
               <MapPin className="h-3.5 w-3.5" /> {job.location}
             </span>
             <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
-              <Clock className="h-3.5 w-3.5" /> {job.job_type}
+              <Clock className="h-3.5 w-3.5" /> {optionLabel(job.job_type, JOB_TYPE_OPTIONS)}
             </span>
             <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
-              <Building2 className="h-3.5 w-3.5" /> {job.workplace_type}
+              <Building2 className="h-3.5 w-3.5" /> {optionLabel(job.workplace_type, WORKPLACE_TYPE_OPTIONS)}
             </span>
             {job.education_level && (
               <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
-                {job.education_level}
+                {optionLabel(job.education_level, EDUCATION_LEVEL_OPTIONS)}
               </span>
             )}
             {job.experience && (
               <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
-                {job.experience}
+                {optionLabel(job.experience, EXPERIENCE_OPTIONS)}
               </span>
             )}
           </div>
@@ -199,7 +207,7 @@ const JobDetail = () => {
           {/* Salary */}
           <p className="text-3xl font-black text-whatsapp mb-1">
             {formatSalaryBRL(job.salary_amount)}{' '}
-            <span className="text-base font-medium text-muted-foreground">{job.payment_frequency}</span>
+            <span className="text-base font-medium text-muted-foreground">{optionLabel(job.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)}</span>
           </p>
           <p className="text-sm text-muted-foreground">{formatRelativeTime(job.created_at, lang)}</p>
         </div>
