@@ -33,6 +33,7 @@ const JobDetail = () => {
   const description = job?.description || '';
   const summary = job?.summary || '';
   const requirements = job?.requirements || '';
+  const highlights = job?.highlights || null;
 
   const { handleApply, QRModal } = useWhatsAppRedirect(title, job?.b_name || '');
 
@@ -243,7 +244,6 @@ const JobDetail = () => {
             </article>
           )}
 
-          {highlights && highlights.length > 0 ? null : null}
         </div>
 
         {/* Related Jobs */}
