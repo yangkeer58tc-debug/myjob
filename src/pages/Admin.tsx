@@ -100,6 +100,14 @@ const parseBoolean = (value: unknown, defaultValue: boolean) => {
   return defaultValue;
 };
 
+const normalizeSalaryInput = (value: string) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return raw;
+  const numeric = raw.replace(/\s/g, '').replace(/,/g, '.');
+  if (/^-?\d+(\.\d+)?$/.test(numeric)) return numeric;
+  return raw;
+};
+
 const decodeCsvFile = async (file: File) => {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -528,7 +536,7 @@ const Admin = () => {
             title: row.title || 'Sem título',
             category: row.category || null,
             location,
-            salary_amount: row.salary_amount || 'A combinar',
+            salary_amount: row.salary_amount ? normalizeSalaryInput(row.salary_amount) : 'A combinar',
             payment_frequency: row.payment_frequency || 'Mensal',
             job_type: row.job_type || 'Tempo Integral',
             workplace_type: row.workplace_type || 'Presencial',

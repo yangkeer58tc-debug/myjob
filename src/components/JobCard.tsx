@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
+import { formatSalaryBRL } from '@/lib/salaryUtils';
 
 interface JobCardProps {
   job: {
@@ -94,7 +95,7 @@ const JobCard = ({ job }: JobCardProps) => {
           </div>
           
           <div className="flex items-baseline space-x-1">
-            <span className="text-xl font-bold text-primary">{job.salary_amount}</span>
+            <span className="text-xl font-bold text-primary">{formatSalaryBRL(job.salary_amount)}</span>
             <span className="text-[10px] text-muted-foreground font-medium">{job.payment_frequency}</span>
           </div>
         </CardContent>

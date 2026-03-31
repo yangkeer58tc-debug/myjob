@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { formatRelativeTime } from '@/lib/timeUtils';
+import { formatSalaryBRL } from '@/lib/salaryUtils';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
@@ -187,7 +188,7 @@ const JobDetail = () => {
 
           {/* Salary */}
           <p className="text-3xl font-black text-whatsapp mb-1">
-            {job.salary_amount}{' '}
+            {formatSalaryBRL(job.salary_amount)}{' '}
             <span className="text-base font-medium text-muted-foreground">{job.payment_frequency}</span>
           </p>
           <p className="text-sm text-muted-foreground">{formatRelativeTime(job.created_at, lang)}</p>

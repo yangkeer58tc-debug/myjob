@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,7 +8,7 @@ import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 30;
 const CATEGORY_OPTIONS = [
   { value: 'healthcare-medical', label: 'Saúde' },
   { value: 'call-center-customer-service', label: 'Atendimento / Call Center' },
@@ -17,9 +17,30 @@ const CATEGORY_OPTIONS = [
   { value: 'trades-services', label: 'Serviços' },
 ];
 
+const buildPagination = (current: number, total: number) => {
+  if (total <= 1) return [];
+  const siblings = 2;
+
+  const pages = new Set<number>();
+  pages.add(1);
+  pages.add(total);
+  for (let p = current - siblings; p <= current + siblings; p++) {
+    if (p >= 1 && p <= total) pages.add(p);
+  }
+
+  const sorted = Array.from(pages).sort((a, b) => a - b);
+  const out: Array<number | '...'> = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const p = sorted[i];
+    const prev = sorted[i - 1];
+    if (i > 0 && prev !== undefined && p - prev > 1) out.push('...');
+    out.push(p);
+  }
+  return out;
+};
+
 const JobList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { t } = useLanguage();
   const city = searchParams.get('ciudad') || '';
   const category = searchParams.get('categoria') || '';
@@ -68,6 +89,7 @@ const JobList = () => {
   const pageTitle = city
     ? `${t('joblist.title')} ${city}`
     : t('joblist.allJobs');
+  const pageItems = buildPagination(page, totalPages);
 
   const handleCategoryChange = (value: string) => {
     if (value === '__all__') {
@@ -159,17 +181,23 @@ const JobList = () => {
                 >
                   {t('pagination.prev')}
                 </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Button
-                    key={p}
-                    variant={p === page ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handlePageChange(p)}
-                    className="rounded-xl w-10"
-                  >
-                    {p}
-                  </Button>
-                ))}
+                {pageItems.map((item, idx) =>
+                  item === '...' ? (
+                    <Button key={`e-${idx}`} variant="outline" size="sm" disabled className="rounded-xl w-10">
+                      …
+                    </Button>
+                  ) : (
+                    <Button
+                      key={item}
+                      variant={item === page ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handlePageChange(item)}
+                      className="rounded-xl w-10"
+                    >
+                      {item}
+                    </Button>
+                  ),
+                )}
                 <Button
                   variant="outline"
                   size="sm"
