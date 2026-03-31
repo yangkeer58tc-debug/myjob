@@ -43,6 +43,32 @@ const simplifyText = (value: string) =>
     .trim()
     .toLowerCase();
 
+const levenshteinDistance = (a: string, b: string) => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  const prev = new Array(b.length + 1);
+  const curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    const ca = a.charCodeAt(i - 1);
+    for (let j = 1; j <= b.length; j++) {
+      const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(
+        prev[j] + 1,
+        curr[j - 1] + 1,
+        prev[j - 1] + cost,
+      );
+    }
+    for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+  }
+
+  return prev[b.length];
+};
+
 const normalizeCity = (value: string) => {
   const s = simplifyText(value);
   const mapping: Array<{ key: string; label: string }> = [
@@ -52,8 +78,16 @@ const normalizeCity = (value: string) => {
     { key: 'brasilia', label: 'Brasília' },
     { key: 'uberlandia', label: 'Uberlândia' },
   ];
-  const match = mapping.find((m) => s === m.key);
-  return match ? match.label : value;
+  const exact = mapping.find((m) => s === m.key);
+  if (exact) return exact.label;
+
+  let best: { label: string; dist: number } | null = null;
+  for (const m of mapping) {
+    const dist = levenshteinDistance(s, m.key);
+    if (!best || dist < best.dist) best = { label: m.label, dist };
+  }
+  if (best && best.dist <= 2) return best.label;
+  return value;
 };
 
 const parseBoolean = (value: unknown, defaultValue: boolean) => {
@@ -68,15 +102,38 @@ const parseBoolean = (value: unknown, defaultValue: boolean) => {
 
 const decodeCsvFile = async (file: File) => {
   const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+
   const decode = (encoding: string) => new TextDecoder(encoding, { fatal: false }).decode(buffer);
+  const hasManyNulls = (text: string) => {
+    let n = 0;
+    for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) === 0) n++;
+    return n > 10;
+  };
+
+  const hasBomUtf8 = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  const hasBomUtf16le = bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe;
+  const hasBomUtf16be = bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff;
+
+  if (hasBomUtf16le) return decode('utf-16le');
+  if (hasBomUtf16be) return decode('utf-16be');
+  if (hasBomUtf8) return decode('utf-8');
+
   const utf8 = decode('utf-8');
-  if (!utf8.includes('\uFFFD')) return utf8;
+  if (!utf8.includes('\uFFFD') && !hasManyNulls(utf8)) return utf8;
+
+  const utf16le = decode('utf-16le');
+  if (!utf16le.includes('\uFFFD') && !hasManyNulls(utf16le)) return utf16le;
+
+  const win1252 = decode('windows-1252');
+  if (!win1252.includes('\uFFFD')) return win1252;
+
   try {
-    const win1252 = decode('windows-1252');
-    if (!win1252.includes('\uFFFD')) return win1252;
-    return win1252;
+    const latin1 = decode('iso-8859-1');
+    if (!latin1.includes('\uFFFD')) return latin1;
+    return latin1;
   } catch {
-    return utf8;
+    return win1252;
   }
 };
 
@@ -359,7 +416,7 @@ const Admin = () => {
 
   useEffect(() => {
     if (!session) return;
-    const key = 'myjob_fixed_locations_v1';
+    const key = 'myjob_fixed_locations_v2';
     if (localStorage.getItem(key) === '1') return;
 
     (async () => {
