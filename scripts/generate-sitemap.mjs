@@ -32,9 +32,9 @@ const fetchJobs = async () => {
 
   for (let offset = 0; ; offset += pageSize) {
     const url = new URL(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/jobs`);
-    url.searchParams.set('select', 'id,created_at,updated_at');
+    url.searchParams.set('select', 'id,created_at');
     url.searchParams.set('is_active', 'eq.true');
-    url.searchParams.set('order', 'updated_at.desc');
+    url.searchParams.set('order', 'created_at.desc');
     url.searchParams.set('limit', String(pageSize));
     url.searchParams.set('offset', String(offset));
 
@@ -88,7 +88,7 @@ const main = async () => {
     for (const job of jobs) {
       urls.push({
         loc: `${SITE_URL}/empleo/${job.id}`,
-        lastmod: toIsoDate(job.updated_at) || toIsoDate(job.created_at),
+        lastmod: toIsoDate(job.created_at),
         changefreq: 'weekly',
         priority: 0.6,
       });

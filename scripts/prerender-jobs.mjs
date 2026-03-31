@@ -39,7 +39,6 @@ const fetchJobs = async () => {
         'requirements',
         'highlights',
         'created_at',
-        'updated_at',
         'is_active',
         'location',
         'category',
@@ -54,7 +53,7 @@ const fetchJobs = async () => {
       ].join(','),
     );
     url.searchParams.set('is_active', 'eq.true');
-    url.searchParams.set('order', 'updated_at.desc');
+    url.searchParams.set('order', 'created_at.desc');
     url.searchParams.set('limit', String(pageSize));
     url.searchParams.set('offset', String(offset));
 
@@ -201,4 +200,3 @@ const main = async () => {
 };
 
 await main();
-
