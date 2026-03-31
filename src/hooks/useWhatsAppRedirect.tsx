@@ -10,7 +10,10 @@ export const useWhatsAppRedirect = (jobTitle: string, bName: string) => {
   const [qrOpen, setQrOpen] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
 
-  const msg = `Hola, me quiero postular para la vacante de ${jobTitle} en ${bName} que vi en MyJob.`;
+  const msg = t('wa.defaultMessage') 
+    ? t('wa.defaultMessage').replace('{jobTitle}', jobTitle || '').replace('{bName}', bName || '')
+    : `Olá! Tenho interesse na vaga de ${jobTitle} da empresa ${bName} que vi no MyJob.`;
+  
   const encodedMsg = encodeURIComponent(msg);
   const waUrl = `https://wa.me/${BOT_NUMBER}?text=${encodedMsg}`;
 

@@ -45,6 +45,7 @@ const translations: Translations = {
   'wa.apply': { pt: 'Candidatar-se pelo WhatsApp' },
   'wa.scanTitle': { pt: 'Escaneie para se candidatar' },
   'wa.scanSubtext': { pt: 'Abra a câmera do seu celular e escaneie este código para se candidatar.' },
+  'wa.defaultMessage': { pt: 'Olá! Tenho interesse na vaga de {jobTitle} da empresa {bName} que vi no MyJob.' },
   
   // Footer
   'footer.tagline': { pt: 'Encontre trabalho rápido e seguro.' },
