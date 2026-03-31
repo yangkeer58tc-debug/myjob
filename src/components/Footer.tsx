@@ -24,7 +24,7 @@ const Footer = () => {
           <Link to="/" className="hover:text-primary transition-colors">{t('footer.home')}</Link>
           <Link to="/empleos" className="hover:text-primary transition-colors">{t('footer.jobs')}</Link>
           <a
-            href="https://wa.me/5215512345678"
+            href="https://wa.me/528132689146"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary transition-colors"
