@@ -34,41 +34,13 @@ const maybeFixMojibake = (value: string) => {
   }
 };
 
-const renderBold = (text: string) => {
-  const out: Array<string | JSX.Element> = [];
-  let cursor = 0;
-  let key = 0;
-
-  while (cursor < text.length) {
-    const start = text.indexOf('**', cursor);
-    if (start === -1) {
-      out.push(text.slice(cursor));
-      break;
-    }
-    const end = text.indexOf('**', start + 2);
-    if (end === -1) {
-      out.push(text.slice(cursor));
-      break;
-    }
-    if (start > cursor) out.push(text.slice(cursor, start));
-    const boldText = text.slice(start + 2, end);
-    out.push(
-      <strong key={key} className="font-semibold text-foreground">
-        {boldText}
-      </strong>,
-    );
-    key += 1;
-    cursor = end + 2;
-  }
-
-  return out;
-};
+const stripDoubleAsterisks = (value: string) => (value || '').replaceAll('**', '');
 
 const renderInline = (text: string) => {
-  const safe = maybeFixMojibake(text);
+  const safe = stripDoubleAsterisks(maybeFixMojibake(text));
   const parts = safe.split(/(https?:\/\/[^\s]+)/g);
   return parts.map((part, idx) => {
-    if (!/^https?:\/\//i.test(part)) return <span key={idx}>{renderBold(part)}</span>;
+    if (!/^https?:\/\//i.test(part)) return <span key={idx}>{part}</span>;
     return (
       <a
         key={idx}
@@ -88,9 +60,10 @@ const preformatText = (value: string) => {
   if (!out) return out;
 
   out = out.replace(/([A-Za-zÀ-ÿ0-9][^:\n]{2,60}):\s+/g, '$1:\n');
-  out = out.replace(/\*\*([^*]{2,80})\*\*(?=\s*(?:\*|\*\*|\d+[.)]|$))/g, '\n\n$1:\n');
+  out = out.replaceAll('**', '');
   out = out.replace(/\s+\*\s+/g, '\n- ');
   out = out.replace(/(\s)(\d+[.)])\s+/g, '\n$2 ');
+  out = out.replace(/\s+(Estamos em busca de|A miss(?:a|ã)o do|O que (?:é|e) que|Conhe(?:c|ç)a nossa|Junte-se ao time|E a[íi],)/gi, '\n\n$1');
   out = out.replace(/\n{3,}/g, '\n\n');
 
   return out.trim();
