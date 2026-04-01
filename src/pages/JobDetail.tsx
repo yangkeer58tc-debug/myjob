@@ -12,10 +12,63 @@ import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 
-const linkify = (text: string) => {
-  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+const maybeFixMojibake = (value: string) => {
+  const s = value || '';
+  const looksSuspicious = /[ÃÂ�]/.test(s) || /[\u0080-\u009F]/.test(s);
+  if (!looksSuspicious) return s;
+
+  const bytes: number[] = [];
+  for (const ch of s) {
+    const code = ch.charCodeAt(0);
+    if (code > 255) return s;
+    bytes.push(code);
+  }
+
+  try {
+    const fixed = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
+    if (!fixed || fixed === s) return s;
+    if (/[À-ÿ]/.test(fixed) && !/[ÃÂ�]/.test(fixed)) return fixed;
+    return s;
+  } catch {
+    return s;
+  }
+};
+
+const renderBold = (text: string) => {
+  const out: Array<string | JSX.Element> = [];
+  let cursor = 0;
+  let key = 0;
+
+  while (cursor < text.length) {
+    const start = text.indexOf('**', cursor);
+    if (start === -1) {
+      out.push(text.slice(cursor));
+      break;
+    }
+    const end = text.indexOf('**', start + 2);
+    if (end === -1) {
+      out.push(text.slice(cursor));
+      break;
+    }
+    if (start > cursor) out.push(text.slice(cursor, start));
+    const boldText = text.slice(start + 2, end);
+    out.push(
+      <strong key={key} className="font-semibold text-foreground">
+        {boldText}
+      </strong>,
+    );
+    key += 1;
+    cursor = end + 2;
+  }
+
+  return out;
+};
+
+const renderInline = (text: string) => {
+  const safe = maybeFixMojibake(text);
+  const parts = safe.split(/(https?:\/\/[^\s]+)/g);
   return parts.map((part, idx) => {
-    if (!/^https?:\/\//i.test(part)) return <span key={idx}>{part}</span>;
+    if (!/^https?:\/\//i.test(part)) return <span key={idx}>{renderBold(part)}</span>;
     return (
       <a
         key={idx}
@@ -30,8 +83,21 @@ const linkify = (text: string) => {
   });
 };
 
+const preformatText = (value: string) => {
+  let out = maybeFixMojibake(value || '').replace(/\r\n/g, '\n').trim();
+  if (!out) return out;
+
+  out = out.replace(/([A-Za-zÀ-ÿ0-9][^:\n]{2,60}):\s+/g, '$1:\n');
+  out = out.replace(/\*\*([^*]{2,80})\*\*(?=\s*(?:\*|\*\*|\d+[.)]|$))/g, '\n\n$1:\n');
+  out = out.replace(/\s+\*\s+/g, '\n- ');
+  out = out.replace(/(\s)(\d+[.)])\s+/g, '\n$2 ');
+  out = out.replace(/\n{3,}/g, '\n\n');
+
+  return out.trim();
+};
+
 const ReadableText = ({ text }: { text: string }) => {
-  const normalized = (text || '').replace(/\r\n/g, '\n').trim();
+  const normalized = preformatText(text);
   if (!normalized) return null;
 
   const lines = normalized.split('\n');
@@ -41,7 +107,7 @@ const ReadableText = ({ text }: { text: string }) => {
     | { type: 'para'; lines: string[] }
   > = [];
 
-  const isHeading = (line: string) => /^\s*[A-Za-zÀ-ÿ0-9][^:]{1,60}:\s*$/.test(line);
+  const isHeading = (line: string) => /^\s*[A-Za-zÀ-ÿ0-9][^:]{1,80}:\s*$/.test(line);
   const listMatch = (line: string) => /^\s*(?:[-•*]|\d+[.)])\s+/.exec(line);
 
   let i = 0;
@@ -99,7 +165,7 @@ const ReadableText = ({ text }: { text: string }) => {
           return (
             <ul key={idx} className="list-disc pl-5 space-y-1 my-3">
               {block.items.map((item, itemIdx) => (
-                <li key={itemIdx}>{linkify(item)}</li>
+                <li key={itemIdx}>{renderInline(item)}</li>
               ))}
             </ul>
           );
@@ -108,7 +174,7 @@ const ReadableText = ({ text }: { text: string }) => {
           <p key={idx} className="my-3">
             {block.lines.map((l, lineIdx) => (
               <span key={lineIdx}>
-                {linkify(l)}
+                {renderInline(l)}
                 {lineIdx < block.lines.length - 1 ? <br /> : null}
               </span>
             ))}
