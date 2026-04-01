@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 import { parseHighlights } from '@/lib/highlightUtils';
+import { normalizeJobTextFields } from '@/lib/jobTextUtils';
 import {
   CATEGORY_OPTIONS,
   CITY_OPTIONS,
@@ -217,6 +218,11 @@ const Admin = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (form: JobForm) => {
+      const normalizedText = normalizeJobTextFields({
+        summary: form.summary,
+        description: form.description,
+        requirements: form.requirements,
+      });
       const payload = {
         id: form.id,
         b_name: form.b_name,
@@ -228,9 +234,9 @@ const Admin = () => {
         location: normalizeCity(form.location),
         job_type: normalizeOptionId(form.job_type, JOB_TYPE_OPTIONS) || form.job_type,
         workplace_type: normalizeOptionId(form.workplace_type, WORKPLACE_TYPE_OPTIONS) || form.workplace_type,
-        summary: form.summary || null,
-        description: form.description || null,
-        requirements: form.requirements || null,
+        summary: normalizedText.summary,
+        description: normalizedText.description,
+        requirements: normalizedText.requirements,
         highlights: form.highlights ? parseHighlights(form.highlights) : null,
         education_level: normalizeOptionId(form.education_level, EDUCATION_LEVEL_OPTIONS) || null,
         industry: form.industry || null,
@@ -302,6 +308,51 @@ const Admin = () => {
           queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
         }
       } catch {}
+      localStorage.setItem(key, '1');
+    })();
+  }, [session, queryClient]);
+
+  useEffect(() => {
+    if (!session) return;
+    const key = 'myjob_fixed_text_fields_v1';
+    if (localStorage.getItem(key) === '1') return;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('jobs').select('id, summary, description, requirements');
+        if (error) throw error;
+        const changed = (data || [])
+          .map((row) => {
+            const normalized = normalizeJobTextFields({
+              summary: row.summary,
+              description: row.description,
+              requirements: row.requirements,
+            });
+            return {
+              id: row.id,
+              before: {
+                summary: row.summary || null,
+                description: row.description || null,
+                requirements: row.requirements || null,
+              },
+              after: normalized,
+            };
+          })
+          .filter(
+            (row) =>
+              row.after.summary !== row.before.summary ||
+              row.after.description !== row.before.description ||
+              row.after.requirements !== row.before.requirements,
+          )
+          .map((row) => ({ id: row.id, ...row.after }));
+
+        if (changed.length > 0) {
+          const { error: upsertError } = await supabase.from('jobs').upsert(changed);
+          if (upsertError) throw upsertError;
+          queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+        }
+      } catch {}
+
       localStorage.setItem(key, '1');
     })();
   }, [session, queryClient]);
@@ -423,6 +474,11 @@ const Admin = () => {
           const locationRaw = row.location || 'Brasil';
           const location = normalizeCity(locationRaw);
           const bLogo = row.b_logo_url ? row.b_logo_url : LOGO_URL;
+          const normalizedText = normalizeJobTextFields({
+            summary: row.summary || null,
+            description: row.description || null,
+            requirements: row.requirements || null,
+          });
           return {
             id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             b_name: row.b_name || 'MyJob',
@@ -434,9 +490,9 @@ const Admin = () => {
             payment_frequency: row.payment_frequency ? normalizeOptionId(row.payment_frequency, PAYMENT_FREQUENCY_OPTIONS) : 'mensal',
             job_type: row.job_type ? normalizeOptionId(row.job_type, JOB_TYPE_OPTIONS) : 'tempo-integral',
             workplace_type: row.workplace_type ? normalizeOptionId(row.workplace_type, WORKPLACE_TYPE_OPTIONS) : 'presencial',
-            summary: row.summary || null,
-            description: row.description || null,
-            requirements: row.requirements || null,
+            summary: normalizedText.summary,
+            description: normalizedText.description,
+            requirements: normalizedText.requirements,
             highlights: row.highlights ? parseHighlights(row.highlights) : null,
             education_level: row.education_level ? normalizeOptionId(row.education_level, EDUCATION_LEVEL_OPTIONS) : null,
             industry: row.industry || null,
