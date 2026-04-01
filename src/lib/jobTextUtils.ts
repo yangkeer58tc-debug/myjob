@@ -4,9 +4,16 @@ export type JobTextFieldsInput = {
   requirements?: string | null;
 };
 
-const fixCommonPtArtifacts = (value: string) => {
+export const fixJobTextArtifacts = (value: string) => {
   let s = value || '';
   if (!s) return s;
+
+  s = s.replace(/[\u0080-\u009F]/g, '');
+  s = s.replaceAll('œ', 'ú').replaceAll('Œ', 'Ú');
+  s = s.replaceAll('Ž', 'é').replaceAll('ž', 'é');
+  s = s.replaceAll('‡', 'á');
+  s = s.replaceAll('™', 'ô');
+  s = s.replaceAll('’', "'").replaceAll('‘', "'").replaceAll('“', '"').replaceAll('”', '"');
 
   s = s.replaceAll('\u008D\u2039', 'çã');
   s = s.replaceAll('\u008D', 'ç');
@@ -14,11 +21,23 @@ const fixCommonPtArtifacts = (value: string) => {
   s = s.replaceAll('\u0090', 'ê');
   s = s.replaceAll('\u017D', 'é');
   s = s.replaceAll('\u2021', 'á');
-  s = s.replace(/p\u2014s-venda/gi, (m) => (m[0] === 'P' ? 'Pós-venda' : 'pós-venda'));
+  s = s.replace(/p[\u2014\u2013\u2012\u2010\u2011]s-venda/gi, (m) => (m[0] === 'P' ? 'Pós-venda' : 'pós-venda'));
   s = s.replace(/Aux\u2019lio/gi, (m) => (m[0] === 'A' ? 'Auxílio' : 'auxílio'));
   s = s.replace(/benef\u2019cios/gi, (m) => (m[0] === 'B' ? 'Benefícios' : 'benefícios'));
   s = s.replace(/sa\u2019da/gi, (m) => (m[0] === 'S' ? 'Saída' : 'saída'));
   s = s.replace(/c\u2014digos/gi, (m) => (m[0] === 'C' ? 'Códigos' : 'códigos'));
+  s = s.replace(/saœde/gi, (m) => (m[0] === 'S' ? 'Saúde' : 'saúde'));
+  s = s.replace(/pœblico/gi, (m) => (m[0] === 'P' ? 'Público' : 'público'));
+  s = s.replace(/v['’]timas/gi, (m) => (m[0] === 'V' ? 'Vítimas' : 'vítimas'));
+  s = s.replace(/domŽstica/gi, (m) => (m[0] === 'D' ? 'Doméstica' : 'doméstica'));
+  s = s.replace(/experi\u00C2?\u0090ncia/gi, (m) => (m[0] === 'E' ? 'Experiência' : 'experiência'));
+  s = s.replace(/comunica\s+o/gi, (m) => (m[0] === 'C' ? 'Comunicação' : 'comunicação'));
+  s = s.replace(/orienta\s+o/gi, (m) => (m[0] === 'O' ? 'Orientação' : 'orientação'));
+  s = s.replace(/associa\s+o/gi, (m) => (m[0] === 'A' ? 'Associação' : 'associação'));
+  s = s.replace(/educa\s+o/gi, (m) => (m[0] === 'E' ? 'Educação' : 'educação'));
+  s = s.replace(/alimenta\s+o/gi, (m) => (m[0] === 'A' ? 'Alimentação' : 'alimentação'));
+  s = s.replace(/conv\s+nio/gi, (m) => (m[0] === 'C' ? 'Convênio' : 'convênio'));
+  s = s.replace(/nossos benef\u2019cios/gi, (m) => (m[0] === 'N' ? 'Nossos benefícios' : 'nossos benefícios'));
 
   return s;
 };
@@ -42,7 +61,7 @@ const canonicalizeWhitespace = (value: string) =>
     .trim();
 
 const preformat = (value: string) => {
-  let s = fixCommonPtArtifacts(value || '');
+  let s = fixJobTextArtifacts(value || '');
   s = normalizeNewlines(s);
   s = stripMarkdownNoise(s);
 
@@ -150,4 +169,3 @@ export const normalizeJobTextFields = (input: JobTextFieldsInput) => {
     requirements: requirementsOut || null,
   };
 };
-

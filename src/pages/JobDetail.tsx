@@ -11,11 +11,12 @@ import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
+import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 
 const maybeFixMojibake = (value: string) => {
   const s = value || '';
   const looksSuspicious = /[ÃÂ�]/.test(s) || /[\u0080-\u009F]/.test(s);
-  if (!looksSuspicious) return s;
+  if (!looksSuspicious) return fixJobTextArtifacts(s);
 
   const bytes: number[] = [];
   for (const ch of s) {
@@ -27,7 +28,8 @@ const maybeFixMojibake = (value: string) => {
   try {
     const fixed = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
     if (!fixed || fixed === s) return s;
-    if (/[À-ÿ]/.test(fixed) && !/[ÃÂ�]/.test(fixed)) return fixed;
+    const normalized = fixJobTextArtifacts(fixed);
+    if (/[À-ÿ]/.test(normalized) && !/[ÃÂ�]/.test(normalized)) return normalized;
     return s;
   } catch {
     return s;
