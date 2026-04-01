@@ -13,7 +13,9 @@ export const fixJobTextArtifacts = (value: string) => {
   s = s.replaceAll('Ž', 'é').replaceAll('ž', 'é');
   s = s.replaceAll('‡', 'á');
   s = s.replaceAll('™', 'ô');
+  s = s.replaceAll('ˆ', 'à');
   s = s.replaceAll('’', "'").replaceAll('‘', "'").replaceAll('“', '"').replaceAll('”', '"');
+  s = s.replaceAll('—', '-').replaceAll('–', '-');
 
   s = s.replaceAll('\u008D\u2039', 'çã');
   s = s.replaceAll('\u008D', 'ç');
@@ -37,6 +39,17 @@ export const fixJobTextArtifacts = (value: string) => {
   s = s.replace(/educa\s+o/gi, (m) => (m[0] === 'E' ? 'Educação' : 'educação'));
   s = s.replace(/alimenta\s+o/gi, (m) => (m[0] === 'A' ? 'Alimentação' : 'alimentação'));
   s = s.replace(/conv\s+nio/gi, (m) => (m[0] === 'C' ? 'Convênio' : 'convênio'));
+  s = s.replace(/conv\s+nios/gi, (m) => (m[0] === 'C' ? 'Convênios' : 'convênios'));
+  s = s.replace(/op\s+c\s+o/gi, (m) => (m[0] === 'O' ? 'Opção' : 'opção'));
+  s = s.replace(/op\s+c\s+oes/gi, (m) => (m[0] === 'O' ? 'Opções' : 'opções'));
+  s = s.replace(/sa\s+de/gi, (m) => (m[0] === 'S' ? 'Saúde' : 'saúde'));
+  s = s.replace(/p\s+blico/gi, (m) => (m[0] === 'P' ? 'Público' : 'público'));
+  s = s.replace(/n\s+veis/gi, (m) => (m[0] === 'N' ? 'Níveis' : 'níveis'));
+  s = s.replace(/a\s+es/gi, (m) => (m[0] === 'A' ? 'Ações' : 'ações'));
+  s = s.replace(/servi\s+os/gi, (m) => (m[0] === 'S' ? 'Serviços' : 'serviços'));
+  s = s.replace(/viol\s+ncia/gi, (m) => (m[0] === 'V' ? 'Violência' : 'violência'));
+  s = s.replace(/lideran\s+a/gi, (m) => (m[0] === 'L' ? 'Liderança' : 'liderança'));
+  s = s.replace(/oncol-?gico/gi, (m) => (m[0] === 'O' ? 'Oncológico' : 'oncológico'));
   s = s.replace(/nossos benef\u2019cios/gi, (m) => (m[0] === 'N' ? 'Nossos benefícios' : 'nossos benefícios'));
 
   return s;
