@@ -12,6 +12,113 @@ import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 
+const linkify = (text: string) => {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((part, idx) => {
+    if (!/^https?:\/\//i.test(part)) return <span key={idx}>{part}</span>;
+    return (
+      <a
+        key={idx}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline underline-offset-2 hover:text-foreground transition-colors"
+      >
+        {part}
+      </a>
+    );
+  });
+};
+
+const ReadableText = ({ text }: { text: string }) => {
+  const normalized = (text || '').replace(/\r\n/g, '\n').trim();
+  if (!normalized) return null;
+
+  const lines = normalized.split('\n');
+  const blocks: Array<
+    | { type: 'heading'; text: string }
+    | { type: 'list'; items: string[] }
+    | { type: 'para'; lines: string[] }
+  > = [];
+
+  const isHeading = (line: string) => /^\s*[A-Za-zÀ-ÿ0-9][^:]{1,60}:\s*$/.test(line);
+  const listMatch = (line: string) => /^\s*(?:[-•*]|\d+[.)])\s+/.exec(line);
+
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i] || '';
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      i += 1;
+      continue;
+    }
+
+    if (isHeading(line.trim())) {
+      blocks.push({ type: 'heading', text: line.trim().replace(/:\s*$/, '') });
+      i += 1;
+      continue;
+    }
+
+    const lm = listMatch(line);
+    if (lm) {
+      const items: string[] = [];
+      while (i < lines.length) {
+        const current = (lines[i] || '').trimEnd();
+        const mm = listMatch(current);
+        if (!mm) break;
+        items.push(current.replace(/^\s*(?:[-•*]|\d+[.)])\s+/, '').trim());
+        i += 1;
+      }
+      blocks.push({ type: 'list', items });
+      continue;
+    }
+
+    const paraLines: string[] = [];
+    while (i < lines.length) {
+      const current = (lines[i] || '').trimEnd();
+      if (!current.trim()) break;
+      if (isHeading(current.trim())) break;
+      if (listMatch(current)) break;
+      paraLines.push(current);
+      i += 1;
+    }
+    blocks.push({ type: 'para', lines: paraLines });
+  }
+
+  return (
+    <div className="text-muted-foreground leading-relaxed prose prose-sm max-w-none">
+      {blocks.map((block, idx) => {
+        if (block.type === 'heading') {
+          return (
+            <h3 key={idx} className="text-base font-semibold text-foreground mt-6 mb-2">
+              {block.text}
+            </h3>
+          );
+        }
+        if (block.type === 'list') {
+          return (
+            <ul key={idx} className="list-disc pl-5 space-y-1 my-3">
+              {block.items.map((item, itemIdx) => (
+                <li key={itemIdx}>{linkify(item)}</li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <p key={idx} className="my-3">
+            {block.lines.map((l, lineIdx) => (
+              <span key={lineIdx}>
+                {linkify(l)}
+                {lineIdx < block.lines.length - 1 ? <br /> : null}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 const JobDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { lang, t } = useLanguage();
@@ -271,27 +378,21 @@ const JobDetail = () => {
           {summary && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.summary')}</h2>
-              <div className="text-muted-foreground whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none">
-                {summary}
-              </div>
+              <ReadableText text={summary} />
             </article>
           )}
 
           {description && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.description')}</h2>
-              <div className="text-muted-foreground whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none">
-                {description}
-              </div>
+              <ReadableText text={description} />
             </article>
           )}
 
           {requirements && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.requirements')}</h2>
-              <div className="text-muted-foreground whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none">
-                {requirements}
-              </div>
+              <ReadableText text={requirements} />
             </article>
           )}
 
