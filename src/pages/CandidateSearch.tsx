@@ -96,7 +96,7 @@ const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
 };
 
 const CandidateSearch = () => {
-  const { role = 'driver' } = useParams<{ role: string }>();
+  const { role } = useParams<{ role?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
@@ -104,12 +104,12 @@ const CandidateSearch = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['candidates', role, q, page],
     queryFn: async () => {
-      const roleSlug = normalizeRoleSlug(role);
+      const roleSlug = role ? normalizeRoleSlug(role) : '';
 
       if (resumesSupabase) {
         const { tableOrView } = getResumesSource();
 
-        const roleNeedle = roleSlug.replaceAll('-', ' ');
+        const roleNeedle = roleSlug ? roleSlug.replaceAll('-', ' ') : '';
 
         const selectCols = 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at';
 
@@ -118,13 +118,13 @@ const CandidateSearch = () => {
           .select(selectCols, { count: 'exact' })
           .order('updated_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
-          .ilike('job_direction', `%${roleNeedle}%`)
           .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
+        if (roleNeedle) query = query.ilike('job_direction', `%${roleNeedle}%`);
         if (q) {
           const escaped = q.replaceAll(',', ' ');
           query = query.or(
-            `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%`,
+            `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%,job_direction.ilike.%${escaped}%`,
           );
         }
 
@@ -139,11 +139,15 @@ const CandidateSearch = () => {
         .select('*', { count: 'exact' })
         .eq('is_active', true)
         .eq('is_public', true)
-        .eq('role_slug', roleSlug)
         .order('created_at', { ascending: false })
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-      if (q) query = query.or(`full_name.ilike.%${q}%,headline.ilike.%${q}%,summary.ilike.%${q}%,experience.ilike.%${q}%`);
+      if (roleSlug) query = query.eq('role_slug', roleSlug);
+      if (q) {
+        query = query.or(
+          `full_name.ilike.%${q}%,headline.ilike.%${q}%,summary.ilike.%${q}%,experience.ilike.%${q}%,role_slug.ilike.%${q}%`,
+        );
+      }
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -167,25 +171,27 @@ const CandidateSearch = () => {
     window.scrollTo(0, 0);
   };
 
-  const roleTitle = role === 'driver' ? 'Driver' : fixJobTextArtifacts(role);
-  const roleSlug = normalizeRoleSlug(role);
+  const roleTitle = role ? fixJobTextArtifacts(role) : '';
+  const roleSlug = role ? normalizeRoleSlug(role) : '';
   const usingExternalResumes = Boolean(resumesSupabase);
 
   return (
     <PublicLayout>
       <Helmet>
-        <title>Buscar candidatos {roleTitle} | MyJob</title>
+        <title>{roleTitle ? `Buscar candidatos ${roleTitle} | MyJob` : 'Buscar candidatos | MyJob'}</title>
         <meta
           name="description"
-          content={`Encontre candidatos para ${roleTitle}. Busque por nome, resumo e experiência e fale com o MyJob pelo WhatsApp para contratar.`}
+          content="Encontre candidatos. Busque por nome, resumo, experiência ou função e fale com o MyJob pelo WhatsApp para contratar."
         />
-        <link rel="canonical" href={`${window.location.origin}/buscar-candidatos/${role}`} />
+        <link rel="canonical" href={`${window.location.origin}${role ? `/buscar-candidatos/${role}` : '/buscar-candidatos'}`} />
       </Helmet>
 
       <div className="container mx-auto px-4 py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
           <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold text-foreground">Buscar candidatos: {roleTitle}</h1>
+            <h1 className="text-3xl font-extrabold text-foreground">
+              {roleTitle ? `Buscar candidatos: ${roleTitle}` : 'Buscar candidatos'}
+            </h1>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Input
@@ -265,7 +271,7 @@ const CandidateSearch = () => {
             <p className="text-muted-foreground text-lg">Nenhum candidato encontrado.</p>
             <div className="mt-3 text-sm text-muted-foreground space-y-1">
               <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
-              <p>可能原因：简历库还没创建 public_candidates view/开放读取权限，或还没有匹配 {roleTitle} 的简历。</p>
+              <p>你当前没选岗位过滤；如果想筛选岗位，直接在搜索框输入 driver/chef/security guard 等关键词。</p>
               <p>备用方案：去 /admin → Candidatos 导入 CSV 先跑通。</p>
             </div>
           </div>

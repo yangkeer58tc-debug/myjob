@@ -28,6 +28,7 @@ const App = () => (
                 <Route path="/" element={<Home />} />
                 <Route path="/empleos" element={<JobList />} />
                 <Route path="/empleo/:id" element={<JobDetail />} />
+                <Route path="/buscar-candidatos" element={<CandidateSearch />} />
                 <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
