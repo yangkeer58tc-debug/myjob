@@ -111,41 +111,27 @@ const CandidateSearch = () => {
 
         const roleNeedle = roleSlug.replaceAll('-', ' ');
 
-        const selectCols =
-          'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,profile_summary_language,intro_language,created_at,updated_at,is_public,parse_status';
+        const selectCols = 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at';
 
-        const runQuery = async (withIsPublic: boolean) => {
-          let query = resumesSupabase
-            .from(tableOrView)
-            .select(selectCols, { count: 'exact' })
-            .order('updated_at', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: false })
-            .ilike('job_direction', `%${roleNeedle}%`)
-            .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
+        let query = resumesSupabase
+          .from(tableOrView)
+          .select(selectCols, { count: 'exact' })
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .ilike('job_direction', `%${roleNeedle}%`)
+          .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-          if (q) {
-            const escaped = q.replaceAll(',', ' ');
-            query = query.or(
-              `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%`,
-            );
-          }
-          if (withIsPublic) query = query.eq('is_public', true);
-
-          const { data: raw, error, count } = await query;
-          if (error) throw error;
-          const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow));
-          return { candidates: mapped, count: count || 0 };
-        };
-
-        try {
-          return await runQuery(true);
-        } catch (err: any) {
-          const msg = String(err?.message || err || '');
-          if (msg.toLowerCase().includes('column') && msg.toLowerCase().includes('is_public')) {
-            return await runQuery(false);
-          }
-          throw err;
+        if (q) {
+          const escaped = q.replaceAll(',', ' ');
+          query = query.or(
+            `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%`,
+          );
         }
+
+        const { data: raw, error: resumesError, count } = await query;
+        if (resumesError) throw resumesError;
+        const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow));
+        return { candidates: mapped, count: count || 0 };
       }
 
       let query = supabase
