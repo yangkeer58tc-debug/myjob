@@ -7,7 +7,6 @@ import PublicLayout from '@/components/PublicLayout';
 import CandidateCard from '@/components/CandidateCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 
 const ITEMS_PER_PAGE = 12;
@@ -99,56 +98,11 @@ const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
 const CandidateSearch = () => {
   const { role = 'driver' } = useParams<{ role: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const city = searchParams.get('cidade') || '';
   const q = searchParams.get('q') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
 
-  const { data: cities } = useQuery({
-    queryKey: ['candidateCities', role],
-    queryFn: async () => {
-      const roleSlug = normalizeRoleSlug(role);
-
-      if (resumesSupabase) {
-        const { tableOrView } = getResumesSource();
-        const roleNeedle = roleSlug.replaceAll('-', ' ');
-
-        const run = async (withIsPublic: boolean) => {
-          let query = resumesSupabase.from(tableOrView).select('city, country, job_direction, is_public').ilike('job_direction', `%${roleNeedle}%`);
-          if (withIsPublic) query = query.eq('is_public', true);
-          const { data, error } = await query;
-          if (error) throw error;
-          const locs = (data as any[])
-            .map((r) => r.city || r.country)
-            .filter(Boolean)
-            .map((v) => String(v));
-          return [...new Set(locs)].sort();
-        };
-
-        try {
-          return await run(true);
-        } catch (err: any) {
-          const msg = String(err?.message || err || '');
-          if (msg.toLowerCase().includes('column') && msg.toLowerCase().includes('is_public')) {
-            return await run(false);
-          }
-          throw err;
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('candidates')
-        .select('location')
-        .eq('is_active', true)
-        .eq('is_public', true)
-        .eq('role_slug', roleSlug);
-      if (error) throw error;
-      const unique = [...new Set(data.map((j: any) => j.location).filter(Boolean))].sort();
-      return unique;
-    },
-  });
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['candidates', role, city, q, page],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['candidates', role, q, page],
     queryFn: async () => {
       const roleSlug = normalizeRoleSlug(role);
 
@@ -169,7 +123,6 @@ const CandidateSearch = () => {
             .ilike('job_direction', `%${roleNeedle}%`)
             .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-          if (city) query = query.or(`city.eq.${city},country.eq.${city}`);
           if (q) {
             const escaped = q.replaceAll(',', ' ');
             query = query.or(
@@ -204,7 +157,6 @@ const CandidateSearch = () => {
         .order('created_at', { ascending: false })
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-      if (city) query = query.eq('location', city);
       if (q) query = query.or(`full_name.ilike.%${q}%,headline.ilike.%${q}%,summary.ilike.%${q}%,experience.ilike.%${q}%`);
 
       const { data, error, count } = await query;
@@ -215,13 +167,6 @@ const CandidateSearch = () => {
 
   const totalPages = data ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
   const pages = buildPagination(page, totalPages);
-
-  const handleCityChange = (value: string) => {
-    if (value === '__all__') searchParams.delete('cidade');
-    else searchParams.set('cidade', value);
-    searchParams.set('page', '1');
-    setSearchParams(searchParams);
-  };
 
   const handleSearchChange = (value: string) => {
     if (!value) searchParams.delete('q');
@@ -237,6 +182,8 @@ const CandidateSearch = () => {
   };
 
   const roleTitle = role === 'driver' ? 'Driver' : fixJobTextArtifacts(role);
+  const roleSlug = normalizeRoleSlug(role);
+  const usingExternalResumes = Boolean(resumesSupabase);
 
   return (
     <PublicLayout>
@@ -244,7 +191,7 @@ const CandidateSearch = () => {
         <title>Buscar candidatos {roleTitle} | MyJob</title>
         <meta
           name="description"
-          content={`Encontre candidatos para ${roleTitle}. Filtre por cidade e fale com o MyJob pelo WhatsApp para contratar.`}
+          content={`Encontre candidatos para ${roleTitle}. Busque por nome, resumo e experiência e fale com o MyJob pelo WhatsApp para contratar.`}
         />
         <link rel="canonical" href={`${window.location.origin}/buscar-candidatos/${role}`} />
       </Helmet>
@@ -252,10 +199,7 @@ const CandidateSearch = () => {
       <div className="container mx-auto px-4 py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
           <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold text-foreground">Buscar candidatos</h1>
-            <p className="text-muted-foreground">
-              Perfil: <span className="font-semibold text-foreground">{roleTitle}</span>
-            </p>
+            <h1 className="text-3xl font-extrabold text-foreground">Buscar candidatos: {roleTitle}</h1>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Input
@@ -264,23 +208,19 @@ const CandidateSearch = () => {
               placeholder="Buscar por nome, resumo, experiência..."
               className="rounded-xl w-full sm:w-[320px]"
             />
-            <Select value={city || '__all__'} onValueChange={handleCityChange}>
-              <SelectTrigger className="w-full sm:w-[220px] rounded-xl">
-                <SelectValue placeholder="Filtrar por cidade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todas as cidades</SelectItem>
-                {cities?.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
-        {isLoading ? (
+        {error ? (
+          <div className="bg-card border border-border/50 rounded-3xl p-6">
+            <p className="text-lg font-bold text-foreground mb-1">Falha ao carregar candidatos</p>
+            <p className="text-sm text-muted-foreground break-words">{String((error as any)?.message || error)}</p>
+            <div className="mt-4 text-sm text-muted-foreground space-y-1">
+              <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
+              <p>role：{roleSlug}</p>
+            </div>
+          </div>
+        ) : isLoading ? (
           <div className="grid lg:grid-cols-2 gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-card rounded-3xl h-56 animate-pulse border border-border/50" />
@@ -337,6 +277,11 @@ const CandidateSearch = () => {
         ) : (
           <div className="text-center py-20">
             <p className="text-muted-foreground text-lg">Nenhum candidato encontrado.</p>
+            <div className="mt-3 text-sm text-muted-foreground space-y-1">
+              <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
+              <p>可能原因：简历库还没创建 public_candidates view/开放读取权限，或还没有匹配 {roleTitle} 的简历。</p>
+              <p>备用方案：去 /admin → Candidatos 导入 CSV 先跑通。</p>
+            </div>
           </div>
         )}
       </div>
