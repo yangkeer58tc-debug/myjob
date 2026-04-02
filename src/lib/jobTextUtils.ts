@@ -19,6 +19,7 @@ export const fixJobTextArtifacts = (value: string) => {
   s = s.replaceAll('‡', 'á');
   s = s.replaceAll('™', 'ô');
   s = s.replaceAll('ˆ', 'à');
+  s = s.replaceAll('Ð', '-').replaceAll('ð', '-');
   s = s.replaceAll('’', "'").replaceAll('‘', "'").replaceAll('“', '"').replaceAll('”', '"');
   s = s.replaceAll('—', '-').replaceAll('–', '-');
 
@@ -54,6 +55,16 @@ export const fixJobTextArtifacts = (value: string) => {
   s = s.replace(/nossos benef\u2019cios/gi, (m) => (m[0] === 'N' ? 'Nossos benefícios' : 'nossos benefícios'));
 
   return s;
+};
+
+export const normalizeJobTitle = (value: string) => {
+  const s = fixJobTextArtifacts(String(value || ''));
+  return s.replace(/\s+/g, ' ').trim();
+};
+
+export const normalizeCompanyName = (value: string) => {
+  const s = fixJobTextArtifacts(String(value || ''));
+  return s.replace(/\s+/g, ' ').trim();
 };
 
 const normalizeNewlines = (value: string) => value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');

@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 import { parseHighlights } from '@/lib/highlightUtils';
-import { normalizeJobTextFields } from '@/lib/jobTextUtils';
+import { normalizeCompanyName, normalizeJobTextFields, normalizeJobTitle } from '@/lib/jobTextUtils';
 import {
   CATEGORY_OPTIONS,
   CITY_OPTIONS,
@@ -225,9 +225,9 @@ const Admin = () => {
       });
       const payload = {
         id: form.id,
-        b_name: form.b_name,
+        b_name: normalizeCompanyName(form.b_name),
         b_logo_url: form.b_logo_url || null,
-        title: form.title,
+        title: normalizeJobTitle(form.title),
         category: normalizeOptionId(form.category, CATEGORY_OPTIONS) || null,
         salary_amount: form.salary_amount,
         payment_frequency: normalizeOptionId(form.payment_frequency, PAYMENT_FREQUENCY_OPTIONS) || form.payment_frequency,
@@ -314,12 +314,12 @@ const Admin = () => {
 
   useEffect(() => {
     if (!session) return;
-    const key = 'myjob_fixed_text_fields_v5';
+    const key = 'myjob_fixed_text_fields_v6';
     if (localStorage.getItem(key) === '1') return;
 
     (async () => {
       try {
-        const { data, error } = await supabase.from('jobs').select('id, summary, description, requirements');
+        const { data, error } = await supabase.from('jobs').select('id, title, b_name, summary, description, requirements');
         if (error) throw error;
         const changed = (data || [])
           .map((row) => {
@@ -331,20 +331,26 @@ const Admin = () => {
             return {
               id: row.id,
               before: {
+                title: row.title || null,
+                b_name: row.b_name || null,
                 summary: row.summary || null,
                 description: row.description || null,
                 requirements: row.requirements || null,
               },
               after: normalized,
+              titleAfter: normalizeJobTitle(row.title || ''),
+              bNameAfter: normalizeCompanyName(row.b_name || ''),
             };
           })
           .filter(
             (row) =>
+              row.titleAfter !== (row.before.title || '') ||
+              row.bNameAfter !== (row.before.b_name || '') ||
               row.after.summary !== row.before.summary ||
               row.after.description !== row.before.description ||
               row.after.requirements !== row.before.requirements,
           )
-          .map((row) => ({ id: row.id, ...row.after }));
+          .map((row) => ({ id: row.id, title: row.titleAfter, b_name: row.bNameAfter, ...row.after }));
 
         if (changed.length > 0) {
           const { error: upsertError } = await supabase.from('jobs').upsert(changed);
@@ -481,9 +487,9 @@ const Admin = () => {
           });
           return {
             id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            b_name: row.b_name || 'MyJob',
+            b_name: normalizeCompanyName(row.b_name || 'MyJob'),
             b_logo_url: bLogo || null,
-            title: row.title || 'Sem título',
+            title: normalizeJobTitle(row.title || 'Sem título'),
             category: row.category ? normalizeOptionId(row.category, CATEGORY_OPTIONS) : null,
             location,
             salary_amount: row.salary_amount ? normalizeSalaryInput(row.salary_amount) : 'A combinar',

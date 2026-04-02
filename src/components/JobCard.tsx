@@ -8,6 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
 import { formatSalaryBRL } from '@/lib/salaryUtils';
 import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
+import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 
 interface JobCardProps {
   job: {
@@ -33,14 +34,16 @@ const JobCard = ({ job }: JobCardProps) => {
   const navigate = useNavigate();
   const { lang, t } = useLanguage();
 
-  const title = job.title;
+  const title = fixJobTextArtifacts(job.title);
   const summary = job.summary;
   const tagsPreview = [job.education_level ? optionLabel(job.education_level, EDUCATION_LEVEL_OPTIONS) : '', job.experience ? optionLabel(job.experience, EXPERIENCE_OPTIONS) : '']
     .filter(Boolean)
     .slice(0, 2)
     .join(' • ');
 
-  const { handleApply, QRModal } = useWhatsAppRedirect(title, job.b_name);
+  const safeCompany = fixJobTextArtifacts(job.b_name);
+  const safeLocation = fixJobTextArtifacts(job.location);
+  const { handleApply, QRModal } = useWhatsAppRedirect(title, safeCompany);
 
   return (
     <>
@@ -52,14 +55,14 @@ const JobCard = ({ job }: JobCardProps) => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               {job.b_logo_url ? (
-                <img src={job.b_logo_url} alt={job.b_name} className="h-10 w-10 rounded-md object-cover border" />
+                <img src={job.b_logo_url} alt={safeCompany} className="h-10 w-10 rounded-md object-cover border" />
               ) : (
                 <div className="h-10 w-10 rounded-md bg-secondary flex items-center justify-center">
                   <Briefcase className="h-5 w-5 text-muted-foreground" />
                 </div>
               )}
               <div className="space-y-0.5">
-                <p className="text-sm font-semibold leading-none">{job.b_name}</p>
+                <p className="text-sm font-semibold leading-none">{safeCompany}</p>
                 <div className="flex items-center text-[10px] text-muted-foreground">
                   <Clock className="mr-1 h-3 w-3" />
                   {formatRelativeTime(job.created_at, lang)}
@@ -89,7 +92,7 @@ const JobCard = ({ job }: JobCardProps) => {
         <CardContent className="p-5 pt-4 space-y-4">
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="rounded-md font-medium text-[10px] px-2 py-0">
-              <MapPin className="mr-1 h-3 w-3" /> {job.location}
+              <MapPin className="mr-1 h-3 w-3" /> {safeLocation}
             </Badge>
             <Badge variant="secondary" className="rounded-md font-medium text-[10px] px-2 py-0">
               <Briefcase className="mr-1 h-3 w-3" /> {optionLabel(job.job_type, JOB_TYPE_OPTIONS)}

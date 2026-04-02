@@ -185,7 +185,11 @@ const JobDetail = () => {
   const highlights = job?.highlights || null;
   const salaryValue = salaryNumberForSchema(job?.salary_amount);
 
-  const { handleApply, QRModal } = useWhatsAppRedirect(title, job?.b_name || '');
+  const safeTitle = maybeFixMojibake(title);
+  const safeCompany = maybeFixMojibake(job?.b_name || '');
+  const safeLocation = maybeFixMojibake(job?.location || '');
+
+  const { handleApply, QRModal } = useWhatsAppRedirect(safeTitle, safeCompany);
 
   // Related jobs (same city, active, excluding current)
   const { data: relatedJobs } = useQuery({
@@ -232,7 +236,7 @@ const JobDetail = () => {
     ? {
         '@context': 'https://schema.org',
         '@type': 'JobPosting',
-        title: title,
+        title: safeTitle,
         description: `
           <p>${description || summary || ''}</p>
           ${requirements ? `<h3>Requisitos</h3><p>${requirements}</p>` : ''}
@@ -250,7 +254,7 @@ const JobDetail = () => {
                 : 'OTHER',
         hiringOrganization: {
           '@type': 'Organization',
-          name: job.b_name,
+          name: safeCompany,
           sameAs: 'https://myjob.com',
           ...(job.b_logo_url && { logo: job.b_logo_url }),
         },
@@ -258,7 +262,7 @@ const JobDetail = () => {
           '@type': 'Place',
           address: {
             '@type': 'PostalAddress',
-            addressLocality: job.location,
+            addressLocality: safeLocation,
             addressCountry: 'BR',
           },
         },
@@ -297,11 +301,11 @@ const JobDetail = () => {
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: window.location.origin },
       { '@type': 'ListItem', position: 2, name: 'Vagas', item: `${window.location.origin}/empleos` },
-      { '@type': 'ListItem', position: 3, name: title, item: window.location.href }
+      { '@type': 'ListItem', position: 3, name: safeTitle, item: window.location.href }
     ]
   };
 
-  const pageTitle = `${title} em ${job.location || 'Brasil'} | MyJob`;
+  const pageTitle = `${safeTitle} em ${safeLocation || 'Brasil'} | MyJob`;
   const pageDescription = (summary || description || '').slice(0, 160);
   const pageImage = job.b_logo_url || `${window.location.origin}/placeholder.svg`;
   const pageUrl = window.location.href;
@@ -367,15 +371,15 @@ const JobDetail = () => {
               </div>
             )}
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-foreground leading-tight">{title}</h1>
-              <p className="text-lg text-muted-foreground mt-1">{job.b_name}</p>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-foreground leading-tight">{safeTitle}</h1>
+              <p className="text-lg text-muted-foreground mt-1">{safeCompany}</p>
             </div>
           </div>
 
           {/* Badges */}
           <div className="flex flex-wrap gap-2 mb-4">
             <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
-              <MapPin className="h-3.5 w-3.5" /> {job.location}
+              <MapPin className="h-3.5 w-3.5" /> {safeLocation}
             </span>
             <span className="inline-flex items-center gap-1.5 text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-full">
               <Clock className="h-3.5 w-3.5" /> {optionLabel(job.job_type, JOB_TYPE_OPTIONS)}
