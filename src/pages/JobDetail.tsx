@@ -61,17 +61,15 @@ const preformatText = (value: string) => {
   let out = maybeFixMojibake(value || '').replace(/\r\n/g, '\n').trim();
   if (!out) return out;
 
-  out = out.replace(/([A-Za-zÀ-ÿ0-9][^:\n]{2,60}):\s+/g, '$1:\n');
   out = out.replaceAll('**', '');
   out = out.replace(/\s+\*\s+/g, '\n- ');
   out = out.replace(/(\s)(\d+[.)])\s+/g, '\n$2 ');
-  out = out.replace(/\s+(Estamos em busca de|A miss(?:a|ã)o do|O que (?:é|e) que|Conhe(?:c|ç)a nossa|Junte-se ao time|E a[íi],)/gi, '\n\n$1');
   out = out.replace(/\n{3,}/g, '\n\n');
 
   return out.trim();
 };
 
-const ReadableText = ({ text }: { text: string }) => {
+const ReadableText = ({ text, suppressHeadings }: { text: string; suppressHeadings?: string[] }) => {
   const normalized = preformatText(text);
   if (!normalized) return null;
 
@@ -84,6 +82,7 @@ const ReadableText = ({ text }: { text: string }) => {
 
   const isHeading = (line: string) => /^\s*[A-Za-zÀ-ÿ0-9][^:]{1,80}:\s*$/.test(line);
   const listMatch = (line: string) => /^\s*(?:[-•*]|\d+[.)])\s+/.exec(line);
+  const suppress = new Set((suppressHeadings || []).map((h) => h.trim().toLowerCase()).filter(Boolean));
 
   let i = 0;
   while (i < lines.length) {
@@ -130,6 +129,7 @@ const ReadableText = ({ text }: { text: string }) => {
     <div className="text-muted-foreground leading-relaxed prose prose-sm max-w-none">
       {blocks.map((block, idx) => {
         if (block.type === 'heading') {
+          if (suppress.has(block.text.trim().toLowerCase())) return null;
           return (
             <h3 key={idx} className="text-base font-semibold text-foreground mt-6 mb-2">
               {block.text}
@@ -419,21 +419,21 @@ const JobDetail = () => {
           {summary && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.summary')}</h2>
-              <ReadableText text={summary} />
+              <ReadableText text={summary} suppressHeadings={['Resumo da Vaga']} />
             </article>
           )}
 
           {description && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.description')}</h2>
-              <ReadableText text={description} />
+              <ReadableText text={description} suppressHeadings={['Descrição da Vaga', 'Resumo da Vaga']} />
             </article>
           )}
 
           {requirements && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.requirements')}</h2>
-              <ReadableText text={requirements} />
+              <ReadableText text={requirements} suppressHeadings={['Requisitos', 'Requisitos e qualificações']} />
             </article>
           )}
 

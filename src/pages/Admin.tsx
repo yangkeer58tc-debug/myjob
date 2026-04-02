@@ -314,7 +314,7 @@ const Admin = () => {
 
   useEffect(() => {
     if (!session) return;
-    const key = 'myjob_fixed_text_fields_v4';
+    const key = 'myjob_fixed_text_fields_v5';
     if (localStorage.getItem(key) === '1') return;
 
     (async () => {

@@ -77,6 +77,20 @@ const canonicalizeWhitespace = (value: string) =>
 const preformat = (value: string) => {
   let s = fixJobTextArtifacts(value || '');
   s = normalizeNewlines(s);
+
+  const canonicalHeading = (t: string) => t.trim().replace(/[:：]\s*$/, '');
+  const isKnownHeading = (t: string) =>
+    /^(Resumo da Vaga|Descrição da Vaga|Principais Destaques|Responsabilidades(?: e atribu(?:i|í)(?:c|ç)(?:o|õ)es)?|Requisitos(?: e qualifica(?:c|ç)(?:o|õ)es)?|Informações adicionais|Benefícios|E os nossos benefícios\??|Para sua saúde e bem-estar|Para facilitar o seu dia a dia|Para sua flexibilidade e rotina|Conheça nossa Ser.*)$/i.test(
+      canonicalHeading(t),
+    );
+
+  s = s.replace(/(^|\n)\s*\*\*([^*\n]{2,80})\*\*\s*/g, (_m, p1, p2) => {
+    const title = canonicalHeading(String(p2 || ''));
+    if (!title) return p1;
+    if (isKnownHeading(title)) return `${p1}${title}:\n`;
+    return `${p1}${title} `;
+  });
+
   s = stripMarkdownNoise(s);
 
   s = s.replace(/\s+\*\s+/g, '\n- ');
