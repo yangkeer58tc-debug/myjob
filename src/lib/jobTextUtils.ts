@@ -8,6 +8,11 @@ export const fixJobTextArtifacts = (value: string) => {
   let s = value || '';
   if (!s) return s;
 
+  s = s.replaceAll('\u008D\u2039', 'çã');
+  s = s.replaceAll('\u008D', 'ç');
+  s = s.replaceAll('\u2039', 'ã');
+  s = s.replaceAll('\u0090', 'ê');
+
   s = s.replace(/[\u0080-\u009F]/g, '');
   s = s.replaceAll('œ', 'ú').replaceAll('Œ', 'Ú');
   s = s.replaceAll('Ž', 'é').replaceAll('ž', 'é');
@@ -17,10 +22,6 @@ export const fixJobTextArtifacts = (value: string) => {
   s = s.replaceAll('’', "'").replaceAll('‘', "'").replaceAll('“', '"').replaceAll('”', '"');
   s = s.replaceAll('—', '-').replaceAll('–', '-');
 
-  s = s.replaceAll('\u008D\u2039', 'çã');
-  s = s.replaceAll('\u008D', 'ç');
-  s = s.replaceAll('\u2039', 'ã');
-  s = s.replaceAll('\u0090', 'ê');
   s = s.replaceAll('\u017D', 'é');
   s = s.replaceAll('\u2021', 'á');
   s = s.replace(/p[\u2014\u2013\u2012\u2010\u2011]s-venda/gi, (m) => (m[0] === 'P' ? 'Pós-venda' : 'pós-venda'));

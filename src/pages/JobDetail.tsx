@@ -21,18 +21,18 @@ const maybeFixMojibake = (value: string) => {
   const bytes: number[] = [];
   for (const ch of s) {
     const code = ch.charCodeAt(0);
-    if (code > 255) return s;
+    if (code > 255) return fixJobTextArtifacts(s);
     bytes.push(code);
   }
 
   try {
     const fixed = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
-    if (!fixed || fixed === s) return s;
+    if (!fixed || fixed === s) return fixJobTextArtifacts(s);
     const normalized = fixJobTextArtifacts(fixed);
     if (/[À-ÿ]/.test(normalized) && !/[ÃÂ�]/.test(normalized)) return normalized;
-    return s;
+    return fixJobTextArtifacts(s);
   } catch {
-    return s;
+    return fixJobTextArtifacts(s);
   }
 };
 
