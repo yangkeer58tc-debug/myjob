@@ -2,6 +2,7 @@ import { Helmet } from 'react-helmet-async';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { resumesSupabase, getResumesSource } from '@/integrations/resumes/client';
 import PublicLayout from '@/components/PublicLayout';
 import CandidateCard from '@/components/CandidateCard';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,55 @@ type CandidateRow = {
   created_at: string;
 };
 
+type ResumeRow = {
+  id: string;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  job_direction: string | null;
+  work_years: number | null;
+  country: string | null;
+  city: string | null;
+  profile_summary: string | null;
+  profile_summary_language: string | null;
+  intro_language: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  is_public?: boolean | null;
+  parse_status?: string | null;
+};
+
+const normalizeRoleSlug = (value: string) =>
+  fixJobTextArtifacts(String(value || ''))
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+
+const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
+  const roleSlug = normalizeRoleSlug(r.job_direction || '');
+  const fullName = r.name || [r.first_name, r.last_name].filter(Boolean).join(' ') || null;
+  const location = r.city || r.country || null;
+  const headline = r.job_direction ? `Profissional de ${r.job_direction}` : null;
+  const workYears = typeof r.work_years === 'number' && Number.isFinite(r.work_years) ? r.work_years : null;
+  const experience = workYears !== null ? `Experiência: ${workYears} anos` : null;
+
+  return {
+    id: r.id,
+    role_slug: roleSlug || 'driver',
+    full_name: fullName,
+    age: null,
+    location,
+    headline,
+    summary: r.profile_summary || null,
+    experience,
+    employment_type: null,
+    salary_expectation: null,
+    availability: null,
+    created_at: r.updated_at || r.created_at,
+  };
+};
+
 const CandidateSearch = () => {
   const { role = 'driver' } = useParams<{ role: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,27 +106,101 @@ const CandidateSearch = () => {
   const { data: cities } = useQuery({
     queryKey: ['candidateCities', role],
     queryFn: async () => {
+      const roleSlug = normalizeRoleSlug(role);
+
+      if (resumesSupabase) {
+        const { tableOrView } = getResumesSource();
+        const roleNeedle = roleSlug.replaceAll('-', ' ');
+
+        const run = async (withIsPublic: boolean) => {
+          let query = resumesSupabase.from(tableOrView).select('city, country, job_direction, is_public').ilike('job_direction', `%${roleNeedle}%`);
+          if (withIsPublic) query = query.eq('is_public', true);
+          const { data, error } = await query;
+          if (error) throw error;
+          const locs = (data as any[])
+            .map((r) => r.city || r.country)
+            .filter(Boolean)
+            .map((v) => String(v));
+          return [...new Set(locs)].sort();
+        };
+
+        try {
+          return await run(true);
+        } catch (err: any) {
+          const msg = String(err?.message || err || '');
+          if (msg.toLowerCase().includes('column') && msg.toLowerCase().includes('is_public')) {
+            return await run(false);
+          }
+          throw err;
+        }
+      }
+
       const { data, error } = await supabase
         .from('candidates')
         .select('location')
         .eq('is_active', true)
         .eq('is_public', true)
-        .eq('role_slug', role);
+        .eq('role_slug', roleSlug);
       if (error) throw error;
-      const unique = [...new Set((data || []).map((r: any) => r.location).filter(Boolean))].sort();
-      return unique as string[];
+      const unique = [...new Set(data.map((j: any) => j.location).filter(Boolean))].sort();
+      return unique;
     },
   });
 
   const { data, isLoading } = useQuery({
     queryKey: ['candidates', role, city, q, page],
     queryFn: async () => {
+      const roleSlug = normalizeRoleSlug(role);
+
+      if (resumesSupabase) {
+        const { tableOrView } = getResumesSource();
+
+        const roleNeedle = roleSlug.replaceAll('-', ' ');
+
+        const selectCols =
+          'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,profile_summary_language,intro_language,created_at,updated_at,is_public,parse_status';
+
+        const runQuery = async (withIsPublic: boolean) => {
+          let query = resumesSupabase
+            .from(tableOrView)
+            .select(selectCols, { count: 'exact' })
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false })
+            .ilike('job_direction', `%${roleNeedle}%`)
+            .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
+
+          if (city) query = query.or(`city.eq.${city},country.eq.${city}`);
+          if (q) {
+            const escaped = q.replaceAll(',', ' ');
+            query = query.or(
+              `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%`,
+            );
+          }
+          if (withIsPublic) query = query.eq('is_public', true);
+
+          const { data: raw, error, count } = await query;
+          if (error) throw error;
+          const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow));
+          return { candidates: mapped, count: count || 0 };
+        };
+
+        try {
+          return await runQuery(true);
+        } catch (err: any) {
+          const msg = String(err?.message || err || '');
+          if (msg.toLowerCase().includes('column') && msg.toLowerCase().includes('is_public')) {
+            return await runQuery(false);
+          }
+          throw err;
+        }
+      }
+
       let query = supabase
         .from('candidates')
         .select('*', { count: 'exact' })
         .eq('is_active', true)
         .eq('is_public', true)
-        .eq('role_slug', role)
+        .eq('role_slug', roleSlug)
         .order('created_at', { ascending: false })
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
@@ -221,4 +345,3 @@ const CandidateSearch = () => {
 };
 
 export default CandidateSearch;
-
