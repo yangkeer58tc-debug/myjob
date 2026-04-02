@@ -41,7 +41,7 @@ type CandidateRow = {
   country: string | null;
   city: string | null;
   summary: string | null;
-  has_contact: boolean;
+  has_contact: boolean | null;
   created_at: string;
 };
 
@@ -57,8 +57,6 @@ type ResumeRow = {
   profile_summary: string | null;
   created_at: string;
   updated_at?: string | null;
-  phone?: string | null;
-  whatsapp?: string | null;
   has_contact?: boolean | null;
 };
 
@@ -72,10 +70,7 @@ const normalizeRoleSlug = (value: string) =>
 const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
   const roleSlug = normalizeRoleSlug(r.job_direction || '');
   const fullName = r.name || [r.first_name, r.last_name].filter(Boolean).join(' ') || null;
-  const hasContact =
-    typeof r.has_contact === 'boolean'
-      ? r.has_contact
-      : Boolean(String(r.phone || '').trim() || String(r.whatsapp || '').trim());
+  const hasContact = typeof r.has_contact === 'boolean' ? r.has_contact : null;
 
   return {
     id: r.id,
@@ -84,7 +79,7 @@ const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
     last_name: r.last_name || null,
     full_name: fullName,
     job_title: r.job_direction || null,
-    country: r.country || null,
+    country: r.country || 'Brasil',
     city: r.city || null,
     summary: r.profile_summary || null,
     has_contact: hasContact,
@@ -97,7 +92,7 @@ const isCandidateEligible = (c: CandidateRow) => {
   const countryOk = Boolean(String(c.country || '').trim());
   const nameOk = Boolean(String(c.first_name || '').trim()) && Boolean(String(c.last_name || '').trim());
   const summaryOk = Boolean(String(c.summary || '').trim());
-  const contactOk = Boolean(c.has_contact);
+  const contactOk = c.has_contact === null ? true : c.has_contact;
   return titleOk && countryOk && nameOk && summaryOk && contactOk;
 };
 
@@ -117,27 +112,41 @@ const CandidateSearch = () => {
 
         const roleNeedle = roleSlug ? roleSlug.replaceAll('-', ' ') : '';
 
-        const selectCols = 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at,has_contact';
+        const runQuery = async (withHasContact: boolean) => {
+          const selectCols = withHasContact
+            ? 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at,has_contact'
+            : 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at';
 
-        let query = resumesSupabase
-          .from(tableOrView)
-          .select(selectCols, { count: 'exact' })
-          .order('updated_at', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false })
-          .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
+          let query = resumesSupabase
+            .from(tableOrView)
+            .select(selectCols, { count: 'exact' })
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false })
+            .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-        if (roleNeedle) query = query.ilike('job_direction', `%${roleNeedle}%`);
-        if (q) {
-          const escaped = q.replaceAll(',', ' ');
-          query = query.or(
-            `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%,job_direction.ilike.%${escaped}%`,
-          );
+          if (roleNeedle) query = query.ilike('job_direction', `%${roleNeedle}%`);
+          if (q) {
+            const escaped = q.replaceAll(',', ' ');
+            query = query.or(
+              `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%,job_direction.ilike.%${escaped}%`,
+            );
+          }
+
+          const { data: raw, error: resumesError, count } = await query;
+          if (resumesError) throw resumesError;
+          const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
+          return { candidates: mapped, count: count || 0 };
+        };
+
+        try {
+          return await runQuery(true);
+        } catch (err: any) {
+          const msg = String(err?.message || err || '').toLowerCase();
+          if (msg.includes('has_contact') && (msg.includes('does not exist') || msg.includes('column'))) {
+            return await runQuery(false);
+          }
+          throw err;
         }
-
-        const { data: raw, error: resumesError, count } = await query;
-        if (resumesError) throw resumesError;
-        const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
-        return { candidates: mapped, count: count || 0 };
       }
 
       let query = supabase
@@ -297,7 +306,7 @@ const CandidateSearch = () => {
             <div className="mt-3 text-sm text-muted-foreground space-y-1">
               <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
               <p>展示规则：必须有 title、country、first_name+last_name、profile_summary，以及 phone 或 WhatsApp。</p>
-              <p>如果你的 view 里没提供 has_contact 字段，请按简历库侧 SQL 增加 has_contact（不暴露号码）。</p>
+              <p>如果你的 view 里没提供 has_contact 字段，会默认不强制校验联系方式（不影响展示）。</p>
               <p>备用方案：去 /admin → Candidatos 导入 CSV 先跑通。</p>
             </div>
           </div>

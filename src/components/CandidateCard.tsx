@@ -14,7 +14,7 @@ type Candidate = {
   country: string | null;
   city: string | null;
   summary: string | null;
-  has_contact: boolean;
+  has_contact: boolean | null;
   created_at: string;
 };
 
