@@ -9,6 +9,7 @@ interface Translations {
 const translations: Translations = {
   // Navbar
   'nav.jobs': { pt: 'Vagas' },
+  'nav.candidates': { pt: 'Candidatos' },
   
   // Hero
   'hero.badge': { pt: '⭐️ Avaliado com 4.8/5 por mais de 10.000 usuários' },

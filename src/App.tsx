@@ -11,6 +11,7 @@ import JobList from "./pages/JobList";
 import JobDetail from "./pages/JobDetail";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import CandidateSearch from "./pages/CandidateSearch";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
                 <Route path="/" element={<Home />} />
                 <Route path="/empleos" element={<JobList />} />
                 <Route path="/empleo/:id" element={<JobDetail />} />
+                <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -26,6 +26,12 @@ const Navbar = () => {
           >
             {t('nav.jobs')}
           </Link>
+          <Link
+            to="/buscar-candidatos/driver"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            {t('nav.candidates')}
+          </Link>
         </div>
       </div>
     </nav>

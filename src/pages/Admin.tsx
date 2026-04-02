@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 import { parseHighlights } from '@/lib/highlightUtils';
-import { normalizeCompanyName, normalizeJobTextFields, normalizeJobTitle } from '@/lib/jobTextUtils';
+import { fixJobTextArtifacts, normalizeCompanyName, normalizeJobTextFields, normalizeJobTitle } from '@/lib/jobTextUtils';
 import {
   CATEGORY_OPTIONS,
   CITY_OPTIONS,
@@ -182,8 +182,10 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [editing, setEditing] = useState<JobForm | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates'>('jobs');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const candidateFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -208,6 +210,19 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const { data: candidates, isLoading: candidatesLoading, error: candidatesError } = useQuery({
+    queryKey: ['adminCandidates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('candidates')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -263,6 +278,22 @@ const Admin = () => {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminJobs'] }),
+  });
+
+  const toggleCandidateActive = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from('candidates').update({ is_active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminCandidates'] }),
+  });
+
+  const toggleCandidatePublic = useMutation({
+    mutationFn: async ({ id, is_public }: { id: string; is_public: boolean }) => {
+      const { error } = await supabase.from('candidates').update({ is_public }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminCandidates'] }),
   });
 
   const activateAllMutation = useMutation({
@@ -462,6 +493,84 @@ const Admin = () => {
     link.click();
   };
 
+  const normalizeCandidateText = (value: unknown) => fixJobTextArtifacts(String(value ?? '')).replace(/\s+/g, ' ').trim();
+
+  const downloadCandidatesTemplate = () => {
+    const template = [
+      ['id', 'role_slug', 'full_name', 'age', 'location', 'headline', 'summary', 'experience', 'education_level', 'employment_type', 'salary_expectation', 'availability', 'is_active', 'is_public'],
+      [
+        'cand-exemplo',
+        'driver',
+        'Leandro Rodrigues',
+        '43',
+        'sao-jose-dos-campos',
+        'Instrutor Master Driver',
+        'Buscando oportunidade como Instrutor Master Driver. Mais de 15 anos de experiência no transporte rodoviário.',
+        'Treinamento de condutores, reciclagem, integração, telemetria, segurança viária, redução de sinistros.',
+        'Ensino médio completo',
+        'CLT',
+        'R$ 5.000',
+        'Imediata',
+        'TRUE',
+        'TRUE',
+      ],
+    ];
+    const csv = Papa.unparse(template);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'myjob_candidates_template.csv';
+    link.click();
+  };
+
+  const handleCandidatesFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    (async () => {
+      try {
+        const text = await decodeCsvFile(file);
+        const results = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true });
+        if (results.errors?.length) {
+          const msg = results.errors[0]?.message || 'CSV inválido';
+          throw new Error(msg);
+        }
+
+        const rows = (results.data || []).filter((r) => Object.values(r || {}).some((v) => String(v ?? '').trim() !== ''));
+        const payload = rows.map((row) => {
+          const ageRaw = String(row.age ?? '').trim();
+          const age = ageRaw ? Number.parseInt(ageRaw, 10) : NaN;
+          return {
+            id: row.id || `cand-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            role_slug: normalizeCandidateText(row.role_slug || 'driver').toLowerCase(),
+            full_name: row.full_name ? normalizeCandidateText(row.full_name) : null,
+            age: Number.isFinite(age) ? age : null,
+            location: row.location ? normalizeCity(row.location) : null,
+            headline: row.headline ? normalizeCandidateText(row.headline) : null,
+            summary: row.summary ? normalizeCandidateText(row.summary) : null,
+            experience: row.experience ? normalizeCandidateText(row.experience) : null,
+            education_level: row.education_level ? normalizeCandidateText(row.education_level) : null,
+            employment_type: row.employment_type ? normalizeCandidateText(row.employment_type) : null,
+            salary_expectation: row.salary_expectation ? normalizeCandidateText(row.salary_expectation) : null,
+            availability: row.availability ? normalizeCandidateText(row.availability) : null,
+            is_active: parseBoolean(row.is_active, true),
+            is_public: parseBoolean(row.is_public, true),
+          };
+        });
+
+        const { error } = await supabase.from('candidates').upsert(payload);
+        if (error) throw error;
+
+        toast.success(`Importados ${payload.length} candidatos com sucesso.`);
+        queryClient.invalidateQueries({ queryKey: ['adminCandidates'] });
+      } catch (err: any) {
+        toast.error(`Erro ao importar: ${err.message}`);
+      } finally {
+        if (candidateFileInputRef.current) candidateFileInputRef.current.value = '';
+      }
+    })();
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -531,11 +640,38 @@ const Admin = () => {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
-        {jobsError && (
+        {activeTab === 'jobs' && jobsError && (
           <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm text-destructive">
             {(jobsError as Error).message}
           </div>
         )}
+        {activeTab === 'candidates' && candidatesError && (
+          <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm text-destructive">
+            {(candidatesError as Error).message}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            variant={activeTab === 'jobs' ? 'default' : 'outline'}
+            className="rounded-xl"
+            onClick={() => {
+              setActiveTab('jobs');
+            }}
+          >
+            Vagas
+          </Button>
+          <Button
+            variant={activeTab === 'candidates' ? 'default' : 'outline'}
+            className="rounded-xl"
+            onClick={() => {
+              setActiveTab('candidates');
+              setShowForm(false);
+              setEditing(null);
+            }}
+          >
+            Candidatos
+          </Button>
+        </div>
         {showForm && editing ? (
           <div className="bg-card rounded-2xl shadow-sm p-6 space-y-4">
             <h2 className="text-lg font-bold">{editing.id.startsWith('job-') ? t('admin.addJob') : t('admin.editJob')}</h2>
@@ -580,7 +716,7 @@ const Admin = () => {
               <Button variant="outline" onClick={() => { setShowForm(false); setEditing(null); }} className="rounded-xl">{t('admin.cancel')}</Button>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'jobs' ? (
           <>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
               <div className="flex flex-wrap gap-2">
@@ -658,6 +794,76 @@ const Admin = () => {
                   ))}
                   {(!jobs || jobs.length === 0) && !isLoading && (
                     <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma vaga</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={downloadCandidatesTemplate} className="rounded-xl">
+                  <Download className="h-4 w-4 mr-2" /> Template CSV
+                </Button>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  ref={candidateFileInputRef}
+                  onChange={handleCandidatesFileUpload}
+                />
+                <Button variant="secondary" onClick={() => candidateFileInputRef.current?.click()} className="rounded-xl">
+                  <Upload className="h-4 w-4 mr-2" /> Importar CSV
+                </Button>
+              </div>
+            </div>
+            <div className="bg-card rounded-2xl shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium">ID</th>
+                    <th className="text-left px-4 py-3 font-medium">Nome</th>
+                    <th className="text-left px-4 py-3 font-medium">Perfil</th>
+                    <th className="text-left px-4 py-3 font-medium">Cidade</th>
+                    <th className="text-left px-4 py-3 font-medium">Ativo</th>
+                    <th className="text-left px-4 py-3 font-medium">Público</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {candidatesLoading && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                        Carregando...
+                      </td>
+                    </tr>
+                  )}
+                  {candidates?.map((c: any) => (
+                    <tr key={c.id} className="border-t border-border">
+                      <td className="px-4 py-3 font-mono text-xs">{c.id}</td>
+                      <td className="px-4 py-3 font-medium">{c.full_name || '-'}</td>
+                      <td className="px-4 py-3">{c.role_slug}</td>
+                      <td className="px-4 py-3">{c.location || '-'}</td>
+                      <td className="px-4 py-3">
+                        <Switch
+                          checked={Boolean(c.is_active)}
+                          onCheckedChange={(v) => toggleCandidateActive.mutate({ id: c.id, is_active: v })}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Switch
+                          checked={Boolean(c.is_public)}
+                          onCheckedChange={(v) => toggleCandidatePublic.mutate({ id: c.id, is_public: v })}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  {(!candidates || candidates.length === 0) && !candidatesLoading && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                        Nenhum candidato
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
