@@ -21,20 +21,20 @@ type Candidate = {
 const BOT_NUMBER = '528132689375';
 
 const maskName = (firstName: string | null, lastName: string | null, fallback: string | null) => {
-  const first = (firstName || '').trim();
-  const last = (lastName || '').trim();
-  const firstInitial = first ? `${first[0]}.` : '';
-  const lastInitial = last ? `${last[0]}.` : '';
-  if (firstInitial && lastInitial) return `${firstInitial} ${lastInitial}`;
-  if (firstInitial) return firstInitial;
-  if (lastInitial) return lastInitial;
-  const raw = (fallback || '').trim();
-  if (!raw) return 'Profissional';
-  const parts = raw.split(/\s+/).filter(Boolean);
-  const a = parts[0]?.[0] ? `${parts[0][0]}.` : '';
-  const b = parts[1]?.[0] ? `${parts[1][0]}.` : '';
-  if (a && b) return `${a} ${b}`;
-  return a || 'Profissional';
+  const cap = (v: string) => (v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : v);
+  const safeParts = (v: string) => fixJobTextArtifacts(String(v || '')).trim().split(/\s+/).filter(Boolean);
+
+  const firstParts = safeParts(firstName || '');
+  const lastParts = safeParts(lastName || '');
+  const rawParts = safeParts(fallback || '');
+
+  const first = firstParts[0] || rawParts[0] || '';
+  const last = lastParts[0] || (rawParts.length >= 2 ? rawParts[rawParts.length - 1] : '');
+
+  if (first && last) return `${cap(first)} ${cap(last[0])}.`;
+  if (first) return cap(first);
+  if (last) return `${cap(last[0])}.`;
+  return 'Profissional';
 };
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
