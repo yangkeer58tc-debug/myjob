@@ -39,10 +39,20 @@ const maskName = (firstName: string | null, lastName: string | null, fallback: s
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const getQueryTokens = (query: string) =>
+  Array.from(new Set(String(query || '').trim().split(/\s+/).map((t) => t.trim()).filter(Boolean)));
+
+const queryMatches = (text: string, query: string) => {
+  const tokens = getQueryTokens(query);
+  if (tokens.length === 0) return false;
+  const hay = String(text || '').toLowerCase();
+  return tokens.some((t) => hay.includes(t.toLowerCase()));
+};
+
 const renderHighlighted = (text: string, query: string) => {
   const q = String(query || '').trim();
   if (!q) return text;
-  const tokens = Array.from(new Set(q.split(/\s+/).map((t) => t.trim()).filter(Boolean)));
+  const tokens = getQueryTokens(q);
   if (tokens.length === 0) return text;
   const pattern = tokens.map(escapeRegExp).join('|');
   if (!pattern) return text;
@@ -111,13 +121,22 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
   const summary = candidate.summary ? fixJobTextArtifacts(candidate.summary) : '';
   const location = [country, city].filter(Boolean).join(' • ') || 'Brasil';
   const roleLabel = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || '');
+  const roleRaw = fixJobTextArtifacts(candidate.job_title || candidate.role_slug || '');
+  const q = query || '';
+  const highlightByRawRole = queryMatches(roleRaw, q) && !queryMatches(roleLabel, q);
 
   return (
     <Card className="rounded-3xl border-border/50 overflow-hidden">
       <CardHeader className="p-6 pb-0 space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-lg font-extrabold text-foreground leading-tight">{renderHighlighted(title, query || '')}</h3>
+            <h3 className="text-lg font-extrabold text-foreground leading-tight">
+              {highlightByRawRole ? (
+                <mark className="bg-primary/20 text-foreground px-1 rounded-sm">{title}</mark>
+              ) : (
+                renderHighlighted(title, q)
+              )}
+            </h3>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               <User className="h-4 w-4" /> {name}
             </p>
@@ -134,7 +153,12 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
             <MapPin className="mr-1 h-3 w-3" /> {location}
           </Badge>
           <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
-            <Briefcase className="mr-1 h-3 w-3" /> {renderHighlighted(roleLabel, query || '')}
+            <Briefcase className="mr-1 h-3 w-3" />{' '}
+            {highlightByRawRole ? (
+              <mark className="bg-primary/20 text-foreground px-1 rounded-sm">{roleLabel}</mark>
+            ) : (
+              renderHighlighted(roleLabel, q)
+            )}
           </Badge>
           {candidate.has_contact ? (
             <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
@@ -145,7 +169,7 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
       </CardHeader>
 
       <CardContent className="p-6 pt-4 space-y-4">
-        {summary ? <p className="text-sm text-muted-foreground leading-relaxed">{renderHighlighted(summary, query || '')}</p> : null}
+        {summary ? <p className="text-sm text-muted-foreground leading-relaxed">{renderHighlighted(summary, q)}</p> : null}
       </CardContent>
     </Card>
   );
