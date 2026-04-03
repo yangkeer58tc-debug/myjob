@@ -181,7 +181,7 @@ const Home = () => {
             {/* Visual/Phone Mockup */}
             <div className="flex-1 w-full max-w-lg lg:max-w-none relative z-10">
               {/* Floating badges */}
-              <div className="absolute top-10 -left-12 bg-white/80 p-4 rounded-2xl shadow-xl border border-slate-200 hidden md:flex items-center gap-3 z-20 animate-bounce backdrop-blur" style={{ animationDuration: '3s' }}>
+              <div className="absolute top-10 -left-12 bg-white/80 p-4 rounded-2xl shadow-xl border border-slate-200 hidden md:flex items-center gap-3 z-20 animate-pulse backdrop-blur">
                 <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center">
                   <Zap className="h-5 w-5 text-white" />
                 </div>
@@ -265,50 +265,50 @@ const Home = () => {
       </section>
 
       {/* 🌟 WHY WHATSAPP SECTION (Features) */}
-      <section className="py-24 bg-white border-y border-slate-100">
+      <section className="py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Por que buscar emprego pelo WhatsApp?</h2>
-            <p className="text-lg text-slate-600 font-medium">Uma forma mais humana e rápida de se candidatar — direto do seu celular.</p>
+            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">Por que buscar emprego pelo WhatsApp?</h2>
+            <p className="text-lg text-muted-foreground font-medium">Uma forma mais humana e rápida de se candidatar — direto do seu celular.</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-slate-50 rounded-[2rem] p-8 text-center hover:shadow-lg transition-all border border-slate-100">
-              <div className="w-16 h-16 mx-auto bg-[#25D366]/10 rounded-2xl flex items-center justify-center mb-6">
-                <Zap className="h-8 w-8 text-[#25D366]" />
+            <div className="bg-card rounded-2xl p-8 text-center hover:shadow-lg transition-all border border-border/60">
+              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+                <Zap className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Contato direto</h3>
-              <p className="text-slate-600">Fale com o recrutador sem intermediários nem filtros automáticos.</p>
+              <h3 className="text-xl font-bold text-foreground mb-3">Contato direto</h3>
+              <p className="text-muted-foreground">Fale com o recrutador sem intermediários nem filtros automáticos.</p>
             </div>
             
-            <div className="bg-slate-50 rounded-[2rem] p-8 text-center hover:shadow-lg transition-all border border-slate-100">
-              <div className="w-16 h-16 mx-auto bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
-                <MessageCircle className="h-8 w-8 text-blue-600" />
+            <div className="bg-card rounded-2xl p-8 text-center hover:shadow-lg transition-all border border-border/60">
+              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+                <MessageCircle className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Acompanhamento em tempo real</h3>
-              <p className="text-slate-600">Veja rapidamente se sua mensagem foi recebida e lida.</p>
+              <h3 className="text-xl font-bold text-foreground mb-3">Acompanhamento em tempo real</h3>
+              <p className="text-muted-foreground">Veja rapidamente se sua mensagem foi recebida e lida.</p>
             </div>
             
-            <div className="bg-slate-50 rounded-[2rem] p-8 text-center hover:shadow-lg transition-all border border-slate-100">
-              <div className="w-16 h-16 mx-auto bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6">
-                <ShieldCheck className="h-8 w-8 text-amber-600" />
+            <div className="bg-card rounded-2xl p-8 text-center hover:shadow-lg transition-all border border-border/60">
+              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+                <ShieldCheck className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Empresas verificadas</h3>
-              <p className="text-slate-600">Mais segurança com empresas verificadas e processos transparentes.</p>
+              <h3 className="text-xl font-bold text-foreground mb-3">Empresas verificadas</h3>
+              <p className="text-muted-foreground">Mais segurança com empresas verificadas e processos transparentes.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* 🏢 CATEGORIES SECTION (Rich Content) */}
-      <section className="py-24 bg-slate-50">
+      <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Explore por categoria</h2>
-              <p className="text-slate-600 font-medium">Encontre a vaga ideal para você.</p>
+              <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">Explore por categoria</h2>
+              <p className="text-muted-foreground font-medium">Encontre a vaga ideal para você.</p>
             </div>
-            <Button variant="outline" className="rounded-xl border-slate-200 font-bold bg-white" onClick={() => navigate('/empleos')}>
+            <Button variant="outline" className="rounded-xl font-bold bg-card" onClick={() => navigate('/empleos')}>
               Ver todas as categorias
             </Button>
           </div>
@@ -317,11 +317,11 @@ const Home = () => {
             {CATEGORIES.map((cat) => (
               <div
                 key={cat.value}
-                className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-[#25D366]/50 hover:shadow-md transition-all cursor-pointer group min-w-[220px] flex-shrink-0"
+                className="bg-card p-6 rounded-2xl border border-border/60 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group min-w-[220px] flex-shrink-0"
                 onClick={() => navigate(`/empleos?categoria=${encodeURIComponent(cat.value)}`)}
               >
-                <h3 className="font-bold text-slate-900 group-hover:text-[#128C7E] transition-colors mb-2">{cat.name}</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors mb-2">{cat.name}</h3>
+                <p className="text-sm text-muted-foreground">
                   {(categoryCounts?.[cat.value] ?? 0).toLocaleString('pt-BR')} vagas
                 </p>
               </div>
@@ -332,11 +332,11 @@ const Home = () => {
 
       {/* 💼 RECENT JOBS SECTION */}
       {recentJobs && recentJobs.length > 0 && (
-        <section className="py-24 bg-white">
+        <section className="py-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">Vagas em destaque</h2>
-              <p className="text-lg text-slate-600 font-medium">Candidate-se agora pelo WhatsApp.</p>
+              <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">Vagas em destaque</h2>
+              <p className="text-lg text-muted-foreground font-medium">Candidate-se agora pelo WhatsApp.</p>
             </div>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -360,15 +360,15 @@ const Home = () => {
       )}
 
       {/* 📍 CITIES SECTION */}
-      <section className="py-20 bg-slate-900 text-white">
+      <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center">Encontre vagas na sua cidade</h2>
+          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center text-foreground tracking-tight">Encontre vagas na sua cidade</h2>
           <div className="flex flex-wrap justify-center gap-4">
             {CITIES.map((city) => (
               <button
                 key={city}
                 onClick={() => navigate(`/empleos?ciudad=${encodeURIComponent(city)}`)}
-                className="flex items-center gap-2 px-6 py-3 rounded-full bg-slate-800 hover:bg-[#25D366] hover:text-slate-900 transition-all font-bold border border-slate-700 hover:border-[#25D366]"
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-card hover:bg-primary/5 transition-all font-bold border border-border/60 hover:border-primary/40 text-foreground"
               >
                 <MapPin className="h-4 w-4" />
                 {city}

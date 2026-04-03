@@ -146,7 +146,7 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
   };
 
   return (
-    <Card className="rounded-3xl border-border/50 overflow-hidden">
+    <Card className="rounded-2xl border-border/60 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="p-6 pb-0 space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
