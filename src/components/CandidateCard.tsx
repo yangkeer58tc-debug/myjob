@@ -1,8 +1,11 @@
+import { useMemo, useState } from 'react';
 import { MapPin, Briefcase, User } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
+import { QRCodeSVG } from 'qrcode.react';
 
 type Candidate = {
   id: string;
@@ -105,11 +108,18 @@ const toSpanishRoleLabel = (raw: string) => {
   return toTitleCase(fromSlug);
 };
 
-const buildWaUrl = (candidate: Candidate) => {
+const isMobileDevice = () =>
+  typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+const buildWaMessage = (candidate: Candidate) => {
   const role = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'candidato');
   const loc = fixJobTextArtifacts(candidate.country || candidate.city || 'Brasil');
   const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
-  const msg = `Hola! Estoy interesado en este perfil de candidato en MyJob.\n\nID: ${candidate.id}\nPuesto: ${role}\nUbicación: ${loc}\nNombre (oculto): ${name}\n\n¿Me puedes compartir el contacto?`;
+  return `Hola! Estoy interesado en este perfil de candidato en MyJob.\n\nID: ${candidate.id}\nPuesto: ${role}\nUbicación: ${loc}\nNombre (oculto): ${name}\n\n¿Me puedes compartir el contacto?`;
+};
+
+const buildWaUrl = (candidate: Candidate) => {
+  const msg = buildWaMessage(candidate);
   return `https://wa.me/${BOT_NUMBER}?text=${encodeURIComponent(msg)}`;
 };
 
@@ -124,6 +134,14 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
   const roleRaw = fixJobTextArtifacts(candidate.job_title || candidate.role_slug || '');
   const q = query || '';
   const highlightByRawRole = queryMatches(roleRaw, q) && !queryMatches(roleLabel, q);
+  const [qrOpen, setQrOpen] = useState(false);
+  const waUrl = useMemo(() => buildWaUrl(candidate), [candidate]);
+  const waText = useMemo(() => encodeURIComponent(buildWaMessage(candidate)), [candidate]);
+
+  const handleWhatsApp = () => {
+    if (isMobileDevice()) window.location.href = `whatsapp://send?phone=${BOT_NUMBER}&text=${waText}`;
+    else setQrOpen(true);
+  };
 
   return (
     <Card className="rounded-3xl border-border/50 overflow-hidden">
@@ -141,11 +159,9 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
               <User className="h-4 w-4" /> {name}
             </p>
           </div>
-          <a href={buildWaUrl(candidate)} target="_blank" rel="noopener noreferrer">
-            <Button variant="whatsapp" className="rounded-2xl font-bold">
-              Contratar agora
-            </Button>
-          </a>
+          <Button variant="whatsapp" className="rounded-2xl font-bold" onClick={handleWhatsApp}>
+            Contratar agora
+          </Button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -171,6 +187,22 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
       <CardContent className="p-6 pt-4 space-y-4">
         {summary ? <p className="text-sm text-muted-foreground leading-relaxed">{renderHighlighted(summary, q)}</p> : null}
       </CardContent>
+
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold">Escanear para abrir WhatsApp</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="rounded-2xl bg-card p-4 shadow-sm">
+              <QRCodeSVG value={waUrl} size={220} />
+            </div>
+            <p className="text-center text-sm text-muted-foreground max-w-xs">
+              Escanee este código QR con WhatsApp en su teléfono para abrir la conversación.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
