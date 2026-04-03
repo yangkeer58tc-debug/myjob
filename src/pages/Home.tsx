@@ -112,18 +112,18 @@ const Home = () => {
         </script>
       </Helmet>
       {/* 🚀 SUPER HERO SECTION (WhatsApp Focused) */}
-      <section className="relative pt-20 pb-32 lg:pt-32 lg:pb-40 overflow-hidden bg-slate-950">
+      <section className="relative pt-20 pb-28 lg:pt-28 lg:pb-32 overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50">
         {/* Dynamic Background */}
         <div className="absolute top-0 w-full h-full overflow-hidden -z-10">
-          <div className="absolute -top-24 right-[-10%] w-[640px] h-[640px] rounded-full bg-emerald-400/15 blur-[120px] animate-pulse" />
+          <div className="absolute -top-24 right-[-10%] w-[640px] h-[640px] rounded-full bg-emerald-500/20 blur-[120px] animate-pulse" />
           <div
             className="absolute bottom-[-15%] left-[-10%] w-[560px] h-[560px] rounded-full bg-indigo-500/15 blur-[120px] animate-pulse"
             style={{ animationDelay: '600ms' }}
           />
           <div
-            className="absolute inset-0 opacity-25"
+            className="absolute inset-0 opacity-60"
             style={{
-              backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0)',
+              backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(15,23,42,0.06) 1px, transparent 0)',
               backgroundSize: '28px 28px',
             }}
           />
@@ -134,7 +134,7 @@ const Home = () => {
             
             {/* Text Content */}
             <div className="flex-1 text-center lg:text-left z-10">
-              <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 text-white text-sm font-bold px-5 py-2.5 rounded-full mb-8 shadow-sm backdrop-blur">
+              <div className="inline-flex items-center gap-2 bg-white/70 border border-slate-200 text-slate-700 text-sm font-bold px-5 py-2.5 rounded-full mb-8 shadow-sm backdrop-blur">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-[#25D366]"></span>
@@ -142,21 +142,21 @@ const Home = () => {
                 Recrutamento 100% via WhatsApp
               </div>
               
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.1] mb-6 tracking-tight">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">
                 Consiga emprego <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#128C7E] to-[#25D366]">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
                   conversando.
                 </span>
               </h1>
               
-              <p className="text-xl text-white/75 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-medium">
+              <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-medium">
                 Esqueça portais complicados e e-mails que ninguém responde. No MyJob, você fala direto com as empresas pelo WhatsApp. Rápido, seguro e sem enrolação.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto rounded-xl h-16 px-10 text-lg font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-xl shadow-emerald-500/20 transition-all hover:-translate-y-1"
+                  className="w-full sm:w-auto rounded-xl h-16 px-10 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl shadow-emerald-500/20 transition-all hover:-translate-y-1"
                   onClick={() => navigate('/empleos')}
                 >
                   <MessageCircle className="h-6 w-6 mr-3" />
@@ -165,13 +165,13 @@ const Home = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full sm:w-auto rounded-xl h-16 px-10 text-lg font-bold border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white shadow-xl shadow-indigo-500/10 transition-all hover:-translate-y-1"
+                  className="w-full sm:w-auto rounded-xl h-16 px-10 text-lg font-bold border-slate-200 bg-white/70 text-slate-900 hover:bg-white shadow-xl shadow-slate-900/5 transition-all hover:-translate-y-1"
                   onClick={() => navigate('/buscar-candidatos')}
                 >
                   <ArrowRight className="h-6 w-6 mr-3" />
                   Looking for candidates to hire
                 </Button>
-                <div className="flex items-center gap-3 px-4 py-2 text-white/70 font-medium text-sm">
+                <div className="flex items-center gap-3 px-4 py-2 text-slate-500 font-medium text-sm">
                   <CheckCircle2 className="h-5 w-5 text-[#25D366]" />
                   <span>Sem cadastro prévio</span>
                 </div>
@@ -181,13 +181,13 @@ const Home = () => {
             {/* Visual/Phone Mockup */}
             <div className="flex-1 w-full max-w-lg lg:max-w-none relative z-10">
               {/* Floating badges */}
-              <div className="absolute top-10 -left-12 bg-white/5 p-4 rounded-2xl shadow-xl border border-white/10 hidden md:flex items-center gap-3 z-20 animate-bounce backdrop-blur" style={{ animationDuration: '3s' }}>
-                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+              <div className="absolute top-10 -left-12 bg-white/80 p-4 rounded-2xl shadow-xl border border-slate-200 hidden md:flex items-center gap-3 z-20 animate-bounce backdrop-blur" style={{ animationDuration: '3s' }}>
+                <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center">
                   <Zap className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs text-white/60 font-bold">Resposta em</p>
-                  <p className="text-sm font-black text-white">menos de 2h</p>
+                  <p className="text-xs text-slate-500 font-bold">Resposta em</p>
+                  <p className="text-sm font-black text-slate-900">menos de 2h</p>
                 </div>
               </div>
               
@@ -199,24 +199,24 @@ const Home = () => {
       </section>
 
       {/* 🧲 EMPLOYER ENTRY (Recruiter Focus) */}
-      <section className="py-20 bg-slate-950">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-10 items-center">
             <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 text-white text-sm font-bold px-4 py-2 rounded-full backdrop-blur">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Para empresas
+              <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold px-4 py-2 rounded-full">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                For employers
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                Contrate mais rápido com candidatos prontos para WhatsApp.
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+                Hire faster with candidates ready for WhatsApp.
               </h2>
-              <p className="text-white/70 text-lg font-medium leading-relaxed">
-                Navegue por perfis, encontre por função e fale com nosso assistente no WhatsApp para liberar o contato do candidato certo.
+              <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                Browse profiles, search by role, and talk to our WhatsApp assistant to unlock the right candidate contact.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   size="lg"
-                  className="rounded-xl h-14 px-8 text-base font-bold bg-white text-slate-950 hover:bg-white/90 shadow-xl shadow-white/10"
+                  className="rounded-xl h-14 px-8 text-base font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10 transition-all hover:-translate-y-0.5"
                   onClick={() => navigate('/buscar-candidatos')}
                 >
                   Ver candidatos
@@ -225,7 +225,7 @@ const Home = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="rounded-xl h-14 px-8 text-base font-bold border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  className="rounded-xl h-14 px-8 text-base font-bold border-slate-200 bg-white text-slate-900 hover:bg-slate-50 transition-all hover:-translate-y-0.5"
                   onClick={() => navigate('/buscar-candidatos?q=driver')}
                 >
                   Testar com “driver”
@@ -234,28 +234,28 @@ const Home = () => {
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/30 to-indigo-500/30 blur-2xl opacity-60" />
-              <div className="relative rounded-[2.5rem] border border-white/10 bg-white/5 p-8 backdrop-blur">
+              <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/25 to-indigo-500/25 blur-2xl opacity-60" />
+              <div className="relative rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
                 <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-                    <p className="text-sm font-bold text-white/70 mb-2">Acesso instantâneo</p>
-                    <p className="text-2xl font-black text-white">Perfis online</p>
-                    <p className="text-sm text-white/60 mt-2">Veja candidatos publicados em tempo real.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
+                    <p className="text-sm font-bold text-slate-500 mb-2">Instant access</p>
+                    <p className="text-2xl font-black text-slate-900">Online profiles</p>
+                    <p className="text-sm text-slate-500 mt-2">See published candidates in real time.</p>
                   </div>
-                  <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-                    <p className="text-sm font-bold text-white/70 mb-2">Triagem mais rápida</p>
-                    <p className="text-2xl font-black text-white">Busca + destaque</p>
-                    <p className="text-sm text-white/60 mt-2">Encontre e destaque palavras-chave no perfil.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
+                    <p className="text-sm font-bold text-slate-500 mb-2">Faster screening</p>
+                    <p className="text-2xl font-black text-slate-900">Search + highlight</p>
+                    <p className="text-sm text-slate-500 mt-2">Find and highlight keywords inside profiles.</p>
                   </div>
-                  <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-                    <p className="text-sm font-bold text-white/70 mb-2">Privacidade</p>
-                    <p className="text-2xl font-black text-white">Dados protegidos</p>
-                    <p className="text-sm text-white/60 mt-2">Nome e contato ficam parcialmente ocultos.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
+                    <p className="text-sm font-bold text-slate-500 mb-2">Privacy</p>
+                    <p className="text-2xl font-black text-slate-900">Protected data</p>
+                    <p className="text-sm text-slate-500 mt-2">Name and contact stay partially hidden.</p>
                   </div>
-                  <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-                    <p className="text-sm font-bold text-white/70 mb-2">WhatsApp first</p>
-                    <p className="text-2xl font-black text-white">QR no desktop</p>
-                    <p className="text-sm text-white/60 mt-2">Escaneie e continue no celular.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
+                    <p className="text-sm font-bold text-slate-500 mb-2">WhatsApp-first</p>
+                    <p className="text-2xl font-black text-slate-900">QR on desktop</p>
+                    <p className="text-sm text-slate-500 mt-2">Scan and continue on mobile.</p>
                   </div>
                 </div>
               </div>
