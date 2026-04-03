@@ -172,7 +172,7 @@ const emptyForm: JobForm = {
   is_active: true,
 };
 
-const LOGO_URL = 'https://i.postimg.cc/VLyx9gfK/Gemini-Generated-Image-eiv43beiv43beiv4-(2).png';
+const LOGO_URL = '/brand-logo.jpg';
 
 const Admin = () => {
   const { t } = useLanguage();

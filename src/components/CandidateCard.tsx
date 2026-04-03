@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MapPin, Briefcase, User } from 'lucide-react';
+import { MapPin, User } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,8 @@ type Candidate = {
   city: string | null;
   summary: string | null;
   has_contact: boolean | null;
+  work_years: number | null;
+  education_years: number | null;
   created_at: string;
 };
 
@@ -95,6 +97,7 @@ const toSpanishRoleLabel = (raw: string) => {
     cleaner: 'Personal De Limpieza',
     chef: 'Chef',
     cook: 'Cocinero',
+    'administrative-assistant': 'Asistente Administrativo',
     'sales-representative': 'Representante De Ventas',
     'sales-promoter': 'Promotor De Ventas',
     receptionist: 'Recepcionista',
@@ -130,10 +133,9 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
   const city = candidate.city ? fixJobTextArtifacts(candidate.city) : '';
   const summary = candidate.summary ? fixJobTextArtifacts(candidate.summary) : '';
   const location = [country, city].filter(Boolean).join(' • ') || 'Brasil';
-  const roleLabel = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || '');
   const roleRaw = fixJobTextArtifacts(candidate.job_title || candidate.role_slug || '');
   const q = query || '';
-  const highlightByRawRole = queryMatches(roleRaw, q) && !queryMatches(roleLabel, q);
+  const highlightByRawRole = queryMatches(roleRaw, q) && !queryMatches(title, q);
   const [qrOpen, setQrOpen] = useState(false);
   const waUrl = useMemo(() => buildWaUrl(candidate), [candidate]);
   const waText = useMemo(() => encodeURIComponent(buildWaMessage(candidate)), [candidate]);
@@ -168,14 +170,16 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
           <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
             <MapPin className="mr-1 h-3 w-3" /> {location}
           </Badge>
-          <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
-            <Briefcase className="mr-1 h-3 w-3" />{' '}
-            {highlightByRawRole ? (
-              <mark className="bg-primary/20 text-foreground px-1 rounded-sm">{roleLabel}</mark>
-            ) : (
-              renderHighlighted(roleLabel, q)
-            )}
-          </Badge>
+          {typeof candidate.work_years === 'number' && candidate.work_years > 0 ? (
+            <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
+              {candidate.work_years} {candidate.work_years === 1 ? 'año' : 'años'} exp.
+            </Badge>
+          ) : null}
+          {typeof candidate.education_years === 'number' && candidate.education_years > 0 ? (
+            <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
+              {candidate.education_years} {candidate.education_years === 1 ? 'año' : 'años'} edu.
+            </Badge>
+          ) : null}
           {candidate.has_contact ? (
             <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
               Contato disponível

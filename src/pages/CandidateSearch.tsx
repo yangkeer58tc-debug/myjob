@@ -42,6 +42,8 @@ type CandidateRow = {
   city: string | null;
   summary: string | null;
   has_contact: boolean | null;
+  work_years: number | null;
+  education_years: number | null;
   created_at: string;
 };
 
@@ -54,10 +56,35 @@ type ResumeRow = {
   work_years: number | null;
   country: string | null;
   city: string | null;
+  education?: any[] | null;
   profile_summary: string | null;
   created_at: string;
   updated_at?: string | null;
   has_contact?: boolean | null;
+};
+
+const parseYear = (value: unknown): number | null => {
+  const s = String(value || '');
+  const m = s.match(/(19|20)\d{2}/);
+  if (!m) return null;
+  const n = parseInt(m[0], 10);
+  return Number.isFinite(n) ? n : null;
+};
+
+const getEducationYears = (education: any[] | null | undefined): number | null => {
+  const arr = Array.isArray(education) ? education : [];
+  let sum = 0;
+  for (const item of arr) {
+    const start = parseYear(item?.startDate ?? item?.start_date ?? item?.start_year);
+    const end = parseYear(item?.endDate ?? item?.end_date ?? item?.end_year);
+    if (!start && !end) continue;
+    const s = start || end || 0;
+    const e = end || start || 0;
+    if (!s || !e) continue;
+    const dur = Math.max(0, e - s) + 1;
+    if (Number.isFinite(dur)) sum += dur;
+  }
+  return sum > 0 ? sum : null;
 };
 
 const normalizeRoleSlug = (value: string) =>
@@ -71,6 +98,7 @@ const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
   const roleSlug = normalizeRoleSlug(r.job_direction || '');
   const fullName = r.name || [r.first_name, r.last_name].filter(Boolean).join(' ') || null;
   const hasContact = typeof r.has_contact === 'boolean' ? r.has_contact : null;
+  const educationYears = getEducationYears(r.education);
 
   return {
     id: r.id,
@@ -83,6 +111,8 @@ const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
     city: r.city || null,
     summary: r.profile_summary || null,
     has_contact: hasContact,
+    work_years: typeof r.work_years === 'number' ? r.work_years : null,
+    education_years: educationYears,
     created_at: r.updated_at || r.created_at,
   };
 };
@@ -109,28 +139,42 @@ const CandidateSearch = () => {
         const { tableOrView } = getResumesSource();
         const roleNeedle = roleSlug ? roleSlug.replaceAll('-', ' ') : '';
 
-        const selectCols = 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at';
+        const runQuery = async (selectCols: string) => {
+          let query = resumesSupabase
+            .from(tableOrView)
+            .select(selectCols, { count: 'exact' })
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false })
+            .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-        let query = resumesSupabase
-          .from(tableOrView)
-          .select(selectCols, { count: 'exact' })
-          .order('updated_at', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false })
-          .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
+          if (roleNeedle) query = query.ilike('job_direction', `%${roleNeedle}%`);
+          if (q) {
+            const escaped = q.replaceAll(',', ' ');
+            query = query.or(
+              `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%,job_direction.ilike.%${escaped}%`,
+            );
+          }
 
-        if (roleNeedle) query = query.ilike('job_direction', `%${roleNeedle}%`);
-        if (q) {
-          const escaped = q.replaceAll(',', ' ');
-          query = query.or(
-            `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%,job_direction.ilike.%${escaped}%`,
-          );
+          const { data: raw, error: resumesError, count } = await query;
+          if (resumesError) throw resumesError;
+          const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
+          return { candidates: mapped, count: count || 0 };
+        };
+
+        const colsWithEducation =
+          'id,name,first_name,last_name,job_direction,work_years,country,city,education,profile_summary,created_at,updated_at';
+        const colsWithoutEducation =
+          'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at';
+
+        try {
+          return await runQuery(colsWithEducation);
+        } catch (err: any) {
+          const msg = String(err?.message || err || '').toLowerCase();
+          if (msg.includes('education') && (msg.includes('does not exist') || msg.includes('column'))) {
+            return await runQuery(colsWithoutEducation);
+          }
+          throw err;
         }
-
-        const { data: raw, error: resumesError, count } = await query;
-        if (resumesError) throw resumesError;
-        
-        const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
-        return { candidates: mapped, count: count || 0 };
       }
 
       let query = supabase
@@ -166,6 +210,8 @@ const CandidateSearch = () => {
           city: row.location || null,
           summary: row.summary || null,
           has_contact: false,
+          work_years: null,
+          education_years: null,
           created_at: row.created_at,
         } as CandidateRow;
       });

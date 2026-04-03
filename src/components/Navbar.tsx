@@ -12,7 +12,7 @@ const Navbar = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
           <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-colors overflow-hidden">
-            <img src="/logo.svg" alt="MyJob Logo" className="w-full h-full object-cover" />
+            <img src="/brand-logo.jpg" alt="MyJob Logo" className="w-full h-full object-cover" />
           </div>
           <span className="text-xl font-black tracking-tight text-foreground">
             My<span className="text-primary">Job</span>
