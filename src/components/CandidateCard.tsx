@@ -18,40 +18,106 @@ type Candidate = {
   created_at: string;
 };
 
-const BOT_NUMBER = '528132689146';
+const BOT_NUMBER = '528132689375';
 
 const maskName = (firstName: string | null, lastName: string | null, fallback: string | null) => {
   const first = (firstName || '').trim();
   const last = (lastName || '').trim();
-  if (first && last) return `${first} ${last[0]}.`;
+  const firstInitial = first ? `${first[0]}.` : '';
+  const lastInitial = last ? `${last[0]}.` : '';
+  if (firstInitial && lastInitial) return `${firstInitial} ${lastInitial}`;
+  if (firstInitial) return firstInitial;
+  if (lastInitial) return lastInitial;
   const raw = (fallback || '').trim();
   if (!raw) return 'Profissional';
   const parts = raw.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0]} ${parts[1][0]}.`;
-  return `${parts[0]}*`;
+  const a = parts[0]?.[0] ? `${parts[0][0]}.` : '';
+  const b = parts[1]?.[0] ? `${parts[1][0]}.` : '';
+  if (a && b) return `${a} ${b}`;
+  return a || 'Profissional';
+};
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const renderHighlighted = (text: string, query: string) => {
+  const q = String(query || '').trim();
+  if (!q) return text;
+  const tokens = Array.from(new Set(q.split(/\s+/).map((t) => t.trim()).filter(Boolean)));
+  if (tokens.length === 0) return text;
+  const pattern = tokens.map(escapeRegExp).join('|');
+  if (!pattern) return text;
+  const re = new RegExp(`(${pattern})`, 'gi');
+  const parts = text.split(re);
+  if (parts.length <= 1) return text;
+  return (
+    <>
+      {parts.map((part, idx) => {
+        const isHit = re.test(part);
+        re.lastIndex = 0;
+        return isHit ? (
+          <mark key={idx} className="bg-primary/20 text-foreground px-1 rounded-sm">
+            {part}
+          </mark>
+        ) : (
+          <span key={idx}>{part}</span>
+        );
+      })}
+    </>
+  );
+};
+
+const toTitleCase = (value: string) =>
+  value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+
+const toSpanishRoleLabel = (raw: string) => {
+  const cleaned = fixJobTextArtifacts(String(raw || '')).trim();
+  const slug = cleaned.toLowerCase().replace(/[_\s]+/g, '-');
+  const dict: Record<string, string> = {
+    driver: 'Conductor',
+    'security-guard': 'Guardia De Seguridad',
+    cleaner: 'Personal De Limpieza',
+    chef: 'Chef',
+    cook: 'Cocinero',
+    'sales-representative': 'Representante De Ventas',
+    'sales-promoter': 'Promotor De Ventas',
+    receptionist: 'Recepcionista',
+    waitress: 'Mesera',
+    waiter: 'Mesero',
+    'delivery-driver': 'Repartidor',
+  };
+  const mapped = dict[slug];
+  if (mapped) return mapped;
+  const fromSlug = cleaned.includes('-') && !cleaned.includes(' ') ? cleaned.replace(/-+/g, ' ') : cleaned;
+  return toTitleCase(fromSlug);
 };
 
 const buildWaUrl = (candidate: Candidate) => {
-  const role = fixJobTextArtifacts(candidate.role_slug || candidate.job_title || 'candidato');
+  const role = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'candidato');
   const loc = fixJobTextArtifacts(candidate.country || candidate.city || 'Brasil');
-  const msg = `Olá! Quero contratar um ${role}. Vi um perfil no MyJob (ID: ${candidate.id}, ${loc}).`;
+  const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
+  const msg = `Hola! Estoy interesado en este perfil de candidato en MyJob.\n\nID: ${candidate.id}\nPuesto: ${role}\nUbicación: ${loc}\nNombre (oculto): ${name}\n\n¿Me puedes compartir el contacto?`;
   return `https://wa.me/${BOT_NUMBER}?text=${encodeURIComponent(msg)}`;
 };
 
-const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
-  const title = fixJobTextArtifacts(candidate.job_title || candidate.role_slug || 'Profissional');
+const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: string }) => {
+  const title = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'Profissional');
   const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
   const country = candidate.country ? fixJobTextArtifacts(candidate.country) : '';
   const city = candidate.city ? fixJobTextArtifacts(candidate.city) : '';
   const summary = candidate.summary ? fixJobTextArtifacts(candidate.summary) : '';
   const location = [country, city].filter(Boolean).join(' • ') || 'Brasil';
+  const roleLabel = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || '');
 
   return (
     <Card className="rounded-3xl border-border/50 overflow-hidden">
       <CardHeader className="p-6 pb-0 space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-lg font-extrabold text-foreground leading-tight">{title}</h3>
+            <h3 className="text-lg font-extrabold text-foreground leading-tight">{renderHighlighted(title, query || '')}</h3>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               <User className="h-4 w-4" /> {name}
             </p>
@@ -68,7 +134,7 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
             <MapPin className="mr-1 h-3 w-3" /> {location}
           </Badge>
           <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
-            <Briefcase className="mr-1 h-3 w-3" /> {fixJobTextArtifacts(candidate.role_slug || candidate.job_title || '')}
+            <Briefcase className="mr-1 h-3 w-3" /> {renderHighlighted(roleLabel, query || '')}
           </Badge>
           {candidate.has_contact ? (
             <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
@@ -79,7 +145,7 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
       </CardHeader>
 
       <CardContent className="p-6 pt-4 space-y-4">
-        {summary ? <p className="text-sm text-muted-foreground leading-relaxed">{summary}</p> : null}
+        {summary ? <p className="text-sm text-muted-foreground leading-relaxed">{renderHighlighted(summary, query || '')}</p> : null}
       </CardContent>
     </Card>
   );

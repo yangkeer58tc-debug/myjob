@@ -89,11 +89,9 @@ const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
 
 const isCandidateEligible = (c: CandidateRow) => {
   const titleOk = Boolean(String(c.job_title || c.role_slug || '').trim());
-  const countryOk = Boolean(String(c.country || '').trim());
-  const nameOk = Boolean(String(c.first_name || '').trim()) && Boolean(String(c.last_name || '').trim());
+  const nameOk = Boolean(String(c.full_name || c.first_name || '').trim());
   const summaryOk = Boolean(String(c.summary || '').trim());
-  const contactOk = c.has_contact === null ? true : c.has_contact;
-  return titleOk && countryOk && nameOk && summaryOk && contactOk;
+  return titleOk && nameOk && summaryOk;
 };
 
 const CandidateSearch = () => {
@@ -109,44 +107,30 @@ const CandidateSearch = () => {
 
       if (resumesSupabase) {
         const { tableOrView } = getResumesSource();
-
         const roleNeedle = roleSlug ? roleSlug.replaceAll('-', ' ') : '';
 
-        const runQuery = async (withHasContact: boolean) => {
-          const selectCols = withHasContact
-            ? 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at,has_contact'
-            : 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at';
+        const selectCols = 'id,name,first_name,last_name,job_direction,work_years,country,city,profile_summary,created_at,updated_at';
 
-          let query = resumesSupabase
-            .from(tableOrView)
-            .select(selectCols, { count: 'exact' })
-            .order('updated_at', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: false })
-            .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
+        let query = resumesSupabase
+          .from(tableOrView)
+          .select(selectCols, { count: 'exact' })
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-          if (roleNeedle) query = query.ilike('job_direction', `%${roleNeedle}%`);
-          if (q) {
-            const escaped = q.replaceAll(',', ' ');
-            query = query.or(
-              `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%,job_direction.ilike.%${escaped}%`,
-            );
-          }
-
-          const { data: raw, error: resumesError, count } = await query;
-          if (resumesError) throw resumesError;
-          const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
-          return { candidates: mapped, count: count || 0 };
-        };
-
-        try {
-          return await runQuery(true);
-        } catch (err: any) {
-          const msg = String(err?.message || err || '').toLowerCase();
-          if (msg.includes('has_contact') && (msg.includes('does not exist') || msg.includes('column'))) {
-            return await runQuery(false);
-          }
-          throw err;
+        if (roleNeedle) query = query.ilike('job_direction', `%${roleNeedle}%`);
+        if (q) {
+          const escaped = q.replaceAll(',', ' ');
+          query = query.or(
+            `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%,job_direction.ilike.%${escaped}%`,
+          );
         }
+
+        const { data: raw, error: resumesError, count } = await query;
+        if (resumesError) throw resumesError;
+        
+        const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
+        return { candidates: mapped, count: count || 0 };
       }
 
       let query = supabase
@@ -256,7 +240,7 @@ const CandidateSearch = () => {
           <>
             <div className="grid lg:grid-cols-2 gap-6">
               {data.candidates.map((c) => (
-                <CandidateCard key={c.id} candidate={c} />
+                <CandidateCard key={c.id} candidate={c} query={q} />
               ))}
             </div>
 
@@ -305,9 +289,8 @@ const CandidateSearch = () => {
             <p className="text-muted-foreground text-lg">Nenhum candidato encontrado.</p>
             <div className="mt-3 text-sm text-muted-foreground space-y-1">
               <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
-              <p>展示规则：必须有 title、country、first_name+last_name、profile_summary，以及 phone 或 WhatsApp。</p>
-              <p>如果你的 view 里没提供 has_contact 字段，会默认不强制校验联系方式（不影响展示）。</p>
-              <p>备用方案：去 /admin → Candidatos 导入 CSV 先跑通。</p>
+              <p>展示规则：必须有 title、name 和 profile_summary。</p>
+              <p>注：当前外部 view 不包含联系方式字段，因此不强制校验联系方式。</p>
             </div>
           </div>
         )}
