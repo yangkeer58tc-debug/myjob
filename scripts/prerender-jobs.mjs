@@ -158,6 +158,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 };
 
 const buildJobPostingJsonLd = (job) => {
+  const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
   const descriptionParts = [
     textForSchema(job.summary || job.description || ''),
     job.requirements ? `\n\nRequisitos:\n${textForSchema(job.requirements)}` : '',
@@ -169,6 +170,12 @@ const buildJobPostingJsonLd = (job) => {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
     title: job.title || '',
+    url: jobUrl,
+    identifier: {
+      '@type': 'PropertyValue',
+      name: 'MyJob',
+      value: String(job.id || ''),
+    },
     description: descriptionParts,
     datePosted: toIsoDate(job.created_at) || undefined,
     validThrough: toIsoDate(new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000)) || undefined,
@@ -195,7 +202,17 @@ const buildJobPostingJsonLd = (job) => {
       },
     },
     directApply: true,
+    applicantLocationRequirements: {
+      '@type': 'Country',
+      name: 'BR',
+    },
+    jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
   };
+
+  if (job.industry) base.industry = String(job.industry);
+
+  if (job.education_level) base.educationRequirements = String(job.education_level);
+  if (job.experience) base.experienceRequirements = String(job.experience);
 
   const numericSalary = typeof job.salary_amount === 'string' ? Number(job.salary_amount.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')) : NaN;
   if (Number.isFinite(numericSalary) && numericSalary > 0) {
