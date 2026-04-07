@@ -10,6 +10,7 @@
     "build": "vite build",
     "postbuild": "node scripts/postbuild.mjs",
     "indexing:sitemap": "node scripts/google-indexing-from-sitemap.mjs",
+    "indexing:urls": "node scripts/google-indexing-from-urls.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
