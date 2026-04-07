@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, MapPin, Briefcase, MessageCircle, CheckCircle2, Zap, ShieldCheck, Search, Lock, QrCode } from 'lucide-react';
+import { ArrowRight, MapPin, Briefcase, MessageCircle, CheckCircle2, Zap, ShieldCheck, Search, Lock, QrCode, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/PublicLayout';
@@ -221,57 +221,80 @@ const Home = () => {
                   className="rounded-xl h-14 px-8 text-base font-bold border-slate-200 bg-white text-slate-900 hover:bg-slate-50 transition-all hover:-translate-y-0.5"
                   onClick={() => navigate('/buscar-candidatos?q=driver')}
                 >
-                  Ver demo
+                  Abrir uma busca (demo)
                 </Button>
               </div>
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-2 rounded-[2.75rem] bg-gradient-to-r from-emerald-500/25 via-sky-500/15 to-indigo-500/25 blur-2xl opacity-70 motion-safe:animate-pulse" />
-              <div className="p-[1px] rounded-[2.5rem] bg-gradient-to-r from-emerald-500/25 via-sky-500/20 to-indigo-500/25 bg-[length:200%_200%] motion-safe:animate-gradient-x">
+              <div className="absolute -inset-3 rounded-[3rem] bg-gradient-to-r from-primary/20 via-primary/10 to-transparent blur-3xl opacity-70" />
+              <div className="p-[1px] rounded-[2.5rem] bg-gradient-to-r from-primary/30 via-primary/10 to-primary/30 bg-[length:220%_220%] motion-safe:animate-gradient-x">
                 <div className="rounded-[2.45rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Search className="h-5 w-5 text-primary" />
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                        <Sparkles className="h-5 w-5 text-primary" />
                       </div>
-                      <p className="text-sm font-bold text-slate-600">Acesso instantâneo</p>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900">Perfis online</p>
-                    <p className="text-sm text-slate-500 mt-2">Veja candidatos publicados em tempo real.</p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Zap className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs font-bold text-slate-500">Recruiter suite</p>
+                        <p className="text-base font-black text-slate-900">Candidatos</p>
                       </div>
-                      <p className="text-sm font-bold text-slate-600">Triagem mais rápida</p>
                     </div>
-                    <p className="text-2xl font-black text-slate-900">Busca + destaque</p>
-                    <p className="text-sm text-slate-500 mt-2">Encontre e destaque palavras-chave dentro do perfil.</p>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600">
+                        Real-time
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600">
+                        WhatsApp-first
+                      </span>
+                    </div>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Lock className="h-5 w-5 text-primary" />
+
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                          <Search className="h-5 w-5 text-primary" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-600">Acesso instantâneo</p>
                       </div>
-                      <p className="text-sm font-bold text-slate-600">Privacidade</p>
+                      <p className="text-2xl font-black text-slate-900">Perfis online</p>
+                      <p className="text-sm text-slate-500 mt-2">Veja candidatos publicados em tempo real.</p>
                     </div>
-                    <p className="text-2xl font-black text-slate-900">Dados protegidos</p>
-                    <p className="text-sm text-slate-500 mt-2">Nome e contato ficam parcialmente ocultos.</p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <QrCode className="h-5 w-5 text-primary" />
+
+                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                          <Zap className="h-5 w-5 text-primary" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-600">Triagem mais rápida</p>
                       </div>
-                      <p className="text-sm font-bold text-slate-600">WhatsApp-first</p>
+                      <p className="text-2xl font-black text-slate-900">Busca + destaque</p>
+                      <p className="text-sm text-slate-500 mt-2">Destaque automático das palavras-chave.</p>
                     </div>
-                    <p className="text-2xl font-black text-slate-900">QR no desktop</p>
-                    <p className="text-sm text-slate-500 mt-2">Escaneie e continue no celular.</p>
+
+                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                          <Lock className="h-5 w-5 text-primary" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-600">Privacidade</p>
+                      </div>
+                      <p className="text-2xl font-black text-slate-900">Dados protegidos</p>
+                      <p className="text-sm text-slate-500 mt-2">Nome e contato ficam parcialmente ocultos.</p>
+                    </div>
+
+                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                          <QrCode className="h-5 w-5 text-primary" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-600">WhatsApp-first</p>
+                      </div>
+                      <p className="text-2xl font-black text-slate-900">QR no desktop</p>
+                      <p className="text-sm text-slate-500 mt-2">Escaneie e continue no celular.</p>
+                    </div>
                   </div>
-                </div>
                 </div>
               </div>
             </div>
