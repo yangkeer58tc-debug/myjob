@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, MapPin, Briefcase, MessageCircle, CheckCircle2, Zap, ShieldCheck } from 'lucide-react';
+import { ArrowRight, MapPin, Briefcase, MessageCircle, CheckCircle2, Zap, ShieldCheck, Search, Lock, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/PublicLayout';
@@ -162,16 +162,9 @@ const Home = () => {
                   <MessageCircle className="h-6 w-6 mr-3" />
                   Ver Vagas Agora
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto rounded-xl h-16 px-10 text-lg font-bold border-slate-200 bg-white/70 text-slate-900 hover:bg-white shadow-xl shadow-slate-900/5 transition-all hover:-translate-y-1"
-                  onClick={() => navigate('/buscar-candidatos')}
-                >
-                  <ArrowRight className="h-6 w-6 mr-3" />
-                  Looking for candidates to hire
-                </Button>
-                <div className="flex items-center gap-3 px-4 py-2 text-slate-500 font-medium text-sm">
+              </div>
+              <div className="mt-5 flex justify-center lg:justify-start">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/70 border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm backdrop-blur">
                   <CheckCircle2 className="h-5 w-5 text-[#25D366]" />
                   <span>Sem cadastro prévio</span>
                 </div>
@@ -179,7 +172,7 @@ const Home = () => {
             </div>
 
             {/* Visual/Phone Mockup */}
-            <div className="flex-1 w-full max-w-lg lg:max-w-none relative z-10">
+            <div className="flex-1 w-full max-w-lg lg:max-w-none relative z-10 motion-safe:animate-float">
               {/* Floating badges */}
               <div className="absolute top-10 -left-12 bg-white/80 p-4 rounded-2xl shadow-xl border border-slate-200 hidden md:flex items-center gap-3 z-20 animate-pulse backdrop-blur">
                 <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center">
@@ -205,13 +198,13 @@ const Home = () => {
             <div className="space-y-5">
               <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold px-4 py-2 rounded-full">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                For employers
+                Para empresas
               </div>
               <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-                Hire faster with candidates ready for WhatsApp.
+                Contrate mais rápido com candidatos prontos para WhatsApp.
               </h2>
               <p className="text-slate-600 text-lg font-medium leading-relaxed">
-                Browse profiles, search by role, and talk to our WhatsApp assistant to unlock the right candidate contact.
+                Navegue por perfis, busque por função e fale com nosso assistente no WhatsApp para liberar o contato do candidato certo.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
@@ -219,7 +212,7 @@ const Home = () => {
                   className="rounded-xl h-14 px-8 text-base font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10 transition-all hover:-translate-y-0.5"
                   onClick={() => navigate('/buscar-candidatos')}
                 >
-                  Ver candidatos
+                  Buscar candidatos
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
                 <Button
@@ -228,35 +221,57 @@ const Home = () => {
                   className="rounded-xl h-14 px-8 text-base font-bold border-slate-200 bg-white text-slate-900 hover:bg-slate-50 transition-all hover:-translate-y-0.5"
                   onClick={() => navigate('/buscar-candidatos?q=driver')}
                 >
-                  Testar com “driver”
+                  Ver demo
                 </Button>
               </div>
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/25 to-indigo-500/25 blur-2xl opacity-60" />
-              <div className="relative rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
+              <div className="absolute -inset-2 rounded-[2.75rem] bg-gradient-to-r from-emerald-500/25 via-sky-500/15 to-indigo-500/25 blur-2xl opacity-70 motion-safe:animate-pulse" />
+              <div className="p-[1px] rounded-[2.5rem] bg-gradient-to-r from-emerald-500/25 via-sky-500/20 to-indigo-500/25 bg-[length:200%_200%] motion-safe:animate-gradient-x">
+                <div className="rounded-[2.45rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
                 <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
-                    <p className="text-sm font-bold text-slate-500 mb-2">Instant access</p>
-                    <p className="text-2xl font-black text-slate-900">Online profiles</p>
-                    <p className="text-sm text-slate-500 mt-2">See published candidates in real time.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Search className="h-5 w-5 text-primary" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-600">Acesso instantâneo</p>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">Perfis online</p>
+                    <p className="text-sm text-slate-500 mt-2">Veja candidatos publicados em tempo real.</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
-                    <p className="text-sm font-bold text-slate-500 mb-2">Faster screening</p>
-                    <p className="text-2xl font-black text-slate-900">Search + highlight</p>
-                    <p className="text-sm text-slate-500 mt-2">Find and highlight keywords inside profiles.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Zap className="h-5 w-5 text-primary" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-600">Triagem mais rápida</p>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">Busca + destaque</p>
+                    <p className="text-sm text-slate-500 mt-2">Encontre e destaque palavras-chave dentro do perfil.</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
-                    <p className="text-sm font-bold text-slate-500 mb-2">Privacy</p>
-                    <p className="text-2xl font-black text-slate-900">Protected data</p>
-                    <p className="text-sm text-slate-500 mt-2">Name and contact stay partially hidden.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Lock className="h-5 w-5 text-primary" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-600">Privacidade</p>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">Dados protegidos</p>
+                    <p className="text-sm text-slate-500 mt-2">Nome e contato ficam parcialmente ocultos.</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-colors">
-                    <p className="text-sm font-bold text-slate-500 mb-2">WhatsApp-first</p>
-                    <p className="text-2xl font-black text-slate-900">QR on desktop</p>
-                    <p className="text-sm text-slate-500 mt-2">Scan and continue on mobile.</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <QrCode className="h-5 w-5 text-primary" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-600">WhatsApp-first</p>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">QR no desktop</p>
+                    <p className="text-sm text-slate-500 mt-2">Escaneie e continue no celular.</p>
                   </div>
+                </div>
                 </div>
               </div>
             </div>
