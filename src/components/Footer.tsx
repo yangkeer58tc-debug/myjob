@@ -22,7 +22,7 @@ const Footer = () => {
           <p className={cn('text-center text-sm leading-loose md:text-left', isHome ? 'text-white/60' : 'text-muted-foreground')}>
             Built by{" "}
             <span className={cn('font-bold tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
-              My<span className={cn(isHome ? 'text-[#00D4FF]' : 'text-primary')}>Job</span>
+              My<span className={cn(isHome ? 'text-[#25D366]' : 'text-primary')}>Job</span>
             </span>
             . The platform for the next generation of workers.
           </p>

@@ -117,7 +117,7 @@ const Home = () => {
       <div className="dark bg-background text-foreground">
         <section className="relative overflow-hidden pt-20 pb-14 lg:pt-28 lg:pb-20">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(106,92,255,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(0,212,255,0.12),transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(37,211,102,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(7,94,84,0.16),transparent_50%)]" />
             <div
               className="absolute inset-0 opacity-40"
               style={{
@@ -149,7 +149,7 @@ const Home = () => {
                   </div>
                   <h1 className="mt-6 text-5xl md:text-6xl font-black leading-[1.05] tracking-tight text-white">
                     Encontre emprego ou contrate
-                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#6A5CFF] to-[#00D4FF]">
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-[#128C7E]">
                       com velocidade.
                     </span>
                   </h1>
@@ -163,7 +163,7 @@ const Home = () => {
                       onClick={() => navigate('/empleos')}
                       className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_20%_10%,rgba(0,212,255,0.18),transparent_50%),radial-gradient(circle_at_80%_40%,rgba(106,92,255,0.16),transparent_55%)]" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_20%_10%,rgba(37,211,102,0.16),transparent_55%),radial-gradient(circle_at_80%_40%,rgba(7,94,84,0.14),transparent_60%)]" />
                       <div className="relative">
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -176,7 +176,7 @@ const Home = () => {
                         </div>
                         <p className="mt-3 text-sm text-white/70">Aplique com WhatsApp e avance mais rápido.</p>
                         <div className="mt-5">
-                          <Button className="rounded-xl h-11 px-5 font-bold bg-gradient-to-r from-[#6A5CFF] to-[#00D4FF] text-slate-950 hover:opacity-95">
+                          <Button className="rounded-xl h-11 px-5 font-bold bg-gradient-to-r from-[#25D366] to-[#128C7E] text-slate-950 hover:opacity-95">
                             Abrir vagas
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
@@ -189,7 +189,7 @@ const Home = () => {
                       onClick={() => navigate('/buscar-candidatos')}
                       className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_30%_20%,rgba(46,229,157,0.16),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(0,212,255,0.12),transparent_55%)]" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_30%_20%,rgba(37,211,102,0.16),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(7,94,84,0.14),transparent_60%)]" />
                       <div className="relative">
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -229,21 +229,9 @@ const Home = () => {
 
                 <div className="lg:col-span-6">
                   <Reveal delayMs={120}>
-                    <div className="relative mx-auto max-w-xl">
-                      <div className="absolute -inset-4 rounded-[2.75rem] bg-[radial-gradient(circle_at_25%_15%,rgba(0,212,255,0.18),transparent_60%),radial-gradient(circle_at_75%_55%,rgba(106,92,255,0.18),transparent_58%)] blur-2xl opacity-70" />
-                      <div className="relative rounded-[2.5rem] border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.05)]">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-bold text-white/60">Preview</p>
-                            <p className="text-sm font-black text-white">Fluxo pelo WhatsApp</p>
-                          </div>
-                          <div className="h-9 w-9 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
-                            <Briefcase className="h-4 w-4 text-white" />
-                          </div>
-                        </div>
-                        <div className="mt-6 motion-safe:animate-float">
-                          <PhoneMockup />
-                        </div>
+                    <div className="relative mx-auto max-w-xl flex justify-center">
+                      <div className="motion-safe:animate-float">
+                        <PhoneMockup />
                       </div>
                     </div>
                   </Reveal>
@@ -308,7 +296,7 @@ const Home = () => {
         </section>
 
         <section className="relative py-20 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,212,255,0.10),transparent_55%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(37,211,102,0.12),transparent_55%)]" />
           <div className="container mx-auto px-4 relative">
             <Reveal>
               <div className="flex items-end justify-between gap-6 flex-col md:flex-row">
@@ -363,7 +351,7 @@ const Home = () => {
                     onClick={() => navigate(`/empleos?categoria=${encodeURIComponent(cat.value)}`)}
                     className="group min-w-[220px] flex-shrink-0 rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                   >
-                    <p className="text-sm font-black text-white group-hover:text-[#00D4FF] transition-colors">{cat.name}</p>
+                    <p className="text-sm font-black text-white group-hover:text-[#25D366] transition-colors">{cat.name}</p>
                     <p className="mt-2 text-xs font-semibold text-white/60">
                       {(categoryCounts?.[cat.value] ?? 0).toLocaleString('pt-BR')} vagas
                     </p>
@@ -393,7 +381,7 @@ const Home = () => {
               </div>
               <div className="mt-12 text-center">
                 <Button
-                  className="rounded-xl h-12 px-8 font-bold bg-gradient-to-r from-[#6A5CFF] to-[#00D4FF] text-slate-950 hover:opacity-95"
+                  className="rounded-xl h-12 px-8 font-bold bg-gradient-to-r from-[#25D366] to-[#128C7E] text-slate-950 hover:opacity-95"
                   onClick={() => navigate('/empleos')}
                 >
                   Ver mais vagas

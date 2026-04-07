@@ -68,6 +68,19 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
 
   const [api, setApi] = useState<CarouselApi>();
   const [paused, setPaused] = useState(false);
+  const [selected, setSelected] = useState(0);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+    const init = () => {
+      setCount(api.scrollSnapList().length);
+      setSelected(api.selectedScrollSnap());
+    };
+    init();
+    api.on('reInit', init);
+    api.on('select', () => setSelected(api.selectedScrollSnap()));
+  }, [api]);
 
   useEffect(() => {
     if (!api) return;
@@ -107,7 +120,11 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
                   {typeof t.score === 'number' && (
                     <div className="flex items-center gap-1 text-white/70">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={cn('h-4 w-4', i < t.score ? 'text-[#00D4FF]' : 'text-white/20')} />
+                        <Star
+                          key={i}
+                          className={cn('h-4 w-4', i < t.score ? 'text-[#25D366]' : 'text-white/20')}
+                          fill={i < t.score ? 'currentColor' : 'none'}
+                        />
                       ))}
                     </div>
                   )}
@@ -121,13 +138,27 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
         <CarouselNext variant="outline" className="-right-10 border-white/15 bg-white/[0.06] text-white hover:bg-white/10" />
       </Carousel>
       <div className="mt-5 flex justify-center gap-2">
-        <span className="h-1.5 w-14 rounded-full bg-gradient-to-r from-[#6A5CFF] to-[#00D4FF]" />
-        <span className="h-1.5 w-3 rounded-full bg-white/15" />
-        <span className="h-1.5 w-3 rounded-full bg-white/15" />
+        {Array.from({ length: Math.max(count, 1) }).map((_, i) => {
+          const isActive = i === selected;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => api?.scrollTo(i)}
+              aria-label={`Ir para depoimento ${i + 1}`}
+              className="rounded-full"
+            >
+              {isActive ? (
+                <span className="block h-1.5 w-14 rounded-full bg-gradient-to-r from-[#25D366] to-[#128C7E] bg-[length:200%_200%] motion-safe:animate-gradient-x" />
+              ) : (
+                <span className="block h-1.5 w-3 rounded-full bg-white/15" />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 };
 
 export default TestimonialCarousel;
-
