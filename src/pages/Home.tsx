@@ -114,7 +114,7 @@ const Home = () => {
           })}
         </script>
       </Helmet>
-      <div className="dark bg-background text-foreground">
+      <div className="bg-background text-foreground">
         <section className="relative overflow-hidden pt-20 pb-14 lg:pt-28 lg:pb-20">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(37,211,102,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(7,94,84,0.16),transparent_50%)]" />
