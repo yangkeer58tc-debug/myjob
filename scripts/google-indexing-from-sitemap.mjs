@@ -43,7 +43,7 @@ const main = async () => {
   let urls = extractLocs(xml);
 
   const site = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://myjob.com').replace(/\/+$/, '');
-  urls = urls.filter((u) => u.startsWith(site));
+  urls = urls.filter((u) => u.startsWith(`${site}/empleo/`));
 
   if (limit && Number.isFinite(limit) && limit > 0) urls = urls.slice(0, limit);
   if (urls.length === 0) return;
@@ -55,4 +55,3 @@ const main = async () => {
 };
 
 await main();
-
