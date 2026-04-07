@@ -237,11 +237,14 @@ const JobDetail = () => {
         '@context': 'https://schema.org',
         '@type': 'JobPosting',
         title: safeTitle,
-        description: `
-          <p>${description || summary || ''}</p>
-          ${requirements ? `<h3>Requisitos</h3><p>${requirements}</p>` : ''}
-          ${highlights ? `<h3>Beneficios</h3><ul>${highlights.map((h: string) => `<li>${h}</li>`).join('')}</ul>` : ''}
-        `,
+        description: [description || summary || '', requirements ? `\n\nRequisitos:\n${requirements}` : '']
+          .filter(Boolean)
+          .join('')
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<[^>]+>/g, '')
+          .replace(/\r\n/g, '\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim(),
         datePosted: job.created_at,
         validThrough: new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Assume valid for 30 days
         employmentType:
@@ -308,7 +311,8 @@ const JobDetail = () => {
   const pageTitle = `${safeTitle} em ${safeLocation || 'Brasil'} | MyJob`;
   const pageDescription = (summary || description || '').slice(0, 160);
   const pageImage = job.b_logo_url || `${window.location.origin}/placeholder.svg`;
-  const pageUrl = window.location.href;
+  const pageUrl = `${window.location.origin}/empleo/${job.id}/`;
+  const safeJsonLdStringify = (value: unknown) => JSON.stringify(value).replaceAll('<', '\\u003c').replaceAll('&', '\\u0026');
 
   return (
     <PublicLayout>
@@ -330,10 +334,8 @@ const JobDetail = () => {
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={pageImage} />
         
-        {jsonLd && (
-          <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-        )}
-        <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
+        {jsonLd ? <script type="application/ld+json">{safeJsonLdStringify(jsonLd)}</script> : null}
+        <script type="application/ld+json">{safeJsonLdStringify(breadcrumbLd)}</script>
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

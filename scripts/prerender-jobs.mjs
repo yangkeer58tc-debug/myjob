@@ -20,7 +20,25 @@ const escapeHtml = (value) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
-const escapeJsonLd = (value) => String(value).replaceAll('</script', '<\\/script');
+const escapeJsonLd = (value) =>
+  String(value)
+    .replaceAll('&', '\\u0026')
+    .replaceAll('<', '\\u003c')
+    .replaceAll('>', '\\u003e')
+    .replaceAll('\u2028', '\\u2028')
+    .replaceAll('\u2029', '\\u2029');
+
+const stripScripts = (value) => String(value || '').replace(/<script[\s\S]*?<\/script>/gi, '');
+const stripTags = (value) => String(value || '').replace(/<[^>]+>/g, '');
+const normalizeWhitespace = (value) =>
+  String(value || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+
+const textForSchema = (value) => normalizeWhitespace(stripTags(stripScripts(value)));
 
 const fetchJobs = async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
@@ -140,7 +158,10 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 };
 
 const buildJobPostingJsonLd = (job) => {
-  const descriptionParts = [job.description || job.summary || '', job.requirements ? `\n\nRequisitos:\n${job.requirements}` : '']
+  const descriptionParts = [
+    textForSchema(job.description || job.summary || ''),
+    job.requirements ? `\n\nRequisitos:\n${textForSchema(job.requirements)}` : '',
+  ]
     .filter(Boolean)
     .join('');
 
@@ -214,13 +235,13 @@ const buildBreadcrumbLd = (job) => {
         '@type': 'ListItem',
         position: 2,
         name: 'Vagas',
-        item: `${SITE_URL}/vagas`,
+        item: `${SITE_URL}/empleos`,
       },
       {
         '@type': 'ListItem',
         position: 3,
         name: job.title || 'Vaga',
-        item: `${SITE_URL}/empleo/${job.id}`,
+        item: `${SITE_URL}/empleo/${job.id}/`,
       },
     ],
   };
@@ -239,9 +260,9 @@ const main = async () => {
   }
 
   for (const job of jobs) {
-    const jobUrl = `${SITE_URL}/empleo/${job.id}`;
+    const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
     const title = `${job.title || 'Vaga'} em ${job.location || 'Brasil'} | MyJob`;
-    const desc = (job.summary || job.description || `Vaga em ${job.location || 'Brasil'}`).slice(0, 170);
+    const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${job.location || 'Brasil'}`)).slice(0, 170);
     const jsonLd = buildJobPostingJsonLd(job);
     const breadcrumbLd = buildBreadcrumbLd(job);
     const ogImage = job.b_logo_url || `${SITE_URL}/placeholder.svg`;

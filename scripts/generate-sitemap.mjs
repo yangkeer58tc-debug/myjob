@@ -87,7 +87,7 @@ const main = async () => {
     const jobs = await fetchJobs();
     for (const job of jobs) {
       urls.push({
-        loc: `${SITE_URL}/empleo/${job.id}`,
+        loc: `${SITE_URL}/empleo/${job.id}/`,
         lastmod: toIsoDate(job.created_at),
         changefreq: 'weekly',
         priority: 0.6,
