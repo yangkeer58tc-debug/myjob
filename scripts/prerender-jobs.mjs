@@ -28,7 +28,7 @@ const escapeJsonLd = (value) =>
     .replaceAll('\u2028', '\\u2028')
     .replaceAll('\u2029', '\\u2029');
 
-const stripScripts = (value) => String(value || '').replace(/<script[\s\S]*?<\/script>/gi, '');
+const stripScripts = (value) => String(value || '').replace(/<script[^>]*>[\s\S]*?(?:<\/script>|$)/gi, '');
 const stripTags = (value) => String(value || '').replace(/<[^>]+>/g, '');
 const normalizeWhitespace = (value) =>
   String(value || '')
@@ -159,7 +159,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 
 const buildJobPostingJsonLd = (job) => {
   const descriptionParts = [
-    textForSchema(job.description || job.summary || ''),
+    textForSchema(job.summary || job.description || ''),
     job.requirements ? `\n\nRequisitos:\n${textForSchema(job.requirements)}` : '',
   ]
     .filter(Boolean)
