@@ -227,7 +227,6 @@ const Home = () => {
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-3 rounded-[3rem] bg-gradient-to-r from-primary/20 via-primary/10 to-transparent blur-3xl opacity-70" />
               <div className="p-[1px] rounded-[2.5rem] bg-gradient-to-r from-primary/30 via-primary/10 to-primary/30 bg-[length:220%_220%] motion-safe:animate-gradient-x">
                 <div className="rounded-[2.45rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
                   <div className="flex items-center justify-between gap-4 mb-6">
@@ -303,36 +302,88 @@ const Home = () => {
       </section>
 
       {/* 🌟 WHY WHATSAPP SECTION (Features) */}
-      <section className="py-24 bg-muted/30">
-        <div className="container mx-auto px-4">
+      <section className="relative py-24 bg-muted/30 overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-50"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(15,23,42,0.05) 1px, transparent 0)',
+            backgroundSize: '32px 32px',
+          }}
+        />
+        <div className="container mx-auto px-4 relative">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">Por que buscar emprego pelo WhatsApp?</h2>
             <p className="text-lg text-muted-foreground font-medium">Uma forma mais humana e rápida de se candidatar — direto do seu celular.</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-2xl p-8 text-center hover:shadow-lg transition-all border border-border/60">
-              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-                <Zap className="h-8 w-8 text-primary" />
+            <div className="group bg-card rounded-2xl p-8 border border-border/60 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
+                  <Zap className="h-7 w-7 text-primary" />
+                </div>
+                <span className="text-xs font-black text-muted-foreground">01</span>
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">Contato direto</h3>
-              <p className="text-muted-foreground">Fale com o recrutador sem intermediários nem filtros automáticos.</p>
+              <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Contato direto</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Fale com o recrutador sem intermediários nem filtros automáticos.
+              </p>
+              <div className="mt-6 space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
+                  <span>Resposta mais rápida</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
+                  <span>Mais chances de retorno</span>
+                </div>
+              </div>
             </div>
             
-            <div className="bg-card rounded-2xl p-8 text-center hover:shadow-lg transition-all border border-border/60">
-              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-                <MessageCircle className="h-8 w-8 text-primary" />
+            <div className="group bg-card rounded-2xl p-8 border border-border/60 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
+                  <MessageCircle className="h-7 w-7 text-primary" />
+                </div>
+                <span className="text-xs font-black text-muted-foreground">02</span>
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">Acompanhamento em tempo real</h3>
-              <p className="text-muted-foreground">Veja rapidamente se sua mensagem foi recebida e lida.</p>
+              <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Acompanhamento em tempo real</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Veja rapidamente se sua mensagem foi recebida e lida.
+              </p>
+              <div className="mt-6 space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
+                  <span>Sem “sumir no e-mail”</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
+                  <span>Processo mais transparente</span>
+                </div>
+              </div>
             </div>
             
-            <div className="bg-card rounded-2xl p-8 text-center hover:shadow-lg transition-all border border-border/60">
-              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-                <ShieldCheck className="h-8 w-8 text-primary" />
+            <div className="group bg-card rounded-2xl p-8 border border-border/60 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
+                  <ShieldCheck className="h-7 w-7 text-primary" />
+                </div>
+                <span className="text-xs font-black text-muted-foreground">03</span>
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">Empresas verificadas</h3>
-              <p className="text-muted-foreground">Mais segurança com empresas verificadas e processos transparentes.</p>
+              <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Empresas verificadas</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Mais segurança com empresas verificadas e processos transparentes.
+              </p>
+              <div className="mt-6 space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
+                  <span>Menos risco de golpes</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
+                  <span>Mais confiança na vaga</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
