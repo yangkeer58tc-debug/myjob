@@ -1,10 +1,11 @@
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, MapPin, Briefcase, MessageCircle, CheckCircle2, Zap, ShieldCheck, Search, Lock, QrCode, Sparkles } from 'lucide-react';
+import { ArrowRight, MapPin, Briefcase, Building2, MessageCircle, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
+import Reveal from '@/components/Reveal';
+import TestimonialCarousel from '@/components/home/TestimonialCarousel';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
@@ -57,7 +58,6 @@ const PhoneMockup = () => {
 
 const Home = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
 
   const { data: recentJobs } = useQuery({
     queryKey: ['recentJobs'],
@@ -93,10 +93,13 @@ const Home = () => {
   return (
     <PublicLayout>
       <Helmet>
-        <title>MyJob - Encontre emprego rápido pelo WhatsApp</title>
-        <meta name="description" content="Encontre vagas no Brasil e fale direto com as empresas via WhatsApp. Rápido, seguro e sem cadastros complicados." />
-        <meta property="og:title" content="MyJob - Encontre emprego rápido" />
-        <meta property="og:description" content="Vagas no Brasil. Candidate-se rapidamente enviando um WhatsApp." />
+        <title>MyJob | Encontre vagas e contrate com WhatsApp</title>
+        <meta
+          name="description"
+          content="Dois caminhos, um só lugar: encontre emprego ou contrate candidatos. Tudo com fluxo rápido e WhatsApp-first."
+        />
+        <meta property="og:title" content="MyJob | Emprego e recrutamento, WhatsApp-first" />
+        <meta property="og:description" content="Encontre vagas ou contrate candidatos. Fluxo rápido, foco em conversão e privacidade." />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -111,361 +114,322 @@ const Home = () => {
           })}
         </script>
       </Helmet>
-      {/* 🚀 SUPER HERO SECTION (WhatsApp Focused) */}
-      <section className="relative pt-20 pb-28 lg:pt-28 lg:pb-32 overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50">
-        {/* Dynamic Background */}
-        <div className="absolute top-0 w-full h-full overflow-hidden -z-10">
-          <div className="absolute -top-24 right-[-10%] w-[640px] h-[640px] rounded-full bg-emerald-500/20 blur-[120px] animate-pulse" />
-          <div
-            className="absolute bottom-[-15%] left-[-10%] w-[560px] h-[560px] rounded-full bg-indigo-500/15 blur-[120px] animate-pulse"
-            style={{ animationDelay: '600ms' }}
-          />
-          <div
-            className="absolute inset-0 opacity-60"
-            style={{
-              backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(15,23,42,0.06) 1px, transparent 0)',
-              backgroundSize: '28px 28px',
-            }}
-          />
-        </div>
-
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
-            
-            {/* Text Content */}
-            <div className="flex-1 text-center lg:text-left z-10">
-              <div className="inline-flex items-center gap-2 bg-white/70 border border-slate-200 text-slate-700 text-sm font-bold px-5 py-2.5 rounded-full mb-8 shadow-sm backdrop-blur">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-[#25D366]"></span>
-                </span>
-                Recrutamento 100% via WhatsApp
-              </div>
-              
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight">
-                Consiga emprego <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
-                  conversando.
-                </span>
-              </h1>
-              
-              <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-medium">
-                Esqueça portais complicados e e-mails que ninguém responde. No MyJob, você fala direto com as empresas pelo WhatsApp. Rápido, seguro e sem enrolação.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto rounded-xl h-16 px-10 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl shadow-emerald-500/20 transition-all hover:-translate-y-1"
-                  onClick={() => navigate('/empleos')}
-                >
-                  <MessageCircle className="h-6 w-6 mr-3" />
-                  Ver Vagas Agora
-                </Button>
-              </div>
-              <div className="mt-5 flex justify-center lg:justify-start">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/70 border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm backdrop-blur">
-                  <CheckCircle2 className="h-5 w-5 text-[#25D366]" />
-                  <span>Sem cadastro prévio</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Visual/Phone Mockup */}
-            <div className="flex-1 w-full max-w-lg lg:max-w-none relative z-10 motion-safe:animate-float">
-              {/* Floating badges */}
-              <div className="absolute top-10 -left-12 bg-white/80 p-4 rounded-2xl shadow-xl border border-slate-200 hidden md:flex items-center gap-3 z-20 animate-pulse backdrop-blur">
-                <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 font-bold">Resposta em</p>
-                  <p className="text-sm font-black text-slate-900">menos de 2h</p>
-                </div>
-              </div>
-              
-              <PhoneMockup />
-            </div>
-
+      <div className="dark bg-background text-foreground">
+        <section className="relative overflow-hidden pt-20 pb-14 lg:pt-28 lg:pb-20">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(106,92,255,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(0,212,255,0.12),transparent_50%)]" />
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                backgroundImage:
+                  'linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)',
+                backgroundSize: '48px 48px',
+                maskImage: 'radial-gradient(circle at 30% 20%, black 0%, transparent 58%)',
+                WebkitMaskImage: 'radial-gradient(circle at 30% 20%, black 0%, transparent 58%)',
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0)',
+                backgroundSize: '26px 26px',
+                maskImage: 'radial-gradient(circle at 70% 30%, black 0%, transparent 58%)',
+                WebkitMaskImage: 'radial-gradient(circle at 70% 30%, black 0%, transparent 58%)',
+              }}
+            />
           </div>
-        </div>
-      </section>
 
-      {/* 🧲 EMPLOYER ENTRY (Recruiter Focus) */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold px-4 py-2 rounded-full">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Para empresas
-              </div>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-                Contrate mais rápido com candidatos prontos para WhatsApp.
-              </h2>
-              <p className="text-slate-600 text-lg font-medium leading-relaxed">
-                Navegue por perfis, busque por função e fale com nosso assistente no WhatsApp para liberar o contato do candidato certo.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  size="lg"
-                  className="rounded-xl h-14 px-8 text-base font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10 transition-all hover:-translate-y-0.5"
-                  onClick={() => navigate('/buscar-candidatos')}
-                >
-                  Buscar candidatos
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-xl h-14 px-8 text-base font-bold border-slate-200 bg-white text-slate-900 hover:bg-slate-50 transition-all hover:-translate-y-0.5"
-                  onClick={() => navigate('/buscar-candidatos?q=driver')}
-                >
-                  Abrir uma busca (demo)
-                </Button>
-              </div>
-            </div>
+          <div className="container mx-auto px-4 relative">
+            <Reveal>
+              <div className="grid lg:grid-cols-12 gap-10 items-center">
+                <div className="lg:col-span-6">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-bold text-white/80 backdrop-blur">
+                    <span className="h-2 w-2 rounded-full bg-[#25D366]" />
+                    WhatsApp-first · Duas entradas (candidato / empresa)
+                  </div>
+                  <h1 className="mt-6 text-5xl md:text-6xl font-black leading-[1.05] tracking-tight text-white">
+                    Encontre emprego ou contrate
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#6A5CFF] to-[#00D4FF]">
+                      com velocidade.
+                    </span>
+                  </h1>
+                  <p className="mt-5 text-lg leading-relaxed text-white/70 max-w-xl">
+                    MyJob conecta candidatos e empresas com um fluxo direto e conversacional. Menos fricção, mais resposta, mais clareza.
+                  </p>
 
-            <div className="relative">
-              <div className="p-[1px] rounded-[2.5rem] bg-gradient-to-r from-primary/30 via-primary/10 to-primary/30 bg-[length:220%_220%] motion-safe:animate-gradient-x">
-                <div className="rounded-[2.45rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
-                  <div className="flex items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                        <Sparkles className="h-5 w-5 text-primary" />
+                  <div className="mt-8 grid sm:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/empleos')}
+                      className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
+                    >
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_20%_10%,rgba(0,212,255,0.18),transparent_50%),radial-gradient(circle_at_80%_40%,rgba(106,92,255,0.16),transparent_55%)]" />
+                      <div className="relative">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-bold text-white/60">Sou candidato</p>
+                            <p className="mt-1 text-xl font-black text-white">Ver vagas</p>
+                          </div>
+                          <div className="h-11 w-11 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+                            <MessageCircle className="h-5 w-5 text-white" />
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm text-white/70">Aplique com WhatsApp e avance mais rápido.</p>
+                        <div className="mt-5">
+                          <Button className="rounded-xl h-11 px-5 font-bold bg-gradient-to-r from-[#6A5CFF] to-[#00D4FF] text-slate-950 hover:opacity-95">
+                            Abrir vagas
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-500">Recruiter suite</p>
-                        <p className="text-base font-black text-slate-900">Candidatos</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate('/buscar-candidatos')}
+                      className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
+                    >
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_30%_20%,rgba(46,229,157,0.16),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(0,212,255,0.12),transparent_55%)]" />
+                      <div className="relative">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-bold text-white/60">Sou empresa</p>
+                            <p className="mt-1 text-xl font-black text-white">Buscar candidatos</p>
+                          </div>
+                          <div className="h-11 w-11 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-white" />
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm text-white/70">Triagem rápida, privacidade e desbloqueio via WhatsApp.</p>
+                        <div className="mt-5">
+                          <Button variant="outline" className="rounded-xl h-11 px-5 font-bold border-white/15 bg-white/[0.06] text-white hover:bg-white/10">
+                            Entrar na busca
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600">
-                        Real-time
-                      </span>
-                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600">
-                        WhatsApp-first
-                      </span>
-                    </div>
+                    </button>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-6">
-                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                          <Search className="h-5 w-5 text-primary" />
-                        </div>
-                        <p className="text-sm font-bold text-slate-600">Acesso instantâneo</p>
-                      </div>
-                      <p className="text-2xl font-black text-slate-900">Perfis online</p>
-                      <p className="text-sm text-slate-500 mt-2">Veja candidatos publicados em tempo real.</p>
-                    </div>
-
-                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                          <Zap className="h-5 w-5 text-primary" />
-                        </div>
-                        <p className="text-sm font-bold text-slate-600">Triagem mais rápida</p>
-                      </div>
-                      <p className="text-2xl font-black text-slate-900">Busca + destaque</p>
-                      <p className="text-sm text-slate-500 mt-2">Destaque automático das palavras-chave.</p>
-                    </div>
-
-                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                          <Lock className="h-5 w-5 text-primary" />
-                        </div>
-                        <p className="text-sm font-bold text-slate-600">Privacidade</p>
-                      </div>
-                      <p className="text-2xl font-black text-slate-900">Dados protegidos</p>
-                      <p className="text-sm text-slate-500 mt-2">Nome e contato ficam parcialmente ocultos.</p>
-                    </div>
-
-                    <div className="group rounded-2xl bg-slate-50 border border-slate-200 p-6 hover:bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                          <QrCode className="h-5 w-5 text-primary" />
-                        </div>
-                        <p className="text-sm font-bold text-slate-600">WhatsApp-first</p>
-                      </div>
-                      <p className="text-2xl font-black text-slate-900">QR no desktop</p>
-                      <p className="text-sm text-slate-500 mt-2">Escaneie e continue no celular.</p>
-                    </div>
+                  <div className="mt-7 flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/70">
+                      <ShieldCheck className="h-4 w-4 text-white/70" />
+                      Privacidade por padrão
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/70">
+                      <Zap className="h-4 w-4 text-white/70" />
+                      Baixa fricção
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/70">
+                      <Sparkles className="h-4 w-4 text-white/70" />
+                      Interface clara
+                    </span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* 🌟 WHY WHATSAPP SECTION (Features) */}
-      <section className="relative py-24 bg-muted/30 overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-50"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(15,23,42,0.05) 1px, transparent 0)',
-            backgroundSize: '32px 32px',
-          }}
-        />
-        <div className="container mx-auto px-4 relative">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">Por que buscar emprego pelo WhatsApp?</h2>
-            <p className="text-lg text-muted-foreground font-medium">Uma forma mais humana e rápida de se candidatar — direto do seu celular.</p>
+                <div className="lg:col-span-6">
+                  <Reveal delayMs={120}>
+                    <div className="relative mx-auto max-w-xl">
+                      <div className="absolute -inset-4 rounded-[2.75rem] bg-[radial-gradient(circle_at_25%_15%,rgba(0,212,255,0.18),transparent_60%),radial-gradient(circle_at_75%_55%,rgba(106,92,255,0.18),transparent_58%)] blur-2xl opacity-70" />
+                      <div className="relative rounded-[2.5rem] border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.05)]">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-bold text-white/60">Preview</p>
+                            <p className="text-sm font-black text-white">Fluxo pelo WhatsApp</p>
+                          </div>
+                          <div className="h-9 w-9 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+                            <Briefcase className="h-4 w-4 text-white" />
+                          </div>
+                        </div>
+                        <div className="mt-6 motion-safe:animate-float">
+                          <PhoneMockup />
+                        </div>
+                      </div>
+                    </div>
+                  </Reveal>
+                </div>
+              </div>
+            </Reveal>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="group bg-card rounded-2xl p-8 border border-border/60 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
-                  <Zap className="h-7 w-7 text-primary" />
-                </div>
-                <span className="text-xs font-black text-muted-foreground">01</span>
-              </div>
-              <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Contato direto</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Fale com o recrutador sem intermediários nem filtros automáticos.
-              </p>
-              <div className="mt-6 space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
-                  <span>Resposta mais rápida</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
-                  <span>Mais chances de retorno</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="group bg-card rounded-2xl p-8 border border-border/60 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
-                  <MessageCircle className="h-7 w-7 text-primary" />
-                </div>
-                <span className="text-xs font-black text-muted-foreground">02</span>
-              </div>
-              <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Acompanhamento em tempo real</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Veja rapidamente se sua mensagem foi recebida e lida.
-              </p>
-              <div className="mt-6 space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
-                  <span>Sem “sumir no e-mail”</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
-                  <span>Processo mais transparente</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="group bg-card rounded-2xl p-8 border border-border/60 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
-                  <ShieldCheck className="h-7 w-7 text-primary" />
-                </div>
-                <span className="text-xs font-black text-muted-foreground">03</span>
-              </div>
-              <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Empresas verificadas</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Mais segurança com empresas verificadas e processos transparentes.
-              </p>
-              <div className="mt-6 space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
-                  <span>Menos risco de golpes</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
-                  <span>Mais confiança na vaga</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 🏢 CATEGORIES SECTION (Rich Content) */}
-      <section className="py-24 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">Explore por categoria</h2>
-              <p className="text-muted-foreground font-medium">Encontre a vaga ideal para você.</p>
-            </div>
-            <Button variant="outline" className="rounded-xl font-bold bg-card" onClick={() => navigate('/empleos')}>
-              Ver todas as categorias
-            </Button>
-          </div>
-          
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {CATEGORIES.map((cat) => (
-              <div
-                key={cat.value}
-                className="bg-card p-6 rounded-2xl border border-border/60 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group min-w-[220px] flex-shrink-0"
-                onClick={() => navigate(`/empleos?categoria=${encodeURIComponent(cat.value)}`)}
-              >
-                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors mb-2">{cat.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {(categoryCounts?.[cat.value] ?? 0).toLocaleString('pt-BR')} vagas
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 💼 RECENT JOBS SECTION */}
-      {recentJobs && recentJobs.length > 0 && (
-        <section className="py-24 bg-background">
+        <section className="relative py-20">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">Vagas em destaque</h2>
-              <p className="text-lg text-muted-foreground font-medium">Candidate-se agora pelo WhatsApp.</p>
-            </div>
-            
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {recentJobs.map((job) => (
-                <JobCard key={job.id} job={job} />
-              ))}
-            </div>
-            
-            <div className="mt-16 text-center">
-              <Button 
-                size="lg"
-                className="rounded-xl h-14 px-10 text-base font-bold shadow-lg"
-                onClick={() => navigate('/empleos')}
-              >
-                Ver mais vagas
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+            <Reveal>
+              <div className="flex items-end justify-between gap-6 flex-col md:flex-row">
+                <div className="max-w-2xl">
+                  <p className="text-xs font-bold text-white/60">Por que funciona</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">
+                    Experiência rápida, com sensação de produto premium.
+                  </h2>
+                  <p className="mt-3 text-white/70 leading-relaxed">
+                    Mantemos o essencial na superfície e deixamos o resto para o contexto: menos ruído, mais decisão.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+
+            <div className="mt-10 grid md:grid-cols-3 gap-6">
+              <Reveal delayMs={40}>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1 hover:border-white/20">
+                  <div className="h-11 w-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                    <MessageCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <p className="mt-4 text-lg font-black text-white">WhatsApp-first</p>
+                  <p className="mt-2 text-sm text-white/70 leading-relaxed">
+                    Conversa direta e contexto claro. Para candidatos e para empresas.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal delayMs={90}>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1 hover:border-white/20">
+                  <div className="h-11 w-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                    <ShieldCheck className="h-5 w-5 text-white" />
+                  </div>
+                  <p className="mt-4 text-lg font-black text-white">Privacidade</p>
+                  <p className="mt-2 text-sm text-white/70 leading-relaxed">
+                    Dados sensíveis ficam protegidos por padrão. Você decide quando abrir contato.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal delayMs={140}>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1 hover:border-white/20">
+                  <div className="h-11 w-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                    <Zap className="h-5 w-5 text-white" />
+                  </div>
+                  <p className="mt-4 text-lg font-black text-white">Triagem objetiva</p>
+                  <p className="mt-2 text-sm text-white/70 leading-relaxed">
+                    Menos telas e mais clareza: função, contexto e próxima ação em um lugar só.
+                  </p>
+                </div>
+              </Reveal>
             </div>
           </div>
         </section>
-      )}
 
-      {/* 📍 CITIES SECTION */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center text-foreground tracking-tight">Encontre vagas na sua cidade</h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            {CITIES.map((city) => (
-              <button
-                key={city}
-                onClick={() => navigate(`/empleos?ciudad=${encodeURIComponent(city)}`)}
-                className="flex items-center gap-2 px-6 py-3 rounded-full bg-card hover:bg-primary/5 transition-all font-bold border border-border/60 hover:border-primary/40 text-foreground"
-              >
-                <MapPin className="h-4 w-4" />
-                {city}
-              </button>
-            ))}
+        <section className="relative py-20 overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,212,255,0.10),transparent_55%)]" />
+          <div className="container mx-auto px-4 relative">
+            <Reveal>
+              <div className="flex items-end justify-between gap-6 flex-col md:flex-row">
+                <div className="max-w-2xl">
+                  <p className="text-xs font-bold text-white/60">Confiança</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">O que as pessoas dizem</h2>
+                  <p className="mt-3 text-white/70 leading-relaxed">Avaliações curtas e objetivas para reduzir dúvida e aumentar ação.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="rounded-xl border-white/15 bg-white/[0.06] text-white hover:bg-white/10"
+                  onClick={() => navigate('/empleos')}
+                >
+                  Ver vagas
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </Reveal>
+            <div className="mt-10">
+              <Reveal delayMs={100}>
+                <TestimonialCarousel />
+              </Reveal>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <Reveal>
+              <div className="flex items-end justify-between gap-6 flex-col md:flex-row">
+                <div>
+                  <p className="text-xs font-bold text-white/60">Explorar</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Categorias</h2>
+                  <p className="mt-3 text-white/70">Encontre a vaga ideal para você.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="rounded-xl border-white/15 bg-white/[0.06] text-white hover:bg-white/10"
+                  onClick={() => navigate('/empleos')}
+                >
+                  Ver todas
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </Reveal>
+
+            <div className="mt-10 flex gap-4 overflow-x-auto pb-2">
+              {CATEGORIES.map((cat, idx) => (
+                <Reveal key={cat.value} from="none" delayMs={Math.min(idx * 30, 210)}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/empleos?categoria=${encodeURIComponent(cat.value)}`)}
+                    className="group min-w-[220px] flex-shrink-0 rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
+                  >
+                    <p className="text-sm font-black text-white group-hover:text-[#00D4FF] transition-colors">{cat.name}</p>
+                    <p className="mt-2 text-xs font-semibold text-white/60">
+                      {(categoryCounts?.[cat.value] ?? 0).toLocaleString('pt-BR')} vagas
+                    </p>
+                  </button>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {recentJobs && recentJobs.length > 0 && (
+          <section className="py-20">
+            <div className="container mx-auto px-4">
+              <Reveal>
+                <div className="text-center max-w-2xl mx-auto">
+                  <p className="text-xs font-bold text-white/60">Destaque</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Vagas em destaque</h2>
+                  <p className="mt-3 text-white/70">Candidate-se com WhatsApp e avance no mesmo dia.</p>
+                </div>
+              </Reveal>
+              <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {recentJobs.map((job, idx) => (
+                  <Reveal key={job.id} delayMs={Math.min(idx * 60, 240)}>
+                    <JobCard job={job} />
+                  </Reveal>
+                ))}
+              </div>
+              <div className="mt-12 text-center">
+                <Button
+                  className="rounded-xl h-12 px-8 font-bold bg-gradient-to-r from-[#6A5CFF] to-[#00D4FF] text-slate-950 hover:opacity-95"
+                  onClick={() => navigate('/empleos')}
+                >
+                  Ver mais vagas
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="py-20 border-t border-white/10">
+          <div className="container mx-auto px-4">
+            <Reveal>
+              <div className="text-center max-w-2xl mx-auto">
+                <p className="text-xs font-bold text-white/60">Localização</p>
+                <h2 className="mt-2 text-2xl md:text-3xl font-black tracking-tight text-white">Vagas por cidade</h2>
+                <p className="mt-3 text-white/70">Comece por onde você já está.</p>
+              </div>
+            </Reveal>
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
+              {CITIES.map((city, idx) => (
+                <Reveal key={city} from="none" delayMs={Math.min(idx * 40, 240)}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/empleos?ciudad=${encodeURIComponent(city)}`)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white/80 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {city}
+                  </button>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
     </PublicLayout>
   );
 };
