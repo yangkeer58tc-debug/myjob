@@ -57,10 +57,10 @@ export const formatSalaryMXN = (value: string | null | undefined) => {
   const parsed = parseSalaryNumber(String(value));
   if (!parsed) return String(value);
 
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
+  const formatted = new Intl.NumberFormat('es-MX', {
     minimumFractionDigits: parsed.hasDecimals ? 2 : 0,
     maximumFractionDigits: parsed.hasDecimals ? 2 : 0,
   }).format(parsed.num);
+
+  return `MXN $${formatted}`;
 };

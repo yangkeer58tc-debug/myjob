@@ -509,7 +509,7 @@ const Admin = () => {
         'Treinamento de condutores, reciclagem, integração, telemetria, segurança viária, redução de sinistros.',
         'Ensino médio completo',
         'CLT',
-        'MX$ 5,000',
+        'MXN $5,000',
         'Imediata',
         'TRUE',
         'TRUE',
