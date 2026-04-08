@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
-import { formatSalaryBRL } from '@/lib/salaryUtils';
+import { formatSalaryMXN } from '@/lib/salaryUtils';
 import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 
@@ -103,7 +103,7 @@ const JobCard = ({ job }: JobCardProps) => {
           </div>
           
           <div className="flex items-baseline space-x-1">
-            <span className="text-xl font-bold text-primary">{formatSalaryBRL(job.salary_amount)}</span>
+            <span className="text-xl font-bold text-primary">{formatSalaryMXN(job.salary_amount)}</span>
             <span className="text-[10px] text-muted-foreground font-medium">{optionLabel(job.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)}</span>
           </div>
         </CardContent>

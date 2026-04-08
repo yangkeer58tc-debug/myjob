@@ -218,7 +218,7 @@ const buildJobPostingJsonLd = (job) => {
   if (Number.isFinite(numericSalary) && numericSalary > 0) {
     base.baseSalary = {
       '@type': 'MonetaryAmount',
-      currency: 'BRL',
+      currency: 'MXN',
       value: {
         '@type': 'QuantitativeValue',
         value: numericSalary,

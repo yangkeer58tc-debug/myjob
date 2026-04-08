@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { formatRelativeTime } from '@/lib/timeUtils';
-import { formatSalaryBRL, salaryNumberForSchema } from '@/lib/salaryUtils';
+import { formatSalaryMXN, salaryNumberForSchema } from '@/lib/salaryUtils';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
@@ -273,7 +273,7 @@ const JobDetail = () => {
           ? {
               baseSalary: {
                 '@type': 'MonetaryAmount',
-                currency: 'BRL',
+                currency: 'MXN',
                 value: {
                   '@type': 'QuantitativeValue',
                   value: salaryValue,
@@ -403,7 +403,7 @@ const JobDetail = () => {
 
           {/* Salary */}
           <p className="text-3xl font-black text-whatsapp mb-1">
-            {formatSalaryBRL(job.salary_amount)}{' '}
+            {formatSalaryMXN(job.salary_amount)}{' '}
             <span className="text-base font-medium text-muted-foreground">{optionLabel(job.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)}</span>
           </p>
           <p className="text-sm text-muted-foreground">{formatRelativeTime(job.created_at, lang)}</p>

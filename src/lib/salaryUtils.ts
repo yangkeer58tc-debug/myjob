@@ -4,7 +4,7 @@ const parseSalaryNumber = (input: string) => {
   if (/[A-Za-z]/.test(raw)) return null;
 
   const cleaned = raw
-    .replace(/(brl|r\$)/gi, '')
+    .replace(/(brl|mxn|r\$|mx\$|\$)/gi, '')
     .replace(/[^\d.,-]/g, '')
     .trim();
   if (!/\d/.test(cleaned)) return null;
@@ -50,4 +50,17 @@ export const formatSalaryBRL = (value: string | null | undefined) => {
   }).format(parsed.num);
 
   return `R$ ${formatted}`;
+};
+
+export const formatSalaryMXN = (value: string | null | undefined) => {
+  if (!value) return '';
+  const parsed = parseSalaryNumber(String(value));
+  if (!parsed) return String(value);
+
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: parsed.hasDecimals ? 2 : 0,
+    maximumFractionDigits: parsed.hasDecimals ? 2 : 0,
+  }).format(parsed.num);
 };
