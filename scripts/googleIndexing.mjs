@@ -100,9 +100,10 @@ export const publishUrlNotification = async ({ accessToken, url, type }) => {
   return JSON.parse(text);
 };
 
-export const publishUrls = async ({ serviceAccount, urls, type, scope = DEFAULT_SCOPE, concurrency = 4 }) => {
-  if (!serviceAccount) throw new Error('Missing Google service account');
-  const accessToken = await getAccessToken(serviceAccount, scope);
+export const publishUrls = async ({ serviceAccount, accessToken, urls, type, scope = DEFAULT_SCOPE, concurrency = 4 }) => {
+  const token = accessToken || String(process.env.GOOGLE_INDEXING_ACCESS_TOKEN || '').trim();
+  const resolvedToken = token || (serviceAccount ? await getAccessToken(serviceAccount, scope) : null);
+  if (!resolvedToken) throw new Error('Missing Indexing API auth: set GOOGLE_INDEXING_ACCESS_TOKEN or provide serviceAccount');
 
   const queue = [...urls];
   const results = [];
@@ -110,10 +111,9 @@ export const publishUrls = async ({ serviceAccount, urls, type, scope = DEFAULT_
     while (queue.length) {
       const url = queue.shift();
       if (!url) break;
-      results.push(await publishUrlNotification({ accessToken, url, type }));
+      results.push(await publishUrlNotification({ accessToken: resolvedToken, url, type }));
     }
   });
   await Promise.all(workers);
   return results;
 };
-

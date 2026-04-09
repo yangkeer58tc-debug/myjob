@@ -38,10 +38,10 @@ const main = async () => {
   if (urls.length === 0) return;
 
   const serviceAccount = await loadServiceAccount();
-  if (!serviceAccount) throw new Error('GOOGLE_INDEXING_ENABLED=1 but service account is missing');
+  const accessToken = String(process.env.GOOGLE_INDEXING_ACCESS_TOKEN || '').trim();
+  if (!serviceAccount && !accessToken) throw new Error('GOOGLE_INDEXING_ENABLED=1 but auth is missing');
 
-  await publishUrls({ serviceAccount, urls, type, concurrency });
+  await publishUrls({ serviceAccount, accessToken, urls, type, concurrency });
 };
 
 await main();
-
