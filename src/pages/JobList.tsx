@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -39,6 +40,7 @@ const JobList = () => {
   const city = searchParams.get('ciudad') || '';
   const category = searchParams.get('categoria') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const cutoffIso = useMemo(() => new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), []);
 
   // Fetch unique cities
   const { data: cities } = useQuery({
@@ -47,7 +49,8 @@ const JobList = () => {
       const { data, error } = await supabase
         .from('jobs')
         .select('location')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .gte('created_at', cutoffIso);
       if (error) throw error;
       const unique = [...new Set(data.map((j) => j.location))].sort();
       return unique;
@@ -62,6 +65,7 @@ const JobList = () => {
         .from('jobs')
         .select('*', { count: 'exact' })
         .eq('is_active', true)
+        .gte('created_at', cutoffIso)
         .order('created_at', { ascending: false })
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 

@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 
+const DAYS_TO_EXPIRE = 60;
+
 const maybeFixMojibake = (value: string) => {
   const s = value || '';
   const looksSuspicious = /[ÃÂ�]/.test(s) || /[\u0080-\u009F]/.test(s);
@@ -233,9 +235,13 @@ const JobDetail = () => {
   }
 
   const now = Date.now();
-  const validThrough = new Date(now + 60 * 24 * 60 * 60 * 1000).toISOString();
+  const createdAtMs = job.created_at ? Date.parse(String(job.created_at)) : NaN;
+  const isExpired = Number.isFinite(createdAtMs) ? now - createdAtMs > DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000 : false;
+  const validThrough = new Date(now + DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000).toISOString();
 
-  const jsonLd = job.is_active
+  const isActive = Boolean(job.is_active) && !isExpired;
+
+  const jsonLd = isActive
     ? {
         '@context': 'https://schema.org',
         '@type': 'JobPosting',
@@ -323,6 +329,7 @@ const JobDetail = () => {
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
         <link rel="canonical" href={pageUrl} />
+        {isExpired ? <meta name="robots" content="noindex,follow" /> : null}
         
         {/* Open Graph */}
         <meta property="og:type" content="article" />
