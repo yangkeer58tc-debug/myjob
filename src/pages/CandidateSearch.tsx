@@ -108,7 +108,7 @@ const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
     last_name: r.last_name || null,
     full_name: fullName,
     job_title: r.job_direction || null,
-    country: r.country || 'Brasil',
+    country: r.country || 'México',
     city: r.city || null,
     summary: r.profile_summary || null,
     has_contact: hasContact,

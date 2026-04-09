@@ -30,11 +30,11 @@ export const CATEGORY_OPTIONS: Option[] = [
 ];
 
 export const CITY_OPTIONS: Option[] = [
-  { id: 'rio-de-janeiro', label: 'Rio de Janeiro' },
-  { id: 'belo-horizonte', label: 'Belo Horizonte' },
-  { id: 'sao-paulo', label: 'São Paulo' },
-  { id: 'brasilia', label: 'Brasília' },
-  { id: 'uberlandia', label: 'Uberlândia' },
+  { id: 'ciudad-de-mexico', label: 'Ciudad de México' },
+  { id: 'guadalajara', label: 'Guadalajara' },
+  { id: 'monterrey', label: 'Monterrey' },
+  { id: 'puebla', label: 'Puebla' },
+  { id: 'tijuana', label: 'Tijuana' },
 ];
 
 export const WORKPLACE_TYPE_OPTIONS: Option[] = [
@@ -97,4 +97,3 @@ export const optionLabel = (value: unknown, options: Option[]) => {
   const byLblHit = labelMap.get(simplify(raw));
   return byLblHit ? byLblHit.label : raw;
 };
-
