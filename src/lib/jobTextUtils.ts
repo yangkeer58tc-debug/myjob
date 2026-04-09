@@ -124,7 +124,7 @@ const splitByHeadings = (value: string) => {
 
   const lines = text.split('\n');
   const sections: Array<{ key: string; title: string; body: string }> = [];
-  let preambleLines: string[] = [];
+  const preambleLines: string[] = [];
   let current: { key: string; title: string; bodyLines: string[] } | null = null;
 
   const commit = () => {

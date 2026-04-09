@@ -89,8 +89,8 @@ const main = async () => {
       urls.push({
         loc: `${SITE_URL}/empleo/${job.id}/`,
         lastmod: toIsoDate(job.created_at),
-        changefreq: 'weekly',
-        priority: 0.6,
+        changefreq: 'daily',
+        priority: 0.8,
       });
     }
   } catch (e) {

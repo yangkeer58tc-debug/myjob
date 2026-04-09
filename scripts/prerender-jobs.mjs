@@ -159,6 +159,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 
 const buildJobPostingJsonLd = (job) => {
   const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
+  const validThrough = toIsoDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) || undefined;
   const descriptionParts = [
     textForSchema(job.summary || job.description || ''),
     job.requirements ? `\n\nRequisitos:\n${textForSchema(job.requirements)}` : '',
@@ -178,7 +179,7 @@ const buildJobPostingJsonLd = (job) => {
     },
     description: descriptionParts,
     datePosted: toIsoDate(job.created_at) || undefined,
-    validThrough: toIsoDate(new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000)) || undefined,
+    validThrough,
     employmentType:
       job.job_type === 'tempo-integral'
         ? 'FULL_TIME'
@@ -198,13 +199,13 @@ const buildJobPostingJsonLd = (job) => {
       address: {
         '@type': 'PostalAddress',
         addressLocality: job.location || '',
-        addressCountry: 'BR',
+        addressCountry: 'MX',
       },
     },
     directApply: true,
     applicantLocationRequirements: {
       '@type': 'Country',
-      name: 'BR',
+      name: 'MX',
     },
     jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
   };

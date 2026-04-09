@@ -56,7 +56,7 @@ type ResumeRow = {
   work_years: number | null;
   country: string | null;
   city: string | null;
-  education?: any[] | null;
+  education?: unknown[] | null;
   profile_summary: string | null;
   created_at: string;
   updated_at?: string | null;
@@ -71,12 +71,13 @@ const parseYear = (value: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const getEducationYears = (education: any[] | null | undefined): number | null => {
+const getEducationYears = (education: unknown[] | null | undefined): number | null => {
   const arr = Array.isArray(education) ? education : [];
   let sum = 0;
   for (const item of arr) {
-    const start = parseYear(item?.startDate ?? item?.start_date ?? item?.start_year);
-    const end = parseYear(item?.endDate ?? item?.end_date ?? item?.end_year);
+    const obj = typeof item === 'object' && item !== null ? (item as Record<string, unknown>) : {};
+    const start = parseYear(obj.startDate ?? obj.start_date ?? obj.start_year);
+    const end = parseYear(obj.endDate ?? obj.end_date ?? obj.end_year);
     if (!start && !end) continue;
     const s = start || end || 0;
     const e = end || start || 0;
@@ -157,7 +158,7 @@ const CandidateSearch = () => {
 
           const { data: raw, error: resumesError, count } = await query;
           if (resumesError) throw resumesError;
-          const mapped = ((raw as any[]) || []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
+          const mapped = (Array.isArray(raw) ? raw : []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
           return { candidates: mapped, count: count || 0 };
         };
 
@@ -168,8 +169,8 @@ const CandidateSearch = () => {
 
         try {
           return await runQuery(colsWithEducation);
-        } catch (err: any) {
-          const msg = String(err?.message || err || '').toLowerCase();
+        } catch (err: unknown) {
+          const msg = String((err as { message?: unknown })?.message || err || '').toLowerCase();
           if (msg.includes('education') && (msg.includes('does not exist') || msg.includes('column'))) {
             return await runQuery(colsWithoutEducation);
           }
@@ -194,25 +195,26 @@ const CandidateSearch = () => {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      const candidates = ((data as any[]) || []).map((row) => {
-        const full = String(row.full_name || '').trim();
+      const candidates = (Array.isArray(data) ? data : []).map((row) => {
+        const r = row as Record<string, unknown>;
+        const full = String(r.full_name || '').trim();
         const parts = full.split(/\s+/).filter(Boolean);
         const first = parts[0] || null;
         const last = parts.length >= 2 ? parts[parts.length - 1] : null;
         return {
-          id: row.id,
-          role_slug: row.role_slug || null,
+          id: String(r.id),
+          role_slug: typeof r.role_slug === 'string' ? r.role_slug : null,
           first_name: first,
           last_name: last,
-          full_name: row.full_name || null,
-          job_title: row.headline || row.role_slug || null,
+          full_name: typeof r.full_name === 'string' ? r.full_name : null,
+          job_title: (typeof r.headline === 'string' && r.headline) || (typeof r.role_slug === 'string' && r.role_slug) || null,
           country: null,
-          city: row.location || null,
-          summary: row.summary || null,
+          city: typeof r.location === 'string' ? r.location : null,
+          summary: typeof r.summary === 'string' ? r.summary : null,
           has_contact: false,
           work_years: null,
           education_years: null,
-          created_at: row.created_at,
+          created_at: String(r.created_at),
         } as CandidateRow;
       });
       return { candidates: candidates.filter(isCandidateEligible), count: count || 0 };
@@ -270,7 +272,9 @@ const CandidateSearch = () => {
         {error ? (
           <div className="bg-card border border-border/50 rounded-3xl p-6">
             <p className="text-lg font-bold text-foreground mb-1">Falha ao carregar candidatos</p>
-            <p className="text-sm text-muted-foreground break-words">{String((error as any)?.message || error)}</p>
+            <p className="text-sm text-muted-foreground break-words">
+              {String((error as { message?: unknown })?.message || error)}
+            </p>
             <div className="mt-4 text-sm text-muted-foreground space-y-1">
               <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
               <p>role：{roleSlug}</p>

@@ -232,6 +232,9 @@ const JobDetail = () => {
     );
   }
 
+  const now = Date.now();
+  const validThrough = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString();
+
   const jsonLd = job.is_active
     ? {
         '@context': 'https://schema.org',
@@ -246,7 +249,7 @@ const JobDetail = () => {
           .replace(/\n{3,}/g, '\n\n')
           .trim(),
         datePosted: job.created_at,
-        validThrough: new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Assume valid for 30 days
+        validThrough,
         employmentType:
           job.job_type === 'tempo-integral'
             ? 'FULL_TIME'
@@ -266,7 +269,7 @@ const JobDetail = () => {
           address: {
             '@type': 'PostalAddress',
             addressLocality: safeLocation,
-            addressCountry: 'BR',
+            addressCountry: 'MX',
           },
         },
         ...(salaryValue !== null
@@ -292,7 +295,7 @@ const JobDetail = () => {
         directApply: true,
         applicantLocationRequirements: {
           '@type': 'Country',
-          name: 'BR'
+          name: 'MX',
         },
         jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
       }

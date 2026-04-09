@@ -305,7 +305,7 @@ const Admin = () => {
       queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
       toast.success('Todas as vagas foram ativadas');
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(String((err as { message?: unknown })?.message || err)),
   });
 
   useEffect(() => {
@@ -338,7 +338,9 @@ const Admin = () => {
           if (upsertError) throw upsertError;
           queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
         }
-      } catch {}
+      } catch (err) {
+        void err;
+      }
       localStorage.setItem(key, '1');
     })();
   }, [session, queryClient]);
@@ -388,7 +390,9 @@ const Admin = () => {
           if (upsertError) throw upsertError;
           queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
         }
-      } catch {}
+      } catch (err) {
+        void err;
+      }
 
       localStorage.setItem(key, '1');
     })();
@@ -403,7 +407,7 @@ const Admin = () => {
       queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
       toast.success('Todas as vagas foram excluídas');
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       const msg = String(err?.message || err || '');
       if (msg.toLowerCase().includes('row level security') || msg.toLowerCase().includes('row-level security')) {
         toast.error('权限不足：需要在 Supabase 给 authenticated 增加 jobs 的 DELETE policy');
@@ -563,8 +567,8 @@ const Admin = () => {
 
         toast.success(`Importados ${payload.length} candidatos com sucesso.`);
         queryClient.invalidateQueries({ queryKey: ['adminCandidates'] });
-      } catch (err: any) {
-        toast.error(`Erro ao importar: ${err.message}`);
+      } catch (err: unknown) {
+        toast.error(`Erro ao importar: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (candidateFileInputRef.current) candidateFileInputRef.current.value = '';
       }
@@ -622,8 +626,8 @@ const Admin = () => {
 
         toast.success(`Importadas ${payload.length} vagas com sucesso.`);
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-      } catch (err: any) {
-        toast.error(`Erro ao importar: ${err.message}`);
+      } catch (err: unknown) {
+        toast.error(`Erro ao importar: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
@@ -838,7 +842,7 @@ const Admin = () => {
                       </td>
                     </tr>
                   )}
-                  {candidates?.map((c: any) => (
+                  {candidates?.map((c: { id: string; full_name: string | null; role_slug: string | null; location: string | null; is_active: boolean | null; is_public: boolean | null }) => (
                     <tr key={c.id} className="border-t border-border">
                       <td className="px-4 py-3 font-mono text-xs">{c.id}</td>
                       <td className="px-4 py-3 font-medium">{c.full_name || '-'}</td>
