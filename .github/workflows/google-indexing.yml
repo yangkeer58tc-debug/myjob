@@ -1,0 +1,38 @@
+name: Google Indexing (Jobs)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  indexing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: projects/543744822145/locations/global/workloadIdentityPools/myjob/providers/github-actions
+          service_account: myjob-indexing-bot@project-98545d92-1615-4087-bc2.iam.gserviceaccount.com
+          access_token_scopes: https://www.googleapis.com/auth/indexing
+
+      - run: npm ci
+
+      - run: |
+          export GOOGLE_INDEXING_ENABLED=1
+          export GOOGLE_INDEXING_ACCESS_TOKEN="${{ steps.auth.outputs.access_token }}"
+          export GOOGLE_INDEXING_LIMIT=50
+          export GOOGLE_INDEXING_CONCURRENCY=4
+          npm run indexing:sitemap
