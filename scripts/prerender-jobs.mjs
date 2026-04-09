@@ -159,7 +159,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 
 const buildJobPostingJsonLd = (job) => {
   const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
-  const validThrough = toIsoDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) || undefined;
+  const validThrough = toIsoDate(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)) || undefined;
   const descriptionParts = [
     textForSchema(job.summary || job.description || ''),
     job.requirements ? `\n\nRequisitos:\n${textForSchema(job.requirements)}` : '',

@@ -10,13 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 
-const CITIES = [
-  'Rio de Janeiro',
-  'Belo Horizonte',
-  'São Paulo',
-  'Brasília',
-  'Uberlândia'
-];
+const CITIES = ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana'];
 const CATEGORIES = CATEGORY_OPTIONS.map((c) => ({ value: c.id, name: c.label }));
 
 const PhoneMockup = () => {
@@ -37,17 +31,17 @@ const PhoneMockup = () => {
         {/* Chat Area */}
         <div className="flex-1 p-4 flex flex-col gap-3 relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundSize: 'cover', opacity: 0.9 }}>
           <div className="self-start bg-white rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[85%] shadow-sm">
-            <p className="text-sm text-slate-800 font-medium mb-1">Olá! 👋 Tenho uma vaga de Atendente em São Paulo. Salário: R$ 2.200/mês.</p>
+            <p className="text-sm text-slate-800 font-medium mb-1">Hola! 👋 Tengo una vacante de Atención al Cliente en CDMX. Sueldo: MXN $12,000/mes.</p>
             <p className="text-[10px] text-slate-500 text-right mt-1">10:30 AM</p>
           </div>
           <div className="self-end bg-[#dcf8c6] rounded-2xl rounded-tr-none px-4 py-2.5 max-w-[85%] shadow-sm">
-            <p className="text-sm text-slate-800">Tenho interesse! Como faço para me candidatar?</p>
+            <p className="text-sm text-slate-800">Me interesa. ¿Cómo postulo?</p>
             <p className="text-[10px] text-slate-500 text-right mt-1 flex items-center justify-end gap-1">
               10:31 AM <span className="text-[#34b7f1]">✓✓</span>
             </p>
           </div>
           <div className="self-start bg-white rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[85%] shadow-sm">
-            <p className="text-sm text-slate-800">Envie seu currículo por aqui e agendamos entrevista ainda hoje. 🚀</p>
+            <p className="text-sm text-slate-800">Envíame tu CV por aquí y agendamos entrevista hoy mismo. 🚀</p>
             <p className="text-[10px] text-slate-500 text-right mt-1">10:31 AM</p>
           </div>
         </div>

@@ -233,7 +233,7 @@ const JobDetail = () => {
   }
 
   const now = Date.now();
-  const validThrough = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const validThrough = new Date(now + 60 * 24 * 60 * 60 * 1000).toISOString();
 
   const jsonLd = job.is_active
     ? {
@@ -311,7 +311,7 @@ const JobDetail = () => {
     ]
   };
 
-  const pageTitle = `${safeTitle} em ${safeLocation || 'Brasil'} | MyJob`;
+  const pageTitle = `${safeTitle} em ${safeLocation || 'México'} | MyJob`;
   const pageDescription = (summary || description || '').slice(0, 160);
   const pageImage = job.b_logo_url || `${window.location.origin}/placeholder.svg`;
   const pageUrl = `${window.location.origin}/empleo/${job.id}/`;

@@ -114,8 +114,9 @@ const JobList = () => {
   return (
     <PublicLayout>
       <Helmet>
-        <title>Vagas de Emprego no Brasil | MyJob</title>
-        <meta name="description" content="Encontre vagas no Brasil e candidate-se pelo WhatsApp. Filtre por cidade e categoria e fale direto com as empresas." />
+        <title>Vagas de Emprego no México | MyJob</title>
+        <meta name="description" content="Encontre vagas no México e candidate-se pelo WhatsApp. Filtre por cidade e categoria e fale direto com as empresas." />
+        <link rel="canonical" href={`${window.location.origin}/empleos`} />
       </Helmet>
       
       <div className="container mx-auto px-4 py-10">
