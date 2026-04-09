@@ -9,8 +9,10 @@ import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
+import { mexicoCities, mexicoCityForJobId } from '@/lib/mexicoLocation';
 
 const ITEMS_PER_PAGE = 30;
+const CITY_FILTER_MAX = 5000;
 
 const buildPagination = (current: number, total: number) => {
   if (total <= 1) return [];
@@ -46,14 +48,7 @@ const JobList = () => {
   const { data: cities } = useQuery({
     queryKey: ['cities'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('location')
-        .eq('is_active', true)
-        .gte('created_at', cutoffIso);
-      if (error) throw error;
-      const unique = [...new Set(data.map((j) => j.location))].sort();
-      return unique;
+      return mexicoCities();
     },
   });
 
@@ -61,17 +56,17 @@ const JobList = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', city, category, page],
     queryFn: async () => {
+      const needsClientCityFilter = Boolean(city);
       let query = supabase
         .from('jobs')
-        .select('*', { count: 'exact' })
+        .select('*', { count: needsClientCityFilter ? undefined : 'exact' })
         .eq('is_active', true)
         .gte('created_at', cutoffIso)
         .order('created_at', { ascending: false })
-        .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
-
-      if (city) {
-        query = query.eq('location', city);
-      }
+        .range(
+          needsClientCityFilter ? 0 : (page - 1) * ITEMS_PER_PAGE,
+          needsClientCityFilter ? CITY_FILTER_MAX - 1 : page * ITEMS_PER_PAGE - 1,
+        );
 
       if (category) {
         query = query.eq('category', category);
@@ -79,7 +74,13 @@ const JobList = () => {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { jobs: data, count: count || 0 };
+      const rows = Array.isArray(data) ? data : [];
+      if (!needsClientCityFilter) return { jobs: rows, count: count || 0 };
+
+      const filtered = rows.filter((j) => mexicoCityForJobId((j as { id?: unknown })?.id) === city);
+      const total = filtered.length;
+      const start = (page - 1) * ITEMS_PER_PAGE;
+      return { jobs: filtered.slice(start, start + ITEMS_PER_PAGE), count: total };
     },
   });
 

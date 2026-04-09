@@ -43,6 +43,32 @@ const textForSchema = (value) => normalizeWhitespace(stripTags(stripScripts(valu
 const DAYS_TO_EXPIRE = 60;
 const cutoffIso = new Date(Date.now() - DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000).toISOString();
 
+const MEXICO_CITIES = [
+  'Ciudad de México',
+  'Guadalajara',
+  'Monterrey',
+  'Puebla',
+  'Tijuana',
+  'León',
+  'Querétaro',
+  'Mérida',
+];
+
+const hashString = (value) => {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 33) ^ value.charCodeAt(i);
+  }
+  return hash >>> 0;
+};
+
+const mexicoCityForJobId = (jobId) => {
+  const raw = String(jobId ?? '').trim();
+  const seed = raw || '0';
+  const idx = hashString(seed) % MEXICO_CITIES.length;
+  return MEXICO_CITIES[idx] || 'Ciudad de México';
+};
+
 const fetchJobs = async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
   const jobs = [];
@@ -164,6 +190,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 const buildJobPostingJsonLd = (job) => {
   const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
   const validThrough = toIsoDate(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)) || undefined;
+  const city = mexicoCityForJobId(job.id);
   const descriptionParts = [
     textForSchema(job.summary || job.description || ''),
     job.requirements ? `\n\nRequisitos:\n${textForSchema(job.requirements)}` : '',
@@ -202,7 +229,7 @@ const buildJobPostingJsonLd = (job) => {
       '@type': 'Place',
       address: {
         '@type': 'PostalAddress',
-        addressLocality: job.location || '',
+        addressLocality: city,
         addressCountry: 'MX',
       },
     },
@@ -283,8 +310,9 @@ const main = async () => {
 
   for (const job of jobs) {
     const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
-    const title = `${job.title || 'Vaga'} em ${job.location || 'Brasil'} | MyJob`;
-    const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${job.location || 'Brasil'}`)).slice(0, 170);
+    const city = mexicoCityForJobId(job.id);
+    const title = `${job.title || 'Vaga'} em ${city} | MyJob`;
+    const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${city}`)).slice(0, 170);
     const jsonLd = buildJobPostingJsonLd(job);
     const breadcrumbLd = buildBreadcrumbLd(job);
     const ogImage = job.b_logo_url || `${SITE_URL}/placeholder.svg`;

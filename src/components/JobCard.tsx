@@ -9,6 +9,7 @@ import { formatRelativeTime } from '@/lib/timeUtils';
 import { formatSalaryMXN } from '@/lib/salaryUtils';
 import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
+import { mexicoCityForJobId } from '@/lib/mexicoLocation';
 
 interface JobCardProps {
   job: {
@@ -42,7 +43,7 @@ const JobCard = ({ job }: JobCardProps) => {
     .join(' • ');
 
   const safeCompany = fixJobTextArtifacts(job.b_name);
-  const safeLocation = fixJobTextArtifacts(job.location);
+  const safeLocation = mexicoCityForJobId(job.id);
   const { handleApply, QRModal } = useWhatsAppRedirect(title, safeCompany);
 
   return (

@@ -12,6 +12,7 @@ import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
+import { mexicoCityForJobId } from '@/lib/mexicoLocation';
 
 const DAYS_TO_EXPIRE = 60;
 
@@ -189,7 +190,7 @@ const JobDetail = () => {
 
   const safeTitle = maybeFixMojibake(title);
   const safeCompany = maybeFixMojibake(job?.b_name || '');
-  const safeLocation = maybeFixMojibake(job?.location || '');
+  const safeLocation = mexicoCityForJobId(job?.id);
 
   const { handleApply, QRModal } = useWhatsAppRedirect(safeTitle, safeCompany);
 
