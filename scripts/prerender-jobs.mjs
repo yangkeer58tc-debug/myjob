@@ -40,6 +40,15 @@ const normalizeWhitespace = (value) =>
 
 const textForSchema = (value) => normalizeWhitespace(stripTags(stripScripts(value)));
 
+/** Ensure schema / OG image URLs are absolute (Google JobPosting prefers absolute logo URLs). */
+const absoluteUrl = (href) => {
+  if (!href) return undefined;
+  const s = String(href).trim();
+  if (!s) return undefined;
+  if (/^https?:\/\//i.test(s)) return s;
+  return `${SITE_URL}${s.startsWith('/') ? '' : '/'}${s}`;
+};
+
 const DAYS_TO_EXPIRE = 60;
 const cutoffIso = new Date(Date.now() - DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000).toISOString();
 
@@ -156,7 +165,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 
   // Update Open Graph tags
   const ogTags = `
-    <meta property="og:type" content="article" />
+    <meta property="og:type" content="website" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
@@ -189,6 +198,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
 
 const buildJobPostingJsonLd = (job) => {
   const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
+  const orgLogo = absoluteUrl(job.b_logo_url);
   const validThrough = toIsoDate(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)) || undefined;
   const city = mexicoCityForJobId(job.id);
   const descriptionParts = [
@@ -223,7 +233,7 @@ const buildJobPostingJsonLd = (job) => {
       '@type': 'Organization',
       name: job.b_name || 'MyJob',
       sameAs: SITE_URL,
-      ...(job.b_logo_url ? { logo: job.b_logo_url } : {}),
+      ...(orgLogo ? { logo: orgLogo } : {}),
     },
     jobLocation: {
       '@type': 'Place',
@@ -315,7 +325,7 @@ const main = async () => {
     const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${city}`)).slice(0, 170);
     const jsonLd = buildJobPostingJsonLd(job);
     const breadcrumbLd = buildBreadcrumbLd(job);
-    const ogImage = job.b_logo_url || `${SITE_URL}/placeholder.svg`;
+    const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/placeholder.svg`;
     const html = applyHead({ html: template, title, description: desc, canonical: jobUrl, jsonLd, breadcrumbLd, ogImage });
 
     const outDir = path.join(distDir, 'empleo', String(job.id));

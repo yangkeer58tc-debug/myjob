@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { mexicoCityForJobId } from '@/lib/mexicoLocation';
+import { getSiteOrigin, safeJsonLdStringify, toAbsoluteUrl, toIsoDatePosted } from '@/lib/siteUrl';
 
 const DAYS_TO_EXPIRE = 60;
 
@@ -191,6 +192,9 @@ const JobDetail = () => {
   const safeTitle = maybeFixMojibake(title);
   const safeCompany = maybeFixMojibake(job?.b_name || '');
   const safeLocation = mexicoCityForJobId(job?.id);
+  const siteOrigin = getSiteOrigin();
+  const jobPageUrl = `${siteOrigin}/empleo/${job?.id ?? id}/`;
+  const orgLogoUrl = job ? toAbsoluteUrl(job.b_logo_url, siteOrigin) : undefined;
 
   const { handleApply, QRModal } = useWhatsAppRedirect(safeTitle, safeCompany);
 
@@ -242,20 +246,30 @@ const JobDetail = () => {
 
   const isActive = Boolean(job.is_active) && !isExpired;
 
+  const jobDescriptionForSchema = [description || summary || '', requirements ? `\n\nRequisitos:\n${requirements}` : '']
+    .filter(Boolean)
+    .join('')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  const datePostedIso = toIsoDatePosted(job.created_at);
+
   const jsonLd = isActive
     ? {
         '@context': 'https://schema.org',
         '@type': 'JobPosting',
         title: safeTitle,
-        description: [description || summary || '', requirements ? `\n\nRequisitos:\n${requirements}` : '']
-          .filter(Boolean)
-          .join('')
-          .replace(/<script[\s\S]*?<\/script>/gi, '')
-          .replace(/<[^>]+>/g, '')
-          .replace(/\r\n/g, '\n')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim(),
-        datePosted: job.created_at,
+        url: jobPageUrl,
+        identifier: {
+          '@type': 'PropertyValue',
+          name: 'MyJob',
+          value: String(job.id),
+        },
+        description: jobDescriptionForSchema,
+        ...(datePostedIso ? { datePosted: datePostedIso } : {}),
         validThrough,
         employmentType:
           job.job_type === 'tempo-integral'
@@ -268,8 +282,8 @@ const JobDetail = () => {
         hiringOrganization: {
           '@type': 'Organization',
           name: safeCompany,
-          sameAs: 'https://myjob.com',
-          ...(job.b_logo_url && { logo: job.b_logo_url }),
+          sameAs: siteOrigin,
+          ...(orgLogoUrl ? { logo: orgLogoUrl } : {}),
         },
         jobLocation: {
           '@type': 'Place',
@@ -312,17 +326,16 @@ const JobDetail = () => {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: window.location.origin },
-      { '@type': 'ListItem', position: 2, name: 'Vagas', item: `${window.location.origin}/empleos` },
-      { '@type': 'ListItem', position: 3, name: safeTitle, item: window.location.href }
-    ]
+      { '@type': 'ListItem', position: 1, name: 'Home', item: siteOrigin },
+      { '@type': 'ListItem', position: 2, name: 'Vagas', item: `${siteOrigin}/empleos` },
+      { '@type': 'ListItem', position: 3, name: safeTitle, item: jobPageUrl },
+    ],
   };
 
   const pageTitle = `${safeTitle} em ${safeLocation || 'México'} | MyJob`;
   const pageDescription = (summary || description || '').slice(0, 160);
-  const pageImage = job.b_logo_url || `${window.location.origin}/placeholder.svg`;
-  const pageUrl = `${window.location.origin}/empleo/${job.id}/`;
-  const safeJsonLdStringify = (value: unknown) => JSON.stringify(value).replaceAll('<', '\\u003c').replaceAll('&', '\\u0026');
+  const pageImage = orgLogoUrl || `${siteOrigin}/placeholder.svg`;
+  const pageUrl = jobPageUrl;
 
   return (
     <PublicLayout>
@@ -333,7 +346,7 @@ const JobDetail = () => {
         {isExpired ? <meta name="robots" content="noindex,follow" /> : null}
         
         {/* Open Graph */}
-        <meta property="og:type" content="article" />
+        <meta property="og:type" content="website" />
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:image" content={pageImage} />

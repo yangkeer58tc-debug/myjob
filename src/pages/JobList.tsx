@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 import { mexicoCities, mexicoCityForJobId } from '@/lib/mexicoLocation';
+import { getSiteOrigin } from '@/lib/siteUrl';
 
 const ITEMS_PER_PAGE = 30;
 const CITY_FILTER_MAX = 5000;
@@ -90,6 +91,12 @@ const JobList = () => {
     : t('joblist.allJobs');
   const pageItems = buildPagination(page, totalPages);
 
+  const jobsCanonicalUrl = useMemo(() => {
+    const origin = getSiteOrigin();
+    const q = searchParams.toString();
+    return q ? `${origin}/empleos?${q}` : `${origin}/empleos`;
+  }, [searchParams]);
+
   const handleCategoryChange = (value: string) => {
     if (value === '__all__') {
       searchParams.delete('categoria');
@@ -121,7 +128,7 @@ const JobList = () => {
       <Helmet>
         <title>Vagas de Emprego no México | MyJob</title>
         <meta name="description" content="Encontre vagas no México e candidate-se pelo WhatsApp. Filtre por cidade e categoria e fale direto com as empresas." />
-        <link rel="canonical" href={`${window.location.origin}/empleos`} />
+        <link rel="canonical" href={jobsCanonicalUrl} />
       </Helmet>
       
       <div className="container mx-auto px-4 py-10">

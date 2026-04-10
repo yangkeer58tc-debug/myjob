@@ -8,6 +8,7 @@ import CandidateCard from '@/components/CandidateCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
+import { getSiteOrigin } from '@/lib/siteUrl';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -249,7 +250,10 @@ const CandidateSearch = () => {
           name="description"
           content="Encontre candidatos. Busque por nome, resumo, experiência ou função e fale com o MyJob pelo WhatsApp para contratar."
         />
-        <link rel="canonical" href={`${window.location.origin}${role ? `/buscar-candidatos/${role}` : '/buscar-candidatos'}`} />
+        <link
+          rel="canonical"
+          href={`${getSiteOrigin()}${role ? `/buscar-candidatos/${encodeURIComponent(role)}` : '/buscar-candidatos'}`}
+        />
       </Helmet>
 
       <div className="container mx-auto px-4 py-10">

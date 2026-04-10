@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Briefcase, Building2, MessageCircle, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import TestimonialCarousel from '@/components/home/TestimonialCarousel';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
+import { getSiteOrigin, safeJsonLdStringify } from '@/lib/siteUrl';
 
 const CITIES = ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana'];
 const CATEGORIES = CATEGORY_OPTIONS.map((c) => ({ value: c.id, name: c.label }));
@@ -52,6 +54,23 @@ const PhoneMockup = () => {
 
 const Home = () => {
   const navigate = useNavigate();
+  const siteOrigin = useMemo(() => getSiteOrigin(), []);
+  const websiteLd = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'MyJob',
+      url: `${siteOrigin}/`,
+      description:
+        'Vagas no México com candidatura pelo WhatsApp. Encontre emprego ou divulgue oportunidades com fluxo rápido.',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${siteOrigin}/empleos?q={search_term_string}`,
+        'query-input': 'required name=search_term_string',
+      },
+    }),
+    [siteOrigin],
+  );
 
   const { data: recentJobs } = useQuery({
     queryKey: ['recentJobs'],
@@ -92,21 +111,12 @@ const Home = () => {
           name="description"
           content="Dois caminhos, um só lugar: encontre emprego ou contrate candidatos. Tudo com fluxo rápido e WhatsApp-first."
         />
+        <link rel="canonical" href={`${siteOrigin}/`} />
+        <meta property="og:url" content={`${siteOrigin}/`} />
         <meta property="og:title" content="MyJob | Emprego e recrutamento, WhatsApp-first" />
         <meta property="og:description" content="Encontre vagas ou contrate candidatos. Fluxo rápido, foco em conversão e privacidade." />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "MyJob",
-            "url": "https://myjob.com/",
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": "https://myjob.com/empleos?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
-          })}
-        </script>
+        <meta property="og:image" content={`${siteOrigin}/placeholder.svg`} />
+        <script type="application/ld+json">{safeJsonLdStringify(websiteLd)}</script>
       </Helmet>
       <div className="bg-background text-foreground">
         <section className="relative overflow-hidden pt-20 pb-14 lg:pt-28 lg:pb-20">
