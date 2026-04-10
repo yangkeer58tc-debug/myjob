@@ -238,7 +238,7 @@ const Home = () => {
         <section className="relative py-20">
           <div className="container mx-auto px-4">
             <Reveal>
-              <div className="flex items-end justify-between gap-6 flex-col md:flex-row">
+              <div className="flex items-start md:items-end justify-between gap-6 flex-col md:flex-row">
                 <div className="max-w-2xl">
                   <p className="text-xs font-bold text-white/60">Por que funciona</p>
                   <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">
@@ -293,7 +293,7 @@ const Home = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(37,211,102,0.12),transparent_55%)]" />
           <div className="container mx-auto px-4 relative">
             <Reveal>
-              <div className="flex items-end justify-between gap-6 flex-col md:flex-row">
+              <div className="flex items-start md:items-end justify-between gap-6 flex-col md:flex-row">
                 <div className="max-w-2xl">
                   <p className="text-xs font-bold text-white/60">Confiança</p>
                   <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">O que as pessoas dizem</h2>
@@ -320,7 +320,7 @@ const Home = () => {
         <section className="py-20">
           <div className="container mx-auto px-4">
             <Reveal>
-              <div className="flex items-end justify-between gap-6 flex-col md:flex-row">
+              <div className="flex items-start md:items-end justify-between gap-6 flex-col md:flex-row">
                 <div>
                   <p className="text-xs font-bold text-white/60">Explorar</p>
                   <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Categorias</h2>
