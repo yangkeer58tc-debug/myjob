@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { formatRelativeTime } from '@/lib/timeUtils';
-import { displaySalaryMXN, effectiveSalaryForJobPosting } from '@/lib/salaryUtils';
+import { displaySalaryMXN } from '@/lib/salaryUtils';
 import { postalAddressPartsForLocality } from '@/lib/mxPostalAddress';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
@@ -20,11 +20,17 @@ import {
   JOB_TYPE_OPTIONS,
   WORKPLACE_TYPE_OPTIONS,
   occupationalExperienceRequirements,
+  educationRequirementsStructured,
 } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob, mexicoCityForJobId } from '@/lib/mexicoLocation';
 import { getSiteOrigin, safeJsonLdStringify, toAbsoluteUrl, toIsoDatePosted } from '@/lib/siteUrl';
 import { isLegacyNumericEmpleoPath, jobPublicPath, parseEmpleoParam } from '@/lib/jobSeoPath';
+import {
+  jobPostingDescriptionHtml,
+  normalizeEmployerSameAs,
+  schemaBaseSalaryFromJob,
+} from '@/lib/jobPostingSchema';
 
 const DAYS_TO_EXPIRE = 60;
 
@@ -276,7 +282,7 @@ const JobDetail = () => {
 
   const isActive = Boolean(job.is_active) && !isExpired;
 
-  const jobDescriptionForSchema = [description || summary || '', requirements ? `\n\nRequisitos:\n${requirements}` : '']
+  const jobDescriptionPlain = [description || summary || '', requirements ? `\n\nRequisitos:\n${requirements}` : '']
     .filter(Boolean)
     .join('')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -285,10 +291,20 @@ const JobDetail = () => {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
+  const jobDescriptionForSchema = jobPostingDescriptionHtml(jobDescriptionPlain);
+
   const datePostedIso = toIsoDatePosted(job.created_at);
+  const datePostedForSchema =
+    datePostedIso ||
+    (() => {
+      const d = new Date(String(job.created_at || ''));
+      return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+    })();
   const occExpReq = occupationalExperienceRequirements(job.experience);
+  const eduReq = educationRequirementsStructured(job.education_level);
   const addressParts = postalAddressPartsForLocality(safeLocation);
-  const effSalary = effectiveSalaryForJobPosting(job);
+  const employerSameAs = normalizeEmployerSameAs(job.b_same_as);
+  const schemaSalary = schemaBaseSalaryFromJob(job);
 
   const jsonLd = isActive
     ? {
@@ -302,7 +318,7 @@ const JobDetail = () => {
           value: String(job.id),
         },
         description: jobDescriptionForSchema,
-        ...(datePostedIso ? { datePosted: datePostedIso } : {}),
+        datePosted: datePostedForSchema,
         validThrough,
         employmentType:
           job.job_type === 'tempo-integral'
@@ -315,7 +331,7 @@ const JobDetail = () => {
         hiringOrganization: {
           '@type': 'Organization',
           name: safeCompany,
-          sameAs: siteOrigin,
+          sameAs: employerSameAs ?? siteOrigin,
           ...(orgLogoUrl ? { logo: orgLogoUrl } : {}),
         },
         jobLocation: {
@@ -329,30 +345,7 @@ const JobDetail = () => {
             ...(addressParts.streetAddress ? { streetAddress: addressParts.streetAddress } : {}),
           },
         },
-        ...(effSalary
-          ? {
-              baseSalary: {
-                '@type': 'MonetaryAmount',
-                currency: 'MXN',
-                value: {
-                  '@type': 'QuantitativeValue',
-                  value: effSalary.value,
-                  unitText:
-                    effSalary.payment_frequency === 'mensal'
-                      ? 'MONTH'
-                      : effSalary.payment_frequency === 'quinzenal'
-                        ? 'WEEK'
-                        : effSalary.payment_frequency === 'hora'
-                          ? 'HOUR'
-                          : effSalary.payment_frequency === 'semanal'
-                            ? 'WEEK'
-                            : effSalary.payment_frequency === 'diario'
-                              ? 'DAY'
-                              : 'OTHER',
-                },
-              },
-            }
-          : {}),
+        ...(schemaSalary ?? {}),
         directApply: true,
         applicantLocationRequirements: {
           '@type': 'Country',
@@ -360,11 +353,7 @@ const JobDetail = () => {
         },
         jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
         ...(occExpReq ? { experienceRequirements: occExpReq } : {}),
-        ...(job.education_level
-          ? {
-              educationRequirements: optionLabel(job.education_level, EDUCATION_LEVEL_OPTIONS) || String(job.education_level),
-            }
-          : {}),
+        ...(eduReq ? { educationRequirements: eduReq } : {}),
         ...(job.industry ? { industry: String(job.industry) } : {}),
       }
     : null;
@@ -373,13 +362,13 @@ const JobDetail = () => {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: siteOrigin },
-      { '@type': 'ListItem', position: 2, name: 'Vagas', item: `${siteOrigin}/empleos` },
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: siteOrigin },
+      { '@type': 'ListItem', position: 2, name: 'Empleos', item: `${siteOrigin}/empleos` },
       { '@type': 'ListItem', position: 3, name: safeTitle, item: jobPageUrl },
     ],
   };
 
-  const pageTitle = `${safeTitle} em ${safeLocation || 'México'} | MyJob`;
+  const pageTitle = `${safeTitle} en ${safeLocation || 'México'} | MyJob`;
   const pageDescription = (summary || description || '').slice(0, 160);
   const pageImage = orgLogoUrl || `${siteOrigin}/placeholder.svg`;
   const pageUrl = jobPageUrl;
@@ -504,21 +493,42 @@ const JobDetail = () => {
           {summary && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.summary')}</h2>
-              <ReadableText text={summary} suppressHeadings={['Resumo da Vaga']} />
+              <ReadableText
+                text={summary}
+                suppressHeadings={['Resumo da Vaga', 'Resumen de la vacante', 'Resumen del empleo']}
+              />
             </article>
           )}
 
           {description && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.description')}</h2>
-              <ReadableText text={description} suppressHeadings={['Descrição da Vaga', 'Resumo da Vaga']} />
+              <ReadableText
+                text={description}
+                suppressHeadings={[
+                  'Descrição da Vaga',
+                  'Resumo da Vaga',
+                  'Descripción de la vacante',
+                  'Descripción del empleo',
+                  'Resumen de la vacante',
+                  'Resumen del empleo',
+                ]}
+              />
             </article>
           )}
 
           {requirements && (
             <article>
               <h2 className="text-xl font-bold text-foreground mb-4">{t('detail.requirements')}</h2>
-              <ReadableText text={requirements} suppressHeadings={['Requisitos', 'Requisitos e qualificações']} />
+              <ReadableText
+                text={requirements}
+                suppressHeadings={[
+                  'Requisitos',
+                  'Requisitos e qualificações',
+                  'Requisitos y calificaciones',
+                  'Requisitos y cualificaciones',
+                ]}
+              />
             </article>
           )}
 

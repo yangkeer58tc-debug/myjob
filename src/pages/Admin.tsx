@@ -46,11 +46,13 @@ import {
   normalizeImportedEmployerLogoUrl,
   stripCsvCellDecorations,
 } from '@/lib/jobLogoUrl';
+import { normalizeEmployerSameAs } from '@/lib/jobPostingSchema';
 
 interface JobForm {
   id: string;
   b_name: string;
   b_logo_url: string;
+  b_same_as: string;
   title: string;
   category: string;
   salary_amount: string;
@@ -177,6 +179,7 @@ const emptyForm: JobForm = {
   id: '',
   b_name: '',
   b_logo_url: '',
+  b_same_as: '',
   title: '',
   category: '',
   salary_amount: '',
@@ -201,6 +204,7 @@ type JobCsvPayloadRow = {
   id: string;
   b_name: string;
   b_logo_url: string | null;
+  b_same_as: string | null;
   title: string;
   category: string | null;
   location: string;
@@ -265,10 +269,16 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
       }
     }
 
+    const bSameRaw = stripCsvCellDecorations(
+      row.b_same_as || row.company_url || row.company_website || row.website || row.employer_url || '',
+    );
+    const b_same_as = bSameRaw ? normalizeEmployerSameAs(bSameRaw) : null;
+
     return {
       id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       b_name,
       b_logo_url,
+      b_same_as,
       title: titleNorm,
       category: categoryNorm,
       location,
@@ -391,6 +401,7 @@ const Admin = () => {
         id: form.id,
         b_name: normalizeCompanyName(form.b_name),
         b_logo_url: normalizeImportedEmployerLogoUrl(form.b_logo_url),
+        b_same_as: normalizeEmployerSameAs(form.b_same_as) || null,
         title: normalizeJobTitle(form.title),
         category: normalizeOptionId(form.category, CATEGORY_OPTIONS) || null,
         salary_amount: form.salary_amount,
@@ -479,7 +490,7 @@ const Admin = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-      toast.success('Todas as vagas foram ativadas');
+      toast.success('Todas las vacantes fueron activadas');
     },
     onError: (err: unknown) => toast.error(String((err as { message?: unknown })?.message || err)),
   });
@@ -581,12 +592,14 @@ const Admin = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-      toast.success('Todas as vagas foram excluídas');
+      toast.success('Todas las vacantes fueron eliminadas');
     },
     onError: (err: unknown) => {
       const msg = String(err?.message || err || '');
       if (msg.toLowerCase().includes('row level security') || msg.toLowerCase().includes('row-level security')) {
-        toast.error('权限不足：需要在 Supabase 给 authenticated 增加 jobs 的 DELETE policy');
+        toast.error(
+          'Permisos insuficientes: en Supabase agrega una política DELETE de jobs para el rol authenticated.',
+        );
         return;
       }
       toast.error(msg);
@@ -617,6 +630,7 @@ const Admin = () => {
       id: job.id,
       b_name: job.b_name,
       b_logo_url: job.b_logo_url || '',
+      b_same_as: job.b_same_as || '',
       title: job.title,
       category: job.category || '',
       salary_amount: job.salary_amount,
@@ -644,8 +658,8 @@ const Admin = () => {
 
   const downloadTemplate = () => {
     const template = [
-      ['id', 'b_name', 'b_logo_url', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
-      ['job-exemplo', 'MyJob', '', 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '', '', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Sueldo mensual $12,000 MXN. Descreva a vaga em texto puro.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
+      ['id', 'b_name', 'b_logo_url', 'b_same_as', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
+      ['job-exemplo', 'MyJob', '', 'https://empresa-ejemplo.mx', 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '', '', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Sueldo mensual $12,000 MXN. Descreva a vaga em texto puro.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
     ];
     const csv = Papa.unparse(template);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -784,10 +798,10 @@ const Admin = () => {
         const { error } = await supabase.from('candidates').upsert(payload);
         if (error) throw error;
 
-        toast.success(`Importados ${payload.length} candidatos com sucesso.`);
+        toast.success(`Se importaron ${payload.length} candidatos correctamente.`);
         queryClient.invalidateQueries({ queryKey: ['adminCandidates'] });
       } catch (err: unknown) {
-        toast.error(`Erro ao importar: ${String((err as { message?: unknown })?.message || err)}`);
+        toast.error(`Error al importar: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (candidateFileInputRef.current) candidateFileInputRef.current.value = '';
       }
@@ -938,12 +952,12 @@ const Admin = () => {
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
         if (failed === 0) {
-          toast.success(`Importadas ${saved} vagas (guardado progresivo).`);
+          toast.success(`Se importaron ${saved} vacantes (guardado progresivo).`);
         } else {
           toast.error(`Importación terminada: ${saved} OK, ${failed} fallidas. Revisa datos o políticas RLS.`);
         }
         if (aiFallbackUsed) {
-          toast.message('Algumas vagas usaram destaques automáticos no texto porque a API de IA falhou.');
+          toast.message('Algunas vacantes usaron destacados automáticos en el texto porque falló la API de IA.');
         }
 
         window.setTimeout(() => {
@@ -952,7 +966,7 @@ const Admin = () => {
       } catch (err: unknown) {
         jobImportPauseRef.current = false;
         setJobImportProgress(null);
-        toast.error(`Erro ao importar: ${String((err as { message?: unknown })?.message || err)}`);
+        toast.error(`Error al importar: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
@@ -987,7 +1001,7 @@ const Admin = () => {
               setActiveTab('jobs');
             }}
           >
-            Vagas
+            Vacantes
           </Button>
           <Button
             variant={activeTab === 'candidates' ? 'default' : 'outline'}
@@ -1079,8 +1093,18 @@ const Admin = () => {
               <div><Label>Título</Label><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Empresa</Label><Input value={editing.b_name} onChange={(e) => setEditing({ ...editing, b_name: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Logo URL</Label><Input value={editing.b_logo_url} onChange={(e) => setEditing({ ...editing, b_logo_url: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div className="sm:col-span-2">
+                <Label>Sitio web de la empresa (sameAs)</Label>
+                <Input
+                  value={editing.b_same_as}
+                  onChange={(e) => setEditing({ ...editing, b_same_as: e.target.value })}
+                  placeholder="https://ejemplo.com"
+                  className="rounded-xl mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Opcional. Para JobPosting en Google; si está vacío se usa el dominio del sitio.</p>
+              </div>
               <div>
-                <Label>Categoria</Label>
+                <Label>Categoría</Label>
                 <Input list="category-options" value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="rounded-xl mt-1" />
                 <datalist id="category-options">
                   {CATEGORY_OPTIONS.map((c) => (
@@ -1091,7 +1115,7 @@ const Admin = () => {
               <div><Label>Salario</Label><Input value={editing.salary_amount} onChange={(e) => setEditing({ ...editing, salary_amount: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Frecuencia</Label><Input value={editing.payment_frequency} onChange={(e) => setEditing({ ...editing, payment_frequency: e.target.value })} className="rounded-xl mt-1" /></div>
               <div>
-                <Label>Cidade</Label>
+                <Label>Ciudad</Label>
                 <Input list="city-options" value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} className="rounded-xl mt-1" />
                 <datalist id="city-options">
                   {CITY_OPTIONS.map((c) => (
@@ -1148,12 +1172,12 @@ const Admin = () => {
                   className="rounded-xl"
                   disabled={deleteAllJobsMutation.isPending}
                   onClick={() => {
-                    const v = window.prompt('输入 DELETE 确认清空所有帖子');
+                    const v = window.prompt('Escribe DELETE para eliminar todas las vacantes');
                     if (v !== 'DELETE') return;
                     deleteAllJobsMutation.mutate();
                   }}
                 >
-                  清空全部帖子
+                  Eliminar todas las vacantes
                 </Button>
               </div>
               <Button onClick={openNew} className="rounded-xl">
@@ -1223,7 +1247,7 @@ const Admin = () => {
                   {isLoading && (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Carregando...
+                        Cargando...
                       </td>
                     </tr>
                   )}
@@ -1260,7 +1284,7 @@ const Admin = () => {
                   {(!jobs || jobs.length === 0) && !isLoading && (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Nenhuma vaga
+                        No hay vacantes
                       </td>
                     </tr>
                   )}
@@ -1322,9 +1346,9 @@ const Admin = () => {
                 <thead className="bg-secondary text-muted-foreground">
                   <tr>
                     <th className="text-left px-4 py-3 font-medium">ID</th>
-                    <th className="text-left px-4 py-3 font-medium">Nome</th>
+                    <th className="text-left px-4 py-3 font-medium">Nombre</th>
                     <th className="text-left px-4 py-3 font-medium">Perfil</th>
-                    <th className="text-left px-4 py-3 font-medium">Cidade</th>
+                    <th className="text-left px-4 py-3 font-medium">Ciudad</th>
                     <th className="text-left px-4 py-3 font-medium">Ativo</th>
                     <th className="text-left px-4 py-3 font-medium">Público</th>
                   </tr>
@@ -1333,7 +1357,7 @@ const Admin = () => {
                   {candidatesLoading && (
                     <tr>
                       <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Carregando...
+                        Cargando...
                       </td>
                     </tr>
                   )}
@@ -1360,7 +1384,7 @@ const Admin = () => {
                   {(!candidates || candidates.length === 0) && !candidatesLoading && (
                     <tr>
                       <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Nenhum candidato
+                        No hay candidatos
                       </td>
                     </tr>
                   )}

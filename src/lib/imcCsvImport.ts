@@ -156,11 +156,15 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
   const authorPro = pick(row, 'author_profile', 'author_pro');
   const fromCols = collectFirstEmployerLogoRaw(row);
   const b_logo_url = fromCols || (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
+  const b_same_as_hint =
+    pick(row, 'b_same_as', 'company_url', 'website', 'employer_url') ||
+    (authorPro && /^https?:\/\//i.test(authorPro) && !looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
 
   return {
     ...row,
     id: id || row.id,
     b_name: b_name || row.b_name,
+    b_same_as: b_same_as_hint || row.b_same_as || '',
     category: category || row.category,
     industry: industry || (row.industry ? normalizeIndustryLabelForMexico(row.industry) : ''),
     salary_amount: pick(row, 'salary_amount') || salaryFromAmount,

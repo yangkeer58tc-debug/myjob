@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           b_logo_url: string | null
           b_name: string
+          b_same_as: string | null
           category: string | null
           created_at: string
           description: string | null
@@ -41,6 +42,7 @@ export type Database = {
         Insert: {
           b_logo_url?: string | null
           b_name: string
+          b_same_as?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
@@ -64,6 +66,7 @@ export type Database = {
         Update: {
           b_logo_url?: string | null
           b_name?: string
+          b_same_as?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
