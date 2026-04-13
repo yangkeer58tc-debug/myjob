@@ -85,6 +85,8 @@ export const getAccessToken = async (serviceAccount, scope = DEFAULT_SCOPE) => {
   return json.access_token;
 };
 
+const verbose = () => String(process.env.GOOGLE_INDEXING_VERBOSE || '').trim() === '1';
+
 export const publishUrlNotification = async ({ accessToken, url, type }) => {
   const res = await fetch(INDEXING_URL, {
     method: 'POST',
@@ -97,7 +99,12 @@ export const publishUrlNotification = async ({ accessToken, url, type }) => {
 
   const text = await res.text().catch(() => '');
   if (!res.ok) throw new Error(`Indexing publish failed: ${res.status} ${res.statusText} ${text}`.trim());
-  return JSON.parse(text);
+  const json = JSON.parse(text);
+  if (verbose()) {
+    const snippet = text.length > 280 ? `${text.slice(0, 280)}…` : text;
+    console.log(`[google-indexing] OK ${url} → ${snippet}`);
+  }
+  return json;
 };
 
 export const publishUrls = async ({ serviceAccount, accessToken, urls, type, scope = DEFAULT_SCOPE, concurrency = 4 }) => {
@@ -115,5 +122,6 @@ export const publishUrls = async ({ serviceAccount, accessToken, urls, type, sco
     }
   });
   await Promise.all(workers);
+  console.log(`[google-indexing] Finished: ${results.length} URL notification(s) published (type=${type}).`);
   return results;
 };

@@ -28,7 +28,12 @@ const extractLocs = (xml) => {
 const main = async () => {
   const args = parseArgs(process.argv.slice(2));
   const enabled = String(process.env.GOOGLE_INDEXING_ENABLED || '').trim() === '1';
-  if (!enabled) return;
+  const dryRun =
+    args['dry-run'] === '1' ||
+    args['dry-run'] === 'true' ||
+    String(args.dryRun || '').toLowerCase() === 'true';
+
+  if (!enabled && !dryRun) return;
 
   const type = args.type || process.env.GOOGLE_INDEXING_TYPE || 'URL_UPDATED';
   const limit = args.limit ? Number(args.limit) : process.env.GOOGLE_INDEXING_LIMIT ? Number(process.env.GOOGLE_INDEXING_LIMIT) : undefined;
@@ -39,14 +44,25 @@ const main = async () => {
       : 4;
 
   const sitemapPath = args.sitemap || process.env.GOOGLE_INDEXING_SITEMAP || path.resolve('public', 'sitemap.xml');
+  const site = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://myjob.com').replace(/\/+$/, '');
   const xml = await readFile(sitemapPath, 'utf8');
   let urls = extractLocs(xml);
-
-  const site = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://myjob.com').replace(/\/+$/, '');
   urls = urls.filter((u) => u.startsWith(`${site}/empleo/`));
+  console.log(`[google-indexing] Sitemap ${sitemapPath}: ${urls.length} job URL(s) for site ${site}`);
 
   if (limit && Number.isFinite(limit) && limit > 0) urls = urls.slice(0, limit);
-  if (urls.length === 0) return;
+  if (urls.length === 0) {
+    console.warn('[google-indexing] No /empleo/ URLs to publish after filter.');
+    return;
+  }
+
+  if (dryRun) {
+    console.log(`[google-indexing] Dry run — would publish ${urls.length} URL(s):`);
+    urls.forEach((u) => console.log(`  ${u}`));
+    return;
+  }
+
+  if (!enabled) return;
 
   const serviceAccount = await loadServiceAccount();
   const accessToken = String(process.env.GOOGLE_INDEXING_ACCESS_TOKEN || '').trim();
