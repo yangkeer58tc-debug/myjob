@@ -18,6 +18,7 @@ import {
   JOB_TYPE_OPTIONS,
   WORKPLACE_TYPE_OPTIONS,
   PAYMENT_FREQUENCY_OPTIONS,
+  occupationalExperienceRequirements,
 } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { mexicoCityForJobId } from '@/lib/mexicoLocation';
@@ -264,6 +265,7 @@ const JobDetail = () => {
     .trim();
 
   const datePostedIso = toIsoDatePosted(job.created_at);
+  const occExpReq = occupationalExperienceRequirements(job.experience);
 
   const jsonLd = isActive
     ? {
@@ -327,11 +329,7 @@ const JobDetail = () => {
           name: 'MX',
         },
         jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
-        ...(job.experience
-          ? {
-              experienceRequirements: optionLabel(job.experience, EXPERIENCE_OPTIONS) || String(job.experience),
-            }
-          : {}),
+        ...(occExpReq ? { experienceRequirements: occExpReq } : {}),
         ...(job.education_level
           ? {
               educationRequirements: optionLabel(job.education_level, EDUCATION_LEVEL_OPTIONS) || String(job.education_level),

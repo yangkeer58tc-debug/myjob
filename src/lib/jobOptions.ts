@@ -97,3 +97,26 @@ export const optionLabel = (value: unknown, options: Option[]) => {
   const byLblHit = labelMap.get(simplify(raw));
   return byLblHit ? byLblHit.label : raw;
 };
+
+/** Google JobPosting: use OccupationalExperienceRequirements + months (free text triggers "invalid enum" in Rich Results). */
+const EXPERIENCE_MONTHS_MAX: Record<string, number> = {
+  'sem-experiencia': 0,
+  'ate-1-ano': 12,
+  '1-2-anos': 24,
+  '3-5-anos': 60,
+  'mais-5-anos': 120,
+};
+
+export function occupationalExperienceRequirements(value: unknown):
+  | { '@type': 'OccupationalExperienceRequirements'; monthsOfExperience: number }
+  | undefined {
+  const raw = String(value ?? '').trim();
+  if (!raw) return undefined;
+  const months = EXPERIENCE_MONTHS_MAX[raw];
+  if (months === undefined) return undefined;
+  if (months === 0) return undefined;
+  return {
+    '@type': 'OccupationalExperienceRequirements',
+    monthsOfExperience: months,
+  };
+}
