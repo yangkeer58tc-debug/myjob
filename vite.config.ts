@@ -11,7 +11,7 @@ const llmFromProcess = {
   LLM_MODEL: process.env.LLM_MODEL ?? "",
 };
 
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => ({
   define: {
     "import.meta.env.LLM_API_KEY": JSON.stringify(llmFromProcess.LLM_API_KEY),
     "import.meta.env.LLM_BASE_URL": JSON.stringify(llmFromProcess.LLM_BASE_URL),
