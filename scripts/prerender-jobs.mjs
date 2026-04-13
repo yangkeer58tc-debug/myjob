@@ -25,6 +25,18 @@ const normalizeWhitespace = (value) =>
 
 const textForSchema = (value) => normalizeWhitespace(stripTags(stripScripts(value)));
 
+/** Crawlers need visible body text; empty #root often triggers Soft 404. Replaced when React mounts. */
+const injectVisibleRootStub = (html, jobTitle, plainBody) => {
+  const h1 = escapeHtml(jobTitle || 'Vacante');
+  const body = escapeHtml(String(plainBody || '').slice(0, 4500)).replace(/\n/g, '<br />\n');
+  const block = `<div id="root"><main id="job-prerender-stub" style="max-width:44rem;margin:1rem auto;padding:1.25rem;font-family:system-ui,sans-serif;line-height:1.55;color:#0f172a"><h1 style="font-size:1.375rem;font-weight:700;margin:0 0 1rem;line-height:1.25">${h1}</h1><div style="font-size:0.95rem">${body}</div><p style="margin-top:1.25rem;font-size:0.875rem;color:#64748b">MyJob — Empleos en México.</p></main></div>`;
+  let out = html.replace(/<div\s+id=["']root["'][^>]*>\s*<\/div>/i, block);
+  if (!out.includes('job-prerender-stub')) {
+    out = html.replace(/<div\s+id=["']root["'][^>]*>[\s\S]*?<\/div>/i, block);
+  }
+  return out;
+};
+
 /** Ensure schema / OG image URLs are absolute (Google JobPosting prefers absolute logo URLs). */
 const absoluteUrl = (href) => {
   if (!href) return undefined;
@@ -186,9 +198,13 @@ const main = async () => {
     const jobUrl = `${SITE_URL}${jobPath(job)}`;
     const city = displayCityForJob(job);
     const title = `${job.title || 'Vaga'} em ${city} | MyJob`;
-    const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${city}`)).slice(0, 170);
+    const bodyPlain = textForSchema(
+      job.summary || job.description || `Vacante en ${city}. Postúlate por WhatsApp en MyJob.`,
+    );
+    const desc = normalizeWhitespace(bodyPlain).slice(0, 170);
     const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/placeholder.svg`;
-    const html = applyHead({ html: template, title, description: desc, canonical: jobUrl, ogImage });
+    let html = applyHead({ html: template, title, description: desc, canonical: jobUrl, ogImage });
+    html = injectVisibleRootStub(html, job.title || 'Vacante', bodyPlain);
 
     const pathSeg = jobPath(job).replace(/^\/+|\/+$/g, '').split('/');
     const outDir = path.join(distDir, ...pathSeg);
