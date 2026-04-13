@@ -39,7 +39,7 @@ const maskName = (firstName: string | null, lastName: string | null, fallback: s
   if (first && last) return `${cap(first)} ${cap(last[0])}.`;
   if (first) return cap(first);
   if (last) return `${cap(last[0])}.`;
-  return 'Profissional';
+  return 'Profesional';
 };
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -116,7 +116,7 @@ const isMobileDevice = () =>
 
 const buildWaMessage = (candidate: Candidate) => {
   const role = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'candidato');
-  const loc = fixJobTextArtifacts(candidate.country || candidate.city || 'Brasil');
+  const loc = fixJobTextArtifacts(candidate.country || candidate.city || 'México');
   const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
   return `Hola! Estoy interesado en este perfil de candidato en MyJob.\n\nID: ${candidate.id}\nPuesto: ${role}\nUbicación: ${loc}\nNombre (oculto): ${name}\n\n¿Me puedes compartir el contacto?`;
 };
@@ -127,7 +127,7 @@ const buildWaUrl = (candidate: Candidate) => {
 };
 
 const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: string }) => {
-  const title = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'Profissional');
+  const title = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'Profesional');
   const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
   const country = candidate.country ? fixJobTextArtifacts(candidate.country) : '';
   const city = candidate.city ? fixJobTextArtifacts(candidate.city) : '';
@@ -182,7 +182,7 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
           ) : null}
           {candidate.has_contact ? (
             <Badge variant="secondary" className="rounded-md font-medium text-[11px] px-2 py-0.5">
-              Contato disponível
+              Contacto disponible
             </Badge>
           ) : null}
         </div>
@@ -195,14 +195,14 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold">Escanear para abrir WhatsApp</DialogTitle>
+            <DialogTitle className="text-center text-xl font-bold">Escanea para abrir WhatsApp</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="rounded-2xl bg-card p-4 shadow-sm">
               <QRCodeSVG value={waUrl} size={220} />
             </div>
             <p className="text-center text-sm text-muted-foreground max-w-xs">
-              Escanee este código QR con WhatsApp en su teléfono para abrir la conversación.
+              Escanea este código QR con WhatsApp en tu teléfono para abrir la conversación.
             </p>
           </div>
         </DialogContent>

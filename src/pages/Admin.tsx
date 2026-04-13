@@ -1092,7 +1092,7 @@ const Admin = () => {
               <div><Label>ID</Label><Input value={editing.id} onChange={(e) => setEditing({ ...editing, id: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Título</Label><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Empresa</Label><Input value={editing.b_name} onChange={(e) => setEditing({ ...editing, b_name: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Logo URL</Label><Input value={editing.b_logo_url} onChange={(e) => setEditing({ ...editing, b_logo_url: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>URL del logo</Label><Input value={editing.b_logo_url} onChange={(e) => setEditing({ ...editing, b_logo_url: e.target.value })} className="rounded-xl mt-1" /></div>
               <div className="sm:col-span-2">
                 <Label>Sitio web de la empresa (sameAs)</Label>
                 <Input
@@ -1125,7 +1125,7 @@ const Admin = () => {
               </div>
               <div><Label>Tipo de empleo</Label><Input value={editing.job_type} onChange={(e) => setEditing({ ...editing, job_type: e.target.value })} className="rounded-xl mt-1" /></div>
               <div><Label>Modalidad</Label><Input value={editing.workplace_type} onChange={(e) => setEditing({ ...editing, workplace_type: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Highlights (separados por coma)</Label><Input value={editing.highlights} onChange={(e) => setEditing({ ...editing, highlights: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Destacados (separados por coma)</Label><Input value={editing.highlights} onChange={(e) => setEditing({ ...editing, highlights: e.target.value })} className="rounded-xl mt-1" /></div>
             </div>
             <div><Label>Resumen</Label><Textarea value={editing.summary} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="rounded-xl mt-1" rows={2} /></div>
             <div><Label>Descripción</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="rounded-xl mt-1" rows={5} /></div>
@@ -1144,13 +1144,13 @@ const Admin = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Template CSV
+                  <Download className="h-4 w-4 mr-2" /> Plantilla CSV
                 </Button>
                 <Button variant="outline" onClick={downloadImcExportTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Template IMC
+                  <Download className="h-4 w-4 mr-2" /> Plantilla IMC
                 </Button>
                 <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Options CSV
+                  <Download className="h-4 w-4 mr-2" /> CSV de opciones
                 </Button>
                 <input
                   type="file"
@@ -1327,7 +1327,7 @@ const Admin = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadCandidatesTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Template CSV
+                  <Download className="h-4 w-4 mr-2" /> Plantilla CSV
                 </Button>
                 <input
                   type="file"

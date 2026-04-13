@@ -24,13 +24,13 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     return (
       <div className="min-h-screen bg-secondary flex items-center justify-center p-6">
         <div className="bg-card rounded-2xl shadow-lg p-6 w-full max-w-lg space-y-4">
-          <div className="text-lg font-bold text-foreground">页面出错（Erro na página）</div>
+          <div className="text-lg font-bold text-foreground">Algo salió mal</div>
           <div className="text-sm text-muted-foreground break-words">
-            {this.state.error.message || 'Unknown error'}
+            {this.state.error.message || 'Error desconocido'}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button className="rounded-xl" onClick={() => window.location.reload()}>
-              刷新页面
+              Recargar página
             </Button>
             <Button
               className="rounded-xl"
@@ -40,7 +40,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
                 window.location.href = '/';
               }}
             >
-              回到首页
+              Ir al inicio
             </Button>
           </div>
         </div>

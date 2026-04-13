@@ -24,43 +24,43 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
         name: 'Mariana S.',
         role: 'Candidata',
         quote:
-          'Gostei porque é objetivo: você entende a vaga e já fala com a empresa. Sem cadastro longo, sem fricção.',
+          'Me gustó porque es directo: entiendes la vacante y hablas con la empresa. Sin registro largo y sin fricción.',
         score: 5,
-        avatarSrc: img('portrait photo, brazilian woman, professional headshot, soft studio lighting, neutral background, high-end modern style, sharp focus, 50mm', 'square'),
+        avatarSrc: img('portrait photo, mexican woman, professional headshot, soft studio lighting, neutral background, high-end modern style, sharp focus, 50mm', 'square'),
       },
       {
         name: 'Rafael M.',
         role: 'Candidato',
         quote:
-          'O fluxo pelo WhatsApp me ajudou a ter retorno mais rápido. A sensação é de conversa, não de formulário.',
+          'El flujo por WhatsApp me ayudó a tener respuesta más rápido. Se siente como una conversación, no como un formulario.',
         score: 5,
-        avatarSrc: img('portrait photo, brazilian man, professional headshot, soft studio lighting, neutral background, high-end modern style, sharp focus, 50mm', 'square'),
+        avatarSrc: img('portrait photo, mexican man, professional headshot, soft studio lighting, neutral background, high-end modern style, sharp focus, 50mm', 'square'),
       },
       {
         name: 'Camila A.',
-        role: 'RH',
-        company: 'Varejo',
+        role: 'RR. HH.',
+        company: 'Retail',
         quote:
-          'A busca por perfil é clara e o contato é destravado com contexto. Dá para avançar rápido com triagem simples.',
+          'La búsqueda de perfiles es clara y el contacto se abre con contexto. Se puede avanzar rápido con un filtrado simple.',
         score: 5,
         avatarSrc: img('portrait photo, latina woman, HR manager, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
       },
       {
         name: 'Bruno C.',
-        role: 'Gestor',
+        role: 'Gerente',
         company: 'Logística',
         quote:
-          'Para contratação, a parte de privacidade é importante. Aqui dá para avaliar antes de abrir contato.',
+          'Para contratar, la privacidad importa. Aquí puedes evaluar antes de abrir el contacto.',
         score: 5,
-        avatarSrc: img('portrait photo, brazilian man, manager, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
+        avatarSrc: img('portrait photo, mexican man, manager, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
       },
       {
         name: 'Juliana P.',
         role: 'Candidata',
         quote:
-          'Visual limpo, foco no essencial. Eu consegui aplicar sem ficar perdida em telas e filtros confusos.',
+          'Interfaz limpia y foco en lo esencial. Pude postularme sin perderme en pantallas y filtros confusos.',
         score: 5,
-        avatarSrc: img('portrait photo, brazilian woman, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
+        avatarSrc: img('portrait photo, mexican woman, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
       },
     ],
     [],
@@ -145,7 +145,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
               key={i}
               type="button"
               onClick={() => api?.scrollTo(i)}
-              aria-label={`Ir para depoimento ${i + 1}`}
+              aria-label={`Ir al testimonio ${i + 1}`}
               className="rounded-full"
             >
               {isActive ? (

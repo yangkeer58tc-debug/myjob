@@ -245,10 +245,10 @@ const CandidateSearch = () => {
   return (
     <PublicLayout>
       <Helmet>
-        <title>{roleTitle ? `Buscar candidatos ${roleTitle} | MyJob` : 'Buscar candidatos | MyJob'}</title>
+        <title>{roleTitle ? `Buscar candidatos: ${roleTitle} | MyJob` : 'Buscar candidatos | MyJob'}</title>
         <meta
           name="description"
-          content="Encontre candidatos. Busque por nome, resumo, experiência ou função e fale com o MyJob pelo WhatsApp para contratar."
+          content="Encuentra candidatos. Busca por nombre, resumen, experiencia o puesto y habla con MyJob por WhatsApp para contratar."
         />
         <link
           rel="canonical"
@@ -267,7 +267,7 @@ const CandidateSearch = () => {
             <Input
               value={q}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Buscar por nome, resumo, experiência..."
+              placeholder="Buscar por nombre, resumen, experiencia..."
               className="rounded-xl w-full sm:w-[320px]"
             />
           </div>
@@ -275,13 +275,15 @@ const CandidateSearch = () => {
 
         {error ? (
           <div className="bg-card border border-border/50 rounded-3xl p-6">
-            <p className="text-lg font-bold text-foreground mb-1">Falha ao carregar candidatos</p>
+            <p className="text-lg font-bold text-foreground mb-1">No se pudieron cargar los candidatos</p>
             <p className="text-sm text-muted-foreground break-words">
               {String((error as { message?: unknown })?.message || error)}
             </p>
             <div className="mt-4 text-sm text-muted-foreground space-y-1">
-              <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
-              <p>role：{roleSlug}</p>
+              <p>
+                Origen: {usingExternalResumes ? 'Supabase (currículos externos)' : 'Tabla candidates de este proyecto'}
+              </p>
+              <p>Rol: {roleSlug}</p>
             </div>
           </div>
         ) : isLoading ? (
@@ -333,18 +335,23 @@ const CandidateSearch = () => {
                   disabled={page === totalPages}
                   className="rounded-xl"
                 >
-                  Próxima
+                  Siguiente
                 </Button>
               </div>
             )}
           </>
         ) : (
           <div className="text-center py-20">
-            <p className="text-muted-foreground text-lg">Nenhum candidato encontrado.</p>
+            <p className="text-muted-foreground text-lg">No se encontraron candidatos.</p>
             <div className="mt-3 text-sm text-muted-foreground space-y-1">
-              <p>源：{usingExternalResumes ? '简历库 Supabase' : '本项目 candidates 表'}</p>
-              <p>展示规则：必须有 title、name 和 profile_summary。</p>
-              <p>注：当前外部 view 不包含联系方式字段，因此不强制校验联系方式。</p>
+              <p>
+                Origen: {usingExternalResumes ? 'Supabase (currículos externos)' : 'Tabla candidates de este proyecto'}
+              </p>
+              <p>Reglas de publicación: se requiere puesto, nombre y resumen del perfil.</p>
+              <p>
+                Nota: la vista externa actual puede no incluir campos de contacto; no exigimos contacto para mostrar el
+                perfil.
+              </p>
             </div>
           </div>
         )}

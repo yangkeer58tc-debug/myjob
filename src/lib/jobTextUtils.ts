@@ -91,7 +91,7 @@ const preformat = (value: string) => {
 
   const canonicalHeading = (t: string) => t.trim().replace(/[:：]\s*$/, '');
   const isKnownHeading = (t: string) =>
-    /^(Resumo da Vaga|Descrição da Vaga|Principais Destaques|Responsabilidades(?: e atribu(?:i|í)(?:c|ç)(?:o|õ)es)?|Requisitos(?: e qualifica(?:c|ç)(?:o|õ)es)?|Informações adicionais|Benefícios|E os nossos benefícios\??|Para sua saúde e bem-estar|Para facilitar o seu dia a dia|Para sua flexibilidade e rotina|Conheça nossa Ser.*)$/i.test(
+    /^(Resumo da Vaga|Resumen de la vacante|Resumen del empleo|Descrição da Vaga|Descripción de la vacante|Descripción del empleo|Principais Destaques|Puntos destacados|Responsabilidades(?: e atribu(?:i|í)(?:c|ç)(?:o|õ)es)?|Responsabilidades|Requisitos(?: e qualifica(?:c|ç)(?:o|õ)es)?|Requisitos(?: y calificaciones)?|Informações adicionais|Información adicional|Benefícios|Beneficios|E os nossos benefícios\??|Para sua saúde e bem-estar|Para facilitar o seu dia a dia|Para sua flexibilidade e rotina|Conheça nossa Ser.*)$/i.test(
       canonicalHeading(t),
     );
 
@@ -114,8 +114,14 @@ const preformat = (value: string) => {
 
 const headingAliases: Array<{ key: 'summary' | 'requirements' | 'description'; re: RegExp }> = [
   { key: 'summary', re: /^resumo da vaga$/i },
+  { key: 'summary', re: /^resumen de la vacante$/i },
+  { key: 'summary', re: /^resumen del empleo$/i },
   { key: 'requirements', re: /^requisitos(?: e qualifica(?:c|ç)(?:o|õ)es)?$/i },
-  { key: 'description', re: /^(descri(?:c|ç)(?:a|ã)o da vaga|responsabilidades(?: e atribu(?:i|í)(?:c|ç)(?:o|õ)es)?|informa(?:c|ç)(?:o|õ)es adicionais|benef(?:i|í)cios|e os nossos benef(?:i|í)cios\??|principais destaques)$/i },
+  { key: 'requirements', re: /^requisitos(?: y calificaciones)?$/i },
+  {
+    key: 'description',
+    re: /^(descri(?:c|ç)(?:a|ã)o da vaga|descripci[oó]n de la vacante|descripci[oó]n del empleo|responsabilidades(?: e atribu(?:i|í)(?:c|ç)(?:o|õ)es)?|responsabilidades|informaci[oó]n adicional|informa(?:c|ç)(?:o|õ)es adicionais|benef(?:i|í)cios|beneficios|e os nossos benef(?:i|í)cios\??|principais destaques|puntos destacados)$/i,
+  },
 ];
 
 const splitByHeadings = (value: string) => {
@@ -183,15 +189,30 @@ export const normalizeJobTextFields = (input: JobTextFieldsInput) => {
   const requirementsSection = sections.find((s) => s.key === 'requirements')?.body || '';
   const descriptionSections = sections.filter((s) => s.key === 'description');
 
-  const summaryOutCandidate = stripLeadingTitle(summarySection || summaryIn, ['Resumo da Vaga']);
+  const summaryOutCandidate = stripLeadingTitle(summarySection || summaryIn, [
+    'Resumo da Vaga',
+    'Resumen de la vacante',
+    'Resumen del empleo',
+  ]);
   const summaryOut = canonicalizeWhitespace(preformat(summaryOutCandidate || firstParagraph(preamble || descriptionIn)));
 
-  const requirementsOutCandidate = stripLeadingTitle(requirementsSection || requirementsIn, ['Requisitos', 'Requisitos e qualificações', 'Requisitos e qualificaçoes', 'Requisitos e qualificacoes']);
+  const requirementsOutCandidate = stripLeadingTitle(requirementsSection || requirementsIn, [
+    'Requisitos',
+    'Requisitos e qualificações',
+    'Requisitos e qualificaçoes',
+    'Requisitos e qualificacoes',
+    'Requisitos y calificaciones',
+    'Requisitos y cualificaciones',
+  ]);
   const requirementsOut = canonicalizeWhitespace(preformat(requirementsOutCandidate));
 
   const descriptionBodies = descriptionSections
     .map((s) => {
-      const title = stripLeadingTitle(s.title, ['Descrição da Vaga']).replace(/\s+/g, ' ').trim();
+      const title = stripLeadingTitle(s.title, [
+        'Descrição da Vaga',
+        'Descripción de la vacante',
+        'Descripción del empleo',
+      ]).replace(/\s+/g, ' ').trim();
       const body = s.body;
       if (!body) return '';
       return `${title}:\n${body}`;
@@ -199,7 +220,16 @@ export const normalizeJobTextFields = (input: JobTextFieldsInput) => {
     .filter(Boolean)
     .join('\n\n');
 
-  const descriptionBase = descriptionBodies || stripLeadingTitle(descriptionIn, ['Descrição da Vaga', 'Resumo da Vaga']);
+  const descriptionBase =
+    descriptionBodies ||
+    stripLeadingTitle(descriptionIn, [
+      'Descrição da Vaga',
+      'Resumo da Vaga',
+      'Descripción de la vacante',
+      'Descripción del empleo',
+      'Resumen de la vacante',
+      'Resumen del empleo',
+    ]);
   const descriptionOut = canonicalizeWhitespace(preformat(descriptionBase));
 
   return {

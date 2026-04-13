@@ -20,11 +20,11 @@ const Footer = () => {
             <img src="/brand-logo.jpg" alt="MyJob Logo" className="w-full h-full object-cover" />
           </div>
           <p className={cn('text-center text-sm leading-loose md:text-left', isHome ? 'text-white/60' : 'text-muted-foreground')}>
-            Built by{" "}
+            Creado por{' '}
             <span className={cn('font-bold tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
               My<span className={cn(isHome ? 'text-[#25D366]' : 'text-primary')}>Job</span>
             </span>
-            . The platform for the next generation of workers.
+            . La plataforma para la próxima generación de trabajadores.
           </p>
         </div>
         <div className={cn('flex items-center space-x-4 text-sm font-medium', isHome ? 'text-white/60' : 'text-muted-foreground')}>
@@ -45,7 +45,7 @@ const Footer = () => {
         </div>
       </div>
       <div className={cn('container border-t py-6 text-center text-xs', isHome ? 'border-white/10 text-white/50' : 'border-border text-muted-foreground')}>
-        © 2026 MyJob. All rights reserved.
+        © 2026 MyJob. Todos los derechos reservados.
       </div>
     </footer>
   );

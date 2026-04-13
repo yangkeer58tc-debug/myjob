@@ -126,8 +126,8 @@ const JobList = () => {
   return (
     <PublicLayout>
       <Helmet>
-        <title>Vagas de Emprego no México | MyJob</title>
-        <meta name="description" content="Encontre vagas no México e candidate-se pelo WhatsApp. Filtre por cidade e categoria e fale direto com as empresas." />
+        <title>Empleos en México | MyJob</title>
+        <meta name="description" content="Encuentra vacantes en México y postúlate por WhatsApp. Filtra por ciudad y categoría y habla directo con las empresas." />
         <link rel="canonical" href={jobsCanonicalUrl} />
       </Helmet>
       
@@ -138,10 +138,10 @@ const JobList = () => {
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Select value={category || '__all__'} onValueChange={handleCategoryChange}>
               <SelectTrigger className="w-full sm:w-[260px] rounded-xl">
-                <SelectValue placeholder="Filtrar por categoria" />
+                <SelectValue placeholder="Filtrar por categoría" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">Todas as categorias</SelectItem>
+                <SelectItem value="__all__">Todas las categorías</SelectItem>
                 {CATEGORY_OPTIONS.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
                 ))}

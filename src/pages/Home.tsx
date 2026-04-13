@@ -27,7 +27,7 @@ const PhoneMockup = () => {
           </div>
           <div>
             <p className="text-sm font-bold">MyJob Oficial</p>
-            <p className="text-xs text-white/80">Conta empresarial verificada</p>
+            <p className="text-xs text-white/80">Cuenta de empresa verificada</p>
           </div>
         </div>
         {/* Chat Area */}
@@ -107,15 +107,15 @@ const Home = () => {
   return (
     <PublicLayout>
       <Helmet>
-        <title>MyJob | Encontre vagas e contrate com WhatsApp</title>
+        <title>MyJob | Empleos en México y contratación por WhatsApp</title>
         <meta
           name="description"
-          content="Dois caminhos, um só lugar: encontre emprego ou contrate candidatos. Tudo com fluxo rápido e WhatsApp-first."
+          content="Dos caminos, un solo lugar: encuentra empleo o contrata candidatos. Todo con un flujo rápido y enfoque en WhatsApp."
         />
         <link rel="canonical" href={`${siteOrigin}/`} />
         <meta property="og:url" content={`${siteOrigin}/`} />
-        <meta property="og:title" content="MyJob | Emprego e recrutamento, WhatsApp-first" />
-        <meta property="og:description" content="Encontre vagas ou contrate candidatos. Fluxo rápido, foco em conversão e privacidade." />
+        <meta property="og:title" content="MyJob | Empleo y reclutamiento con WhatsApp" />
+        <meta property="og:description" content="Encuentra vacantes o contrata candidatos. Flujo rápido, conversión y privacidad." />
         <meta property="og:image" content={`${siteOrigin}/placeholder.svg`} />
         <script type="application/ld+json">{safeJsonLdStringify(websiteLd)}</script>
       </Helmet>
@@ -150,16 +150,16 @@ const Home = () => {
                 <div className="lg:col-span-6">
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-bold text-white/80 backdrop-blur">
                     <span className="h-2 w-2 rounded-full bg-[#25D366]" />
-                    WhatsApp-first · Duas entradas (candidato / empresa)
+                    WhatsApp-first · Dos entradas (candidato / empresa)
                   </div>
                   <h1 className="mt-6 text-5xl md:text-6xl font-black leading-[1.05] tracking-tight text-white">
-                    Encontre emprego ou contrate
+                    Encuentra empleo o contrata
                     <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-[#128C7E]">
-                      com velocidade.
+                      con rapidez.
                     </span>
                   </h1>
                   <p className="mt-5 text-lg leading-relaxed text-white/70 max-w-xl">
-                    MyJob conecta candidatos e empresas com um fluxo direto e conversacional. Menos fricção, mais resposta, mais clareza.
+                    MyJob conecta candidatos y empresas con un flujo directo y conversacional. Menos fricción, más respuestas, más claridad.
                   </p>
 
                   <div className="mt-8 grid sm:grid-cols-2 gap-4">
@@ -172,17 +172,17 @@ const Home = () => {
                       <div className="relative">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-xs font-bold text-white/60">Sou candidato</p>
-                            <p className="mt-1 text-xl font-black text-white">Ver vagas</p>
+                            <p className="text-xs font-bold text-white/60">Soy candidato</p>
+                            <p className="mt-1 text-xl font-black text-white">Ver empleos</p>
                           </div>
                           <div className="h-11 w-11 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
                             <MessageCircle className="h-5 w-5 text-white" />
                           </div>
                         </div>
-                        <p className="mt-3 text-sm text-white/70">Aplique com WhatsApp e avance mais rápido.</p>
+                        <p className="mt-3 text-sm text-white/70">Postúlate por WhatsApp y avanza más rápido.</p>
                         <div className="mt-5">
                           <Button className="rounded-xl h-11 px-5 font-bold bg-gradient-to-r from-[#25D366] to-[#128C7E] text-slate-950 hover:opacity-95">
-                            Abrir vagas
+                            Abrir empleos
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                         </div>
@@ -198,17 +198,17 @@ const Home = () => {
                       <div className="relative">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-xs font-bold text-white/60">Sou empresa</p>
+                            <p className="text-xs font-bold text-white/60">Soy empresa</p>
                             <p className="mt-1 text-xl font-black text-white">Buscar candidatos</p>
                           </div>
                           <div className="h-11 w-11 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
                             <Building2 className="h-5 w-5 text-white" />
                           </div>
                         </div>
-                        <p className="mt-3 text-sm text-white/70">Triagem rápida, privacidade e desbloqueio via WhatsApp.</p>
+                        <p className="mt-3 text-sm text-white/70">Filtrado rápido, privacidad y contacto por WhatsApp.</p>
                         <div className="mt-5">
                           <Button variant="outline" className="rounded-xl h-11 px-5 font-bold border-white/15 bg-white/[0.06] text-white hover:bg-white/10">
-                            Entrar na busca
+                            Ir a la búsqueda
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                         </div>
@@ -219,15 +219,15 @@ const Home = () => {
                   <div className="mt-7 flex flex-wrap gap-2">
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/70">
                       <ShieldCheck className="h-4 w-4 text-white/70" />
-                      Privacidade por padrão
+                      Privacidad por defecto
                     </span>
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/70">
                       <Zap className="h-4 w-4 text-white/70" />
-                      Baixa fricção
+                      Poca fricción
                     </span>
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/70">
                       <Sparkles className="h-4 w-4 text-white/70" />
-                      Interface clara
+                      Interfaz clara
                     </span>
                   </div>
                 </div>
@@ -251,12 +251,12 @@ const Home = () => {
             <Reveal>
               <div className="flex items-start md:items-end justify-between gap-6 flex-col md:flex-row">
                 <div className="max-w-2xl">
-                  <p className="text-xs font-bold text-white/60">Por que funciona</p>
+                  <p className="text-xs font-bold text-white/60">Por qué funciona</p>
                   <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">
-                    Experiência rápida, com sensação de produto premium.
+                    Experiencia rápida, con sensación de producto premium.
                   </h2>
                   <p className="mt-3 text-white/70 leading-relaxed">
-                    Mantemos o essencial na superfície e deixamos o resto para o contexto: menos ruído, mais decisão.
+                    Dejamos lo esencial a la vista y el resto en el contexto: menos ruido, más decisiones.
                   </p>
                 </div>
               </div>
@@ -270,7 +270,7 @@ const Home = () => {
                   </div>
                   <p className="mt-4 text-lg font-black text-white">WhatsApp-first</p>
                   <p className="mt-2 text-sm text-white/70 leading-relaxed">
-                    Conversa direta e contexto claro. Para candidatos e para empresas.
+                    Conversación directa y contexto claro. Para candidatos y para empresas.
                   </p>
                 </div>
               </Reveal>
@@ -279,9 +279,9 @@ const Home = () => {
                   <div className="h-11 w-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                     <ShieldCheck className="h-5 w-5 text-white" />
                   </div>
-                  <p className="mt-4 text-lg font-black text-white">Privacidade</p>
+                  <p className="mt-4 text-lg font-black text-white">Privacidad</p>
                   <p className="mt-2 text-sm text-white/70 leading-relaxed">
-                    Dados sensíveis ficam protegidos por padrão. Você decide quando abrir contato.
+                    Los datos sensibles quedan protegidos por defecto. Tú decides cuándo compartir contacto.
                   </p>
                 </div>
               </Reveal>
@@ -290,9 +290,9 @@ const Home = () => {
                   <div className="h-11 w-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                     <Zap className="h-5 w-5 text-white" />
                   </div>
-                  <p className="mt-4 text-lg font-black text-white">Triagem objetiva</p>
+                  <p className="mt-4 text-lg font-black text-white">Filtrado objetivo</p>
                   <p className="mt-2 text-sm text-white/70 leading-relaxed">
-                    Menos telas e mais clareza: função, contexto e próxima ação em um lugar só.
+                    Menos pantallas y más claridad: rol, contexto y siguiente paso en un solo lugar.
                   </p>
                 </div>
               </Reveal>
@@ -306,16 +306,16 @@ const Home = () => {
             <Reveal>
               <div className="flex items-start md:items-end justify-between gap-6 flex-col md:flex-row">
                 <div className="max-w-2xl">
-                  <p className="text-xs font-bold text-white/60">Confiança</p>
-                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">O que as pessoas dizem</h2>
-                  <p className="mt-3 text-white/70 leading-relaxed">Avaliações curtas e objetivas para reduzir dúvida e aumentar ação.</p>
+                  <p className="text-xs font-bold text-white/60">Confianza</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Lo que dicen las personas</h2>
+                  <p className="mt-3 text-white/70 leading-relaxed">Opiniones breves y claras para reducir dudas y aumentar la acción.</p>
                 </div>
                 <Button
                   variant="outline"
                   className="rounded-xl border-white/15 bg-white/[0.06] text-white hover:bg-white/10"
                   onClick={() => navigate('/empleos')}
                 >
-                  Ver vagas
+                  Ver empleos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -334,8 +334,8 @@ const Home = () => {
               <div className="flex items-start md:items-end justify-between gap-6 flex-col md:flex-row">
                 <div>
                   <p className="text-xs font-bold text-white/60">Explorar</p>
-                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Categorias</h2>
-                  <p className="mt-3 text-white/70">Encontre a vaga ideal para você.</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Categorías</h2>
+                  <p className="mt-3 text-white/70">Encuentra la vacante ideal para ti.</p>
                 </div>
                 <Button
                   variant="outline"
@@ -358,7 +358,7 @@ const Home = () => {
                   >
                     <p className="text-sm font-black text-white group-hover:text-[#25D366] transition-colors">{cat.name}</p>
                     <p className="mt-2 text-xs font-semibold text-white/60">
-                      {(categoryCounts?.[cat.value] ?? 0).toLocaleString('pt-BR')} vagas
+                      {(categoryCounts?.[cat.value] ?? 0).toLocaleString('es-MX')} vacantes
                     </p>
                   </button>
                 </Reveal>
@@ -372,9 +372,9 @@ const Home = () => {
             <div className="container mx-auto px-4">
               <Reveal>
                 <div className="text-center max-w-2xl mx-auto">
-                  <p className="text-xs font-bold text-white/60">Destaque</p>
-                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Vagas em destaque</h2>
-                  <p className="mt-3 text-white/70">Candidate-se com WhatsApp e avance no mesmo dia.</p>
+                  <p className="text-xs font-bold text-white/60">Destacado</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-white">Vacantes destacadas</h2>
+                  <p className="mt-3 text-white/70">Postúlate por WhatsApp y avanza el mismo día.</p>
                 </div>
               </Reveal>
               <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -389,7 +389,7 @@ const Home = () => {
                   className="rounded-xl h-12 px-8 font-bold bg-gradient-to-r from-[#25D366] to-[#128C7E] text-slate-950 hover:opacity-95"
                   onClick={() => navigate('/empleos')}
                 >
-                  Ver mais vagas
+                  Ver más empleos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -402,8 +402,8 @@ const Home = () => {
             <Reveal>
               <div className="text-center max-w-2xl mx-auto">
                 <p className="text-xs font-bold text-white/60">Localização</p>
-                <h2 className="mt-2 text-2xl md:text-3xl font-black tracking-tight text-white">Vagas por cidade</h2>
-                <p className="mt-3 text-white/70">Comece por onde você já está.</p>
+                <h2 className="mt-2 text-2xl md:text-3xl font-black tracking-tight text-white">Empleos por ciudad</h2>
+                <p className="mt-3 text-white/70">Empieza desde donde ya estás.</p>
               </div>
             </Reveal>
             <div className="mt-10 flex flex-wrap justify-center gap-3">
