@@ -2,10 +2,16 @@
  * Run async tasks over 0..n-1 with a fixed concurrency (worker pool).
  * Order of execution is undefined; use for independent row imports.
  */
+export type RunPoolOptions = {
+  /** Awaited before each worker claims the next index (e.g. cooperative pause). */
+  beforeClaimNext?: () => Promise<void>;
+};
+
 export async function runPool(
   total: number,
   concurrency: number,
   worker: (index: number) => Promise<void>,
+  options?: RunPoolOptions,
 ): Promise<void> {
   if (total <= 0) return;
   const limit = Math.min(Math.max(1, concurrency), total);
@@ -13,6 +19,7 @@ export async function runPool(
 
   const runOne = async () => {
     for (;;) {
+      if (options?.beforeClaimNext) await options.beforeClaimNext();
       const i = next++;
       if (i >= total) return;
       await worker(i);

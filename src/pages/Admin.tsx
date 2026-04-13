@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { LogOut, Plus, Pencil, Upload, Download } from 'lucide-react';
+import { LogOut, Plus, Pencil, Upload, Download, Pause, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
@@ -281,6 +281,7 @@ type JobImportProgressState = {
   total: number;
   saved: number;
   failed: number;
+  paused?: boolean;
   lastTitle?: string;
   lastError?: string;
 };
@@ -298,6 +299,7 @@ const Admin = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const candidateFileInputRef = useRef<HTMLInputElement>(null);
   const [jobImportProgress, setJobImportProgress] = useState<JobImportProgressState | null>(null);
+  const jobImportPauseRef = useRef(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -730,6 +732,12 @@ const Admin = () => {
     })();
   };
 
+  const handleJobImportPauseToggle = () => {
+    const next = !jobImportPauseRef.current;
+    jobImportPauseRef.current = next;
+    setJobImportProgress((prev) => (prev?.isRunning ? { ...prev, paused: next } : prev));
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -774,12 +782,22 @@ const Admin = () => {
         const useAi = hasJobAiConfig();
         const concurrency = useAi ? jobImportAiConcurrency() : jobImportUpsertOnlyConcurrency();
 
+        jobImportPauseRef.current = false;
         setJobImportProgress({
           isRunning: true,
           total,
           saved: 0,
           failed: 0,
+          paused: false,
         });
+
+        const waitIfPaused = async () => {
+          while (jobImportPauseRef.current) {
+            await new Promise<void>((r) => {
+              window.setTimeout(r, 200);
+            });
+          }
+        };
 
         if (imcShape && !useAi) {
           toast.message(
@@ -791,6 +809,8 @@ const Admin = () => {
         const processOne = async (i: number) => {
           const row = payload[i];
           const desc = String(row.description || '').trim();
+
+          await waitIfPaused();
 
           if (useAi && shouldRunAiForIndex(i)) {
             try {
@@ -811,35 +831,47 @@ const Admin = () => {
             row.highlights = fb.length ? fb : null;
           }
 
+          await waitIfPaused();
+
           const { error } = await supabase.from('jobs').upsert([row]);
           if (error) throw new Error(error.message || String(error));
         };
 
         const outcomes: boolean[] = [];
-        await runPool(total, concurrency, async (i) => {
-          let lastError: string | undefined;
-          try {
-            await processOne(i);
-            outcomes.push(true);
-          } catch (err: unknown) {
-            outcomes.push(false);
-            lastError = String((err as { message?: unknown })?.message || err);
-          }
-          const okN = outcomes.filter(Boolean).length;
-          const badN = outcomes.filter((x) => !x).length;
-          setJobImportProgress({
-            isRunning: true,
-            total,
-            saved: okN,
-            failed: badN,
-            lastTitle: payload[i]?.title,
-            ...(lastError ? { lastError: lastError.slice(0, 120) } : {}),
-          });
-        });
+        await runPool(
+          total,
+          concurrency,
+          async (i) => {
+            let lastError: string | undefined;
+            try {
+              await processOne(i);
+              outcomes.push(true);
+            } catch (err: unknown) {
+              outcomes.push(false);
+              lastError = String((err as { message?: unknown })?.message || err);
+            }
+            const okN = outcomes.filter(Boolean).length;
+            const badN = outcomes.filter((x) => !x).length;
+            setJobImportProgress((prev) => {
+              if (!prev?.isRunning) return prev;
+              return {
+                isRunning: true,
+                total,
+                saved: okN,
+                failed: badN,
+                paused: prev.paused,
+                lastTitle: payload[i]?.title,
+                ...(lastError ? { lastError: lastError.slice(0, 120) } : {}),
+              };
+            });
+          },
+          { beforeClaimNext: waitIfPaused },
+        );
 
         const saved = outcomes.filter(Boolean).length;
         const failed = outcomes.length - saved;
-        setJobImportProgress({ isRunning: false, total, saved, failed });
+        jobImportPauseRef.current = false;
+        setJobImportProgress({ isRunning: false, total, saved, failed, paused: false });
 
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
@@ -856,6 +888,7 @@ const Admin = () => {
           setJobImportProgress(null);
         }, 3200);
       } catch (err: unknown) {
+        jobImportPauseRef.current = false;
         setJobImportProgress(null);
         toast.error(`Erro ao importar: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
@@ -908,9 +941,40 @@ const Admin = () => {
         </div>
         {activeTab === 'jobs' && jobImportProgress && (
           <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 border border-border">
+            {jobImportProgress.isRunning ? (
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={handleJobImportPauseToggle}
+                >
+                  {jobImportProgress.paused ? (
+                    <>
+                      <Play className="h-4 w-4 mr-1" /> Continuar
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-4 w-4 mr-1" /> Pausar
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : null}
+            {jobImportProgress.isRunning && jobImportProgress.paused ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">
+                En pausa: no se inician filas nuevas hasta continuar. Las peticiones de IA o guardado ya en curso pueden
+                terminar antes de detenerse del todo.
+              </p>
+            ) : null}
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium mb-2">
               <span>
-                {jobImportProgress.isRunning ? 'Importando vacantes (IA + guardado)…' : 'Importación terminada'}
+                {jobImportProgress.isRunning
+                  ? jobImportProgress.paused
+                    ? 'Importación en pausa'
+                    : 'Importando vacantes (IA + guardado)…'
+                  : 'Importación terminada'}
               </span>
               <span className="text-muted-foreground">
                 {jobImportProgress.saved + jobImportProgress.failed} / {jobImportProgress.total}
