@@ -48,20 +48,17 @@ type CandidateRow = {
   created_at: string;
 };
 
-type ResumeRow = {
-  id: string;
-  name: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  job_direction: string | null;
-  work_years: number | null;
-  country: string | null;
-  city: string | null;
-  education?: unknown[] | null;
-  profile_summary: string | null;
-  created_at: string;
-  updated_at?: string | null;
-  has_contact?: boolean | null;
+type ResumeRow = Record<string, unknown>;
+
+const pickStr = (row: Record<string, unknown>, ...keys: string[]): string | null => {
+  for (const key of keys) {
+    const v = row[key];
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t) return t;
+    }
+  }
+  return null;
 };
 
 const parseYear = (value: unknown): number | null => {
@@ -96,34 +93,71 @@ const normalizeRoleSlug = (value: string) =>
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
 
-const mapResumeToCandidate = (r: ResumeRow): CandidateRow => {
-  const roleSlug = normalizeRoleSlug(r.job_direction || '');
-  const fullName = r.name || [r.first_name, r.last_name].filter(Boolean).join(' ') || null;
+const mapResumeToCandidate = (r: ResumeRow): CandidateRow | null => {
+  const id = String(r.id ?? '').trim();
+  if (!id) return null;
+  const first = pickStr(r, 'first_name', 'firstname', 'given_name');
+  const last = pickStr(r, 'last_name', 'lastname', 'family_name');
+  const fullName =
+    pickStr(r, 'name', 'full_name', 'nombre', 'display_name', 'candidate_name') ||
+    [first, last].filter(Boolean).join(' ') ||
+    null;
+  const jobDirection =
+    pickStr(
+      r,
+      'job_direction',
+      'job_title',
+      'desired_position',
+      'headline',
+      'position',
+      'cargo',
+      'puesto',
+      'role',
+    ) || null;
+  const summary =
+    pickStr(
+      r,
+      'profile_summary',
+      'summary',
+      'bio',
+      'about',
+      'about_me',
+      'description',
+      'resumen',
+    ) || null;
+  const roleSlug = normalizeRoleSlug(jobDirection || '');
   const hasContact = typeof r.has_contact === 'boolean' ? r.has_contact : null;
-  const educationYears = getEducationYears(r.education);
+  const educationYears = getEducationYears(Array.isArray(r.education) ? r.education : null);
+  const workYears = typeof r.work_years === 'number' ? r.work_years : null;
+  const country = pickStr(r, 'country', 'pais', 'país') || 'México';
+  const city = pickStr(r, 'city', 'ciudad', 'location', 'ubicacion', 'ubicación');
+  const created =
+    (typeof r.updated_at === 'string' && r.updated_at.trim()) ||
+    (typeof r.created_at === 'string' && r.created_at.trim()) ||
+    new Date().toISOString();
 
   return {
-    id: r.id,
+    id,
     role_slug: roleSlug || null,
-    first_name: r.first_name || null,
-    last_name: r.last_name || null,
+    first_name: first,
+    last_name: last,
     full_name: fullName,
-    job_title: r.job_direction || null,
-    country: r.country || 'México',
-    city: r.city || null,
-    summary: r.profile_summary || null,
+    job_title: jobDirection,
+    country,
+    city,
+    summary,
     has_contact: hasContact,
-    work_years: typeof r.work_years === 'number' ? r.work_years : null,
+    work_years: workYears,
     education_years: educationYears,
-    created_at: r.updated_at || r.created_at,
+    created_at: created,
   };
 };
 
+/** List only rows we can render meaningfully (name + target role). Summary is optional on cards. */
 const isCandidateEligible = (c: CandidateRow) => {
   const titleOk = Boolean(String(c.job_title || c.role_slug || '').trim());
   const nameOk = Boolean(String(c.full_name || c.first_name || '').trim());
-  const summaryOk = Boolean(String(c.summary || '').trim());
-  return titleOk && nameOk && summaryOk;
+  return titleOk && nameOk;
 };
 
 const CandidateSearch = () => {
@@ -159,7 +193,10 @@ const CandidateSearch = () => {
 
           const { data: raw, error: resumesError, count } = await query;
           if (resumesError) throw resumesError;
-          const mapped = (Array.isArray(raw) ? raw : []).map((r) => mapResumeToCandidate(r as ResumeRow)).filter(isCandidateEligible);
+          const mapped = (Array.isArray(raw) ? raw : [])
+            .map((r) => mapResumeToCandidate(r as ResumeRow))
+            .filter((c): c is CandidateRow => c !== null)
+            .filter(isCandidateEligible);
           return { candidates: mapped, count: count || 0 };
         };
 
@@ -347,10 +384,16 @@ const CandidateSearch = () => {
               <p>
                 Origen: {usingExternalResumes ? 'Supabase (currículos externos)' : 'Tabla candidates de este proyecto'}
               </p>
-              <p>Reglas de publicación: se requiere puesto, nombre y resumen del perfil.</p>
               <p>
-                Nota: la vista externa actual puede no incluir campos de contacto; no exigimos contacto para mostrar el
-                perfil.
+                Reglas de publicación: cada fila debe tener nombre (o nombre completo) y puesto / dirección laboral de
+                búsqueda para mostrarse. El resumen es opcional.
+              </p>
+              <p>
+                Si ves este mensaje pero crees que hay datos: revisa que la vista pública exponga columnas reconocibles
+                (por ejemplo job_direction, profile_summary, name) o equivalentes en español / inglés.
+              </p>
+              <p>
+                Nota: la vista externa puede no incluir contacto; no exigimos contacto para listar el perfil.
               </p>
             </div>
           </div>
