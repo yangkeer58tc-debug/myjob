@@ -38,7 +38,7 @@ export const parseHighlights = (input: unknown) => {
   const seen = new Set<string>();
 
   for (const p of parts) {
-    const token = shorten(p, 42);
+    const token = shorten(p, 80);
     if (!token) continue;
     const key = token.toLowerCase();
     if (seen.has(key)) continue;

@@ -26,6 +26,16 @@ import {
   WORKPLACE_TYPE_OPTIONS,
   normalizeOptionId,
 } from '@/lib/jobOptions';
+import {
+  isImcExportCsv,
+  mergeImcColumnsIntoClassicRow,
+  normalizeCsvRecordKeys,
+} from '@/lib/imcCsvImport';
+import {
+  fallbackHighlightsFromDescription,
+  generateJobSummaryAndHighlights,
+  hasJobAiConfig,
+} from '@/lib/jobSummaryAi';
 
 interface JobForm {
   id: string;
@@ -482,6 +492,49 @@ const Admin = () => {
     link.click();
   };
 
+  const downloadImcExportTemplate = () => {
+    const template = [
+      [
+        'id',
+        'origin_id',
+        'category_full_path',
+        'title',
+        'amount',
+        'company',
+        'description',
+        'location',
+        'latitude',
+        'longitude',
+        'author_na',
+        'author_pro',
+        'create_at',
+        'ext',
+      ],
+      [
+        '55398649',
+        'a8765d59',
+        'Jobs > Tecnología en la salud > Empleos de Becario en nutrición',
+        'Asesor de Nutrición',
+        '{"type":"monthly","min":12000,"max":15000}',
+        'Grupo Salud MX',
+        'Objetivo del puesto: brindar asesoría nutricional personalizada a clientes en tienda. Requisitos: licenciatura en nutrición, experiencia en atención al cliente.',
+        'Tlalpan, Ciudad de México',
+        '19.28333',
+        '-99.16667',
+        'Grupo Salud MX',
+        'https://example.com/perfil',
+        '2025-12-01',
+        '{"industry":"Healthcare"}',
+      ],
+    ];
+    const csv = Papa.unparse(template);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'myjob_imc_export_template.csv';
+    link.click();
+  };
+
   const downloadOptionsCsv = () => {
     const rows: Array<[string, string, string]> = [['field', 'id', 'label']];
     CATEGORY_OPTIONS.forEach((o) => rows.push(['category', o.id, o.label]));
@@ -592,7 +645,14 @@ const Admin = () => {
         }
 
         const rows = (results.data || []).filter((r) => Object.values(r || {}).some((v) => String(v ?? '').trim() !== ''));
-        const payload = rows.map((row) => {
+        const fieldNames = results.meta?.fields || [];
+        const imcShape = isImcExportCsv(fieldNames);
+        const normalizedRows = rows.map((r) => normalizeCsvRecordKeys(r as Record<string, string>));
+        const rowsForImport = imcShape
+          ? normalizedRows.map(mergeImcColumnsIntoClassicRow)
+          : normalizedRows;
+
+        const payload = rowsForImport.map((row) => {
           const locationRaw = row.location || 'Brasil';
           const location = normalizeCity(locationRaw);
           const bLogo = row.b_logo_url ? row.b_logo_url : LOGO_URL;
@@ -653,6 +713,58 @@ const Admin = () => {
             is_active: parseBoolean(row.is_active, true),
           };
         });
+
+        const shouldRunAiForIndex = (idx: number) => {
+          if (!hasJobAiConfig()) return false;
+          const desc = String(payload[idx].description || '').trim();
+          if (!desc) return false;
+          if (imcShape) return true;
+          const s = String(payload[idx].summary || '').trim();
+          const h = payload[idx].highlights;
+          const hasHighlights = Array.isArray(h) && h.some((x) => String(x ?? '').trim());
+          return !s && !hasHighlights;
+        };
+
+        let aiFallbackUsed = false;
+        if (hasJobAiConfig()) {
+          const toastId = toast.loading('Gerando resumo e destaques com IA…');
+          try {
+            for (let i = 0; i < payload.length; i++) {
+              if (!shouldRunAiForIndex(i)) continue;
+              const desc = String(payload[i].description || '');
+              try {
+                const ai = await generateJobSummaryAndHighlights(desc);
+                if (ai.summary) payload[i].summary = ai.summary;
+                const hl =
+                  ai.highlights.length > 0 ? ai.highlights : fallbackHighlightsFromDescription(desc);
+                payload[i].highlights = hl.length ? hl : null;
+              } catch {
+                aiFallbackUsed = true;
+                if (!payload[i].highlights?.length) {
+                  const fb = fallbackHighlightsFromDescription(desc);
+                  payload[i].highlights = fb.length ? fb : null;
+                }
+              }
+            }
+          } finally {
+            toast.dismiss(toastId);
+          }
+          if (aiFallbackUsed) {
+            toast.message('Algumas vagas usaram destaques automáticos no texto porque a API de IA falhou.');
+          }
+        } else if (imcShape) {
+          for (let i = 0; i < payload.length; i++) {
+            const desc = String(payload[i].description || '');
+            if (!payload[i].highlights?.length && desc) {
+              const fb = fallbackHighlightsFromDescription(desc);
+              payload[i].highlights = fb.length ? fb : null;
+            }
+          }
+          toast.message(
+            'Import IMC sem chave de IA (VITE_JOB_AI_URL ou VITE_OPENAI_API_KEY): destaques foram extraídos do próprio JD.',
+            { duration: 7000 },
+          );
+        }
 
         const { error } = await supabase.from('jobs').upsert(payload);
         if (error) throw error;
@@ -759,6 +871,9 @@ const Admin = () => {
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
                   <Download className="h-4 w-4 mr-2" /> Template CSV
+                </Button>
+                <Button variant="outline" onClick={downloadImcExportTemplate} className="rounded-xl">
+                  <Download className="h-4 w-4 mr-2" /> Template IMC
                 </Button>
                 <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
                   <Download className="h-4 w-4 mr-2" /> Options CSV
