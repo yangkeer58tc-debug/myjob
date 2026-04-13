@@ -434,10 +434,13 @@ const JobDetail = () => {
         <div className="mb-8">
           <div className="flex items-start gap-4 mb-4">
             {job.b_logo_url ? (
-              <img src={job.b_logo_url} alt={job.b_name} className="h-14 w-14 rounded-2xl object-cover flex-shrink-0" />
+              <img src={job.b_logo_url} alt={job.b_name} className="h-14 w-14 rounded-2xl object-cover flex-shrink-0 border border-border" />
             ) : (
-              <div className="h-14 w-14 rounded-2xl bg-secondary flex items-center justify-center flex-shrink-0">
-                <Briefcase className="h-7 w-7 text-muted-foreground" />
+              <div
+                className="h-14 w-14 rounded-2xl bg-secondary flex items-center justify-center flex-shrink-0 border border-border"
+                aria-hidden
+              >
+                <Building2 className="h-7 w-7 text-muted-foreground" />
               </div>
             )}
             <div>

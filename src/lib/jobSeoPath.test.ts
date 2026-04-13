@@ -9,6 +9,10 @@ describe('parseEmpleoParam', () => {
   it('parses slug-id compound', () => {
     expect(parseEmpleoParam('supervisor-calidad-41997377609991168')).toEqual({ kind: 'id', id: '41997377609991168' });
   });
+
+  it('parses slug-id with shorter numeric id (IMC)', () => {
+    expect(parseEmpleoParam('asesor-de-nutricion-55398649')).toEqual({ kind: 'id', id: '55398649' });
+  });
 });
 
 describe('jobPublicPath', () => {

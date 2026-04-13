@@ -1,7 +1,5 @@
 /** SEO-friendly job URLs: /empleo/{slug}-{id}/ — legacy /empleo/{id}/ still resolves and redirects. */
 
-const ID_TAIL = /^(.+)-(\d{12,})$/;
-
 export function slugifyJobSegment(value: string): string {
   const s = String(value || '')
     .normalize('NFD')
@@ -31,9 +29,13 @@ export function parseEmpleoParam(param: string): ParsedEmpleo {
     return { kind: 'id', id: raw };
   }
 
-  const m = raw.match(ID_TAIL);
-  if (m) {
-    return { kind: 'id', id: m[2] };
+  /** Last `-digits` segment is treated as DB id (IMC / external ids are often 6–12 digits). */
+  const hyphenIdx = raw.lastIndexOf('-');
+  if (hyphenIdx >= 1) {
+    const tail = raw.slice(hyphenIdx + 1);
+    if (/^\d{4,}$/.test(tail)) {
+      return { kind: 'id', id: tail };
+    }
   }
 
   return { kind: 'slug', slug: raw };

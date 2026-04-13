@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { LogOut, Plus, Pencil, Upload, Download, Pause, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
@@ -39,6 +40,7 @@ import {
 } from '@/lib/jobSummaryAi';
 import { normalizeIndustryLabelForMexico } from '@/lib/industryEsMx';
 import { jobImportAiConcurrency, jobImportUpsertOnlyConcurrency, runPool } from '@/lib/jobImportPool';
+import { normalizeImportedEmployerLogoUrl } from '@/lib/jobLogoUrl';
 
 interface JobForm {
   id: string;
@@ -188,7 +190,7 @@ const emptyForm: JobForm = {
   is_active: true,
 };
 
-const LOGO_URL = '/brand-logo.jpg';
+const ADMIN_JOBS_PAGE_SIZE = 25;
 
 type JobCsvPayloadRow = {
   id: string;
@@ -216,7 +218,7 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
   return rowsForImport.map((row) => {
     const locationRaw = row.location || 'Brasil';
     const location = normalizeCity(locationRaw);
-    const bLogo = row.b_logo_url ? row.b_logo_url : LOGO_URL;
+    const b_logo_url = normalizeImportedEmployerLogoUrl(row.b_logo_url);
     const normalizedText = normalizeJobTextFields({
       summary: row.summary || null,
       description: row.description || null,
@@ -255,7 +257,7 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
     return {
       id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       b_name,
-      b_logo_url: bLogo || null,
+      b_logo_url,
       title: titleNorm,
       category: categoryNorm,
       location,
@@ -300,6 +302,8 @@ const Admin = () => {
   const candidateFileInputRef = useRef<HTMLInputElement>(null);
   const [jobImportProgress, setJobImportProgress] = useState<JobImportProgressState | null>(null);
   const jobImportPauseRef = useRef(false);
+  const [adminJobsPage, setAdminJobsPage] = useState(1);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -332,6 +336,26 @@ const Admin = () => {
     enabled: !!session,
   });
 
+  const adminJobsMaxPage = Math.max(1, Math.ceil((jobs?.length ?? 0) / ADMIN_JOBS_PAGE_SIZE));
+
+  const jobsPageItems = useMemo(() => {
+    if (!jobs?.length) return [];
+    const start = (adminJobsPage - 1) * ADMIN_JOBS_PAGE_SIZE;
+    return jobs.slice(start, start + ADMIN_JOBS_PAGE_SIZE);
+  }, [jobs, adminJobsPage]);
+
+  const adminPageJobIds = useMemo(() => jobsPageItems.map((j) => j.id), [jobsPageItems]);
+  const selectedOnPageCount = useMemo(
+    () => adminPageJobIds.filter((id) => selectedJobIds.includes(id)).length,
+    [adminPageJobIds, selectedJobIds],
+  );
+  const allPageSelected = adminPageJobIds.length > 0 && selectedOnPageCount === adminPageJobIds.length;
+  const somePageSelected = selectedOnPageCount > 0 && !allPageSelected;
+
+  useEffect(() => {
+    if (adminJobsPage > adminJobsMaxPage) setAdminJobsPage(adminJobsMaxPage);
+  }, [adminJobsPage, adminJobsMaxPage]);
+
   const { data: candidates, isLoading: candidatesLoading, error: candidatesError } = useQuery({
     queryKey: ['adminCandidates'],
     queryFn: async () => {
@@ -355,7 +379,7 @@ const Admin = () => {
       const payload = {
         id: form.id,
         b_name: normalizeCompanyName(form.b_name),
-        b_logo_url: form.b_logo_url || null,
+        b_logo_url: normalizeImportedEmployerLogoUrl(form.b_logo_url),
         title: normalizeJobTitle(form.title),
         category: normalizeOptionId(form.category, CATEGORY_OPTIONS) || null,
         salary_amount: form.salary_amount,
@@ -392,6 +416,33 @@ const Admin = () => {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminJobs'] }),
+  });
+
+  const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+    if (!arr.length) return [];
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  };
+
+  const batchJobsActiveMutation = useMutation({
+    mutationFn: async ({ ids, is_active }: { ids: string[]; is_active: boolean }) => {
+      if (!ids.length) return;
+      for (const part of chunkArray(ids, 200)) {
+        const { error } = await supabase.from('jobs').update({ is_active }).in('id', part);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+      setSelectedJobIds([]);
+      toast.success(
+        vars.is_active
+          ? `Se activaron ${vars.ids.length} vacante(s).`
+          : `Se desactivaron ${vars.ids.length} vacante(s).`,
+      );
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const toggleCandidateActive = useMutation({
@@ -583,7 +634,7 @@ const Admin = () => {
   const downloadTemplate = () => {
     const template = [
       ['id', 'b_name', 'b_logo_url', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
-      ['job-exemplo', 'MyJob', LOGO_URL, 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '', '', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Sueldo mensual $12,000 MXN. Descreva a vaga em texto puro.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
+      ['job-exemplo', 'MyJob', '', 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '', '', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Sueldo mensual $12,000 MXN. Descreva a vaga em texto puro.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
     ];
     const csv = Papa.unparse(template);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -623,7 +674,7 @@ const Admin = () => {
         '19.28333',
         '-99.16667',
         'Grupo Salud MX',
-        'https://example.com/perfil',
+        'https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/7c42fae92bbb670e365b15cb97ccb741',
         '2025-12-01',
         '{"industry":"Healthcare"}',
       ],
@@ -1098,10 +1149,57 @@ const Admin = () => {
                 <Plus className="h-4 w-4 mr-1" /> {t('admin.addJob')}
               </Button>
             </div>
+            <div className="flex flex-wrap items-center gap-2 mb-3 text-sm">
+              <span className="text-muted-foreground">{selectedJobIds.length} seleccionada(s)</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="rounded-xl"
+                disabled={!selectedJobIds.length || batchJobsActiveMutation.isPending}
+                onClick={() => batchJobsActiveMutation.mutate({ ids: selectedJobIds, is_active: true })}
+              >
+                Activar selección
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-xl"
+                disabled={!selectedJobIds.length || batchJobsActiveMutation.isPending}
+                onClick={() => batchJobsActiveMutation.mutate({ ids: selectedJobIds, is_active: false })}
+              >
+                Desactivar selección
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="rounded-xl"
+                disabled={!selectedJobIds.length}
+                onClick={() => setSelectedJobIds([])}
+              >
+                Limpiar selección
+              </Button>
+            </div>
             <div className="bg-card rounded-2xl shadow-sm overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-secondary text-muted-foreground">
                   <tr>
+                    <th className="w-10 px-2 py-3">
+                      <Checkbox
+                        checked={allPageSelected ? true : somePageSelected ? 'indeterminate' : false}
+                        onCheckedChange={(v) => {
+                          if (v === true) {
+                            setSelectedJobIds((prev) => [...new Set([...prev, ...adminPageJobIds])]);
+                          } else {
+                            setSelectedJobIds((prev) => prev.filter((id) => !adminPageJobIds.includes(id)));
+                          }
+                        }}
+                        disabled={!adminPageJobIds.length || isLoading}
+                        aria-label="Seleccionar página"
+                      />
+                    </th>
                     <th className="text-left px-4 py-3 font-medium">ID</th>
                     <th className="text-left px-4 py-3 font-medium">Título</th>
                     <th className="text-left px-4 py-3 font-medium">Empresa</th>
@@ -1113,13 +1211,24 @@ const Admin = () => {
                 <tbody>
                   {isLoading && (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <td colSpan={7} className="text-center py-8 text-muted-foreground">
                         Carregando...
                       </td>
                     </tr>
                   )}
-                  {jobs?.map((job) => (
+                  {jobsPageItems.map((job) => (
                     <tr key={job.id} className="border-t border-border">
+                      <td className="px-2 py-3 align-middle">
+                        <Checkbox
+                          checked={selectedJobIds.includes(job.id)}
+                          onCheckedChange={(v) => {
+                            setSelectedJobIds((prev) =>
+                              v === true ? [...prev, job.id] : prev.filter((x) => x !== job.id),
+                            );
+                          }}
+                          aria-label={`Seleccionar ${job.title}`}
+                        />
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs">{job.id}</td>
                       <td className="px-4 py-3 font-medium">{job.title}</td>
                       <td className="px-4 py-3">{job.b_name}</td>
@@ -1138,10 +1247,44 @@ const Admin = () => {
                     </tr>
                   ))}
                   {(!jobs || jobs.length === 0) && !isLoading && (
-                    <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma vaga</td></tr>
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-muted-foreground">
+                        Nenhuma vaga
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
+              {jobs && jobs.length > 0 ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border text-sm text-muted-foreground">
+                  <span>
+                    Página {adminJobsPage} de {adminJobsMaxPage} · {jobs.length} vacante(s) ·{' '}
+                    {ADMIN_JOBS_PAGE_SIZE} por página
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      disabled={adminJobsPage <= 1}
+                      onClick={() => setAdminJobsPage((p) => Math.max(1, p - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      disabled={adminJobsPage >= adminJobsMaxPage}
+                      onClick={() => setAdminJobsPage((p) => Math.min(adminJobsMaxPage, p + 1))}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </>
         ) : (

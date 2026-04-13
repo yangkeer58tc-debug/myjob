@@ -1,3 +1,4 @@
+import { looksLikeCompanyLogoUrl } from '@/lib/jobLogoUrl';
 import { normalizeIndustryLabelForMexico } from '@/lib/industryEsMx';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 
@@ -134,6 +135,9 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
   const industryRaw = pick(row, 'industry') || industryFromExtJson(pick(row, 'ext'));
   const industry = industryRaw ? normalizeIndustryLabelForMexico(industryRaw) : '';
   const salaryFromAmount = salaryHintFromAmountJson(pick(row, 'amount'));
+  const authorPro = pick(row, 'author_pro');
+  const logoExplicit = pick(row, 'b_logo_url', 'logo_url', 'company_logo_url');
+  const b_logo_url = logoExplicit || (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
 
   return {
     ...row,
@@ -148,7 +152,7 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
     requirements: pick(row, 'requirements') || row.requirements || '',
     summary: pick(row, 'summary') || row.summary || '',
     highlights: pick(row, 'highlights') || row.highlights || '',
-    b_logo_url: pick(row, 'b_logo_url') || row.b_logo_url || '',
+    b_logo_url,
     job_type: pick(row, 'job_type') || row.job_type || '',
     workplace_type: pick(row, 'workplace_type') || row.workplace_type || '',
     payment_frequency: pick(row, 'payment_frequency') || row.payment_frequency || '',
