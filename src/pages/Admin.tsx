@@ -36,6 +36,7 @@ import {
   generateJobSummaryAndHighlights,
   hasJobAiConfig,
 } from '@/lib/jobSummaryAi';
+import { normalizeIndustryLabelForMexico } from '@/lib/industryEsMx';
 
 interface JobForm {
   id: string;
@@ -267,7 +268,7 @@ const Admin = () => {
         requirements: normalizedText.requirements,
         highlights: form.highlights ? parseHighlights(form.highlights) : null,
         education_level: normalizeOptionId(form.education_level, EDUCATION_LEVEL_OPTIONS) || null,
-        industry: form.industry || null,
+        industry: form.industry ? normalizeIndustryLabelForMexico(form.industry) : null,
         language_req: form.language_req || null,
         experience: normalizeOptionId(form.experience, EXPERIENCE_OPTIONS) || null,
         is_active: form.is_active,
@@ -707,7 +708,7 @@ const Admin = () => {
             requirements: normalizedText.requirements,
             highlights: row.highlights ? parseHighlights(row.highlights) : null,
             education_level: row.education_level ? normalizeOptionId(row.education_level, EDUCATION_LEVEL_OPTIONS) : null,
-            industry: row.industry || null,
+            industry: row.industry ? normalizeIndustryLabelForMexico(row.industry) : null,
             language_req: row.language_req || null,
             experience: row.experience ? normalizeOptionId(row.experience, EXPERIENCE_OPTIONS) : null,
             is_active: parseBoolean(row.is_active, true),

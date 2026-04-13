@@ -1,3 +1,4 @@
+import { normalizeIndustryLabelForMexico } from '@/lib/industryEsMx';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 
 const normKey = (k: string) => k.replace(/^\uFEFF/, '').trim().toLowerCase();
@@ -130,7 +131,8 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
   const b_name = pick(row, 'b_name', 'company', 'author_na', 'author_name');
   const category =
     pick(row, 'category') || categoryIdFromFullPath(pick(row, 'category_full_path'));
-  const industry = pick(row, 'industry') || industryFromExtJson(pick(row, 'ext'));
+  const industryRaw = pick(row, 'industry') || industryFromExtJson(pick(row, 'ext'));
+  const industry = industryRaw ? normalizeIndustryLabelForMexico(industryRaw) : '';
   const salaryFromAmount = salaryHintFromAmountJson(pick(row, 'amount'));
 
   return {
@@ -138,7 +140,7 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
     id: id || row.id,
     b_name: b_name || row.b_name,
     category: category || row.category,
-    industry: industry || row.industry,
+    industry: industry || (row.industry ? normalizeIndustryLabelForMexico(row.industry) : ''),
     salary_amount: pick(row, 'salary_amount') || salaryFromAmount,
     location: pick(row, 'location') || row.location,
     title: pick(row, 'title') || row.title,
