@@ -223,7 +223,7 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
   return rowsForImport.map((row) => {
     const locationRaw = row.location || 'Brasil';
     const location = normalizeCity(locationRaw);
-    const authorPro = stripCsvCellDecorations(row.author_pro ?? '');
+    const authorPro = stripCsvCellDecorations(row.author_profile ?? row.author_pro ?? '');
     const logoRaw =
       collectFirstEmployerLogoRaw(row) ||
       (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
@@ -668,8 +668,8 @@ const Admin = () => {
         'location',
         'latitude',
         'longitude',
-        'author_na',
-        'author_pro',
+        'author_name',
+        'author_profile',
         'create_at',
         'ext',
       ],

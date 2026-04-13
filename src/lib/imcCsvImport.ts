@@ -15,6 +15,22 @@ export function normalizeCsvRecordKeys(row: Record<string, string>): Record<stri
 
 export function isImcExportCsv(fieldNames: string[]): boolean {
   const set = new Set(fieldNames.map(normKey));
+  const fixedHeader =
+    set.has('id') &&
+    set.has('origin_id') &&
+    set.has('category_full_path') &&
+    set.has('title') &&
+    set.has('amount') &&
+    set.has('company') &&
+    set.has('description') &&
+    set.has('location') &&
+    set.has('latitude') &&
+    set.has('longitude') &&
+    set.has('author_name') &&
+    set.has('author_profile') &&
+    set.has('create_at') &&
+    set.has('ext');
+  if (fixedHeader) return true;
   if (set.has('category_full_path')) return true;
   /** Title / Company / Logo / … job-board style sheets (even if a `b_name` column exists empty). */
   if (set.has('company') && set.has('logo')) return true;
@@ -131,13 +147,13 @@ export function salaryHintFromAmountJson(amountRaw: string): string {
  */
 export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Record<string, string> {
   const id = pick(row, 'id', 'origin_id');
-  const b_name = pick(row, 'b_name', 'company', 'author_na', 'author_name');
+  const b_name = pick(row, 'b_name', 'company', 'author_name', 'author_na');
   const category =
     pick(row, 'category') || categoryIdFromFullPath(pick(row, 'category_full_path'));
   const industryRaw = pick(row, 'industry') || industryFromExtJson(pick(row, 'ext'));
   const industry = industryRaw ? normalizeIndustryLabelForMexico(industryRaw) : '';
   const salaryFromAmount = salaryHintFromAmountJson(pick(row, 'amount'));
-  const authorPro = pick(row, 'author_pro');
+  const authorPro = pick(row, 'author_profile', 'author_pro');
   const fromCols = collectFirstEmployerLogoRaw(row);
   const b_logo_url = fromCols || (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
 
