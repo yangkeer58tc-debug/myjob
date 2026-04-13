@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { formatRelativeTime } from '@/lib/timeUtils';
-import { formatSalaryMXN, salaryNumberForSchema } from '@/lib/salaryUtils';
+import { displaySalaryMXN, effectiveSalaryForJobPosting } from '@/lib/salaryUtils';
+import { postalAddressPartsForLocality } from '@/lib/mxPostalAddress';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
@@ -17,11 +18,10 @@ import {
   EXPERIENCE_OPTIONS,
   JOB_TYPE_OPTIONS,
   WORKPLACE_TYPE_OPTIONS,
-  PAYMENT_FREQUENCY_OPTIONS,
   occupationalExperienceRequirements,
 } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
-import { mexicoCityForJobId } from '@/lib/mexicoLocation';
+import { displayCityForJob, mexicoCityForJobId } from '@/lib/mexicoLocation';
 import { getSiteOrigin, safeJsonLdStringify, toAbsoluteUrl, toIsoDatePosted } from '@/lib/siteUrl';
 
 const DAYS_TO_EXPIRE = 60;
@@ -196,11 +196,10 @@ const JobDetail = () => {
   const summary = job?.summary || '';
   const requirements = job?.requirements || '';
   const highlights = job?.highlights || null;
-  const salaryValue = salaryNumberForSchema(job?.salary_amount);
 
   const safeTitle = maybeFixMojibake(title);
   const safeCompany = maybeFixMojibake(job?.b_name || '');
-  const safeLocation = mexicoCityForJobId(job?.id);
+  const safeLocation = job ? displayCityForJob(job) : mexicoCityForJobId(id);
   const siteOrigin = getSiteOrigin();
   const jobPageUrl = `${siteOrigin}/empleo/${job?.id ?? id}/`;
   const orgLogoUrl = job ? toAbsoluteUrl(job.b_logo_url, siteOrigin) : undefined;
@@ -266,6 +265,8 @@ const JobDetail = () => {
 
   const datePostedIso = toIsoDatePosted(job.created_at);
   const occExpReq = occupationalExperienceRequirements(job.experience);
+  const addressParts = postalAddressPartsForLocality(safeLocation);
+  const effSalary = effectiveSalaryForJobPosting(job);
 
   const jsonLd = isActive
     ? {
@@ -299,26 +300,33 @@ const JobDetail = () => {
           '@type': 'Place',
           address: {
             '@type': 'PostalAddress',
-            addressLocality: safeLocation,
+            addressLocality: addressParts.addressLocality,
             addressCountry: 'MX',
+            ...(addressParts.addressRegion ? { addressRegion: addressParts.addressRegion } : {}),
+            ...(addressParts.postalCode ? { postalCode: addressParts.postalCode } : {}),
+            ...(addressParts.streetAddress ? { streetAddress: addressParts.streetAddress } : {}),
           },
         },
-        ...(salaryValue !== null
+        ...(effSalary
           ? {
               baseSalary: {
                 '@type': 'MonetaryAmount',
                 currency: 'MXN',
                 value: {
                   '@type': 'QuantitativeValue',
-                  value: salaryValue,
+                  value: effSalary.value,
                   unitText:
-                    job.payment_frequency === 'mensal'
+                    effSalary.payment_frequency === 'mensal'
                       ? 'MONTH'
-                      : job.payment_frequency === 'quinzenal'
+                      : effSalary.payment_frequency === 'quinzenal'
                         ? 'WEEK'
-                        : job.payment_frequency === 'hora'
+                        : effSalary.payment_frequency === 'hora'
                           ? 'HOUR'
-                          : 'OTHER',
+                          : effSalary.payment_frequency === 'semanal'
+                            ? 'WEEK'
+                            : effSalary.payment_frequency === 'diario'
+                              ? 'DAY'
+                              : 'OTHER',
                 },
               },
             }
@@ -443,10 +451,7 @@ const JobDetail = () => {
           </div>
 
           {/* Salary */}
-          <p className="text-3xl font-black text-whatsapp mb-1">
-            {formatSalaryMXN(job.salary_amount)}{' '}
-            <span className="text-base font-medium text-muted-foreground">{optionLabel(job.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)}</span>
-          </p>
+          <p className="text-3xl font-black text-whatsapp mb-1">{displaySalaryMXN(job)}</p>
           <p className="text-sm text-muted-foreground">{formatRelativeTime(job.created_at, lang)}</p>
         </div>
 

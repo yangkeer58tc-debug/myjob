@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
-import { formatSalaryMXN } from '@/lib/salaryUtils';
+import { displaySalaryMXN } from '@/lib/salaryUtils';
 import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
-import { mexicoCityForJobId } from '@/lib/mexicoLocation';
+import { displayCityForJob } from '@/lib/mexicoLocation';
 
 interface JobCardProps {
   job: {
@@ -26,6 +26,9 @@ interface JobCardProps {
     highlights: string[] | null;
     education_level?: string | null;
     experience?: string | null;
+    category?: string | null;
+    description?: string | null;
+    requirements?: string | null;
     created_at: string;
     is_active: boolean;
   };
@@ -43,7 +46,7 @@ const JobCard = ({ job }: JobCardProps) => {
     .join(' • ');
 
   const safeCompany = fixJobTextArtifacts(job.b_name);
-  const safeLocation = mexicoCityForJobId(job.id);
+  const safeLocation = displayCityForJob(job);
   const { handleApply, QRModal } = useWhatsAppRedirect(title, safeCompany);
 
   return (
@@ -104,7 +107,7 @@ const JobCard = ({ job }: JobCardProps) => {
           </div>
           
           <div className="flex items-baseline space-x-1">
-            <span className="text-xl font-bold text-primary">{formatSalaryMXN(job.salary_amount)}</span>
+            <span className="text-xl font-bold text-primary">{displaySalaryMXN(job)}</span>
             <span className="text-[10px] text-muted-foreground font-medium">{optionLabel(job.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)}</span>
           </div>
         </CardContent>

@@ -24,5 +24,12 @@ export const mexicoCityForJobId = (jobId: unknown) => {
   return MEXICO_CITIES[idx] || 'Ciudad de México';
 };
 
+/** Prefer DB `location` when set; otherwise deterministic city from id (legacy). */
+export const displayCityForJob = (job: { id: unknown; location?: string | null }) => {
+  const loc = String(job.location ?? '').trim();
+  if (loc) return loc;
+  return mexicoCityForJobId(job.id);
+};
+
 export const mexicoCities = () => [...MEXICO_CITIES];
 

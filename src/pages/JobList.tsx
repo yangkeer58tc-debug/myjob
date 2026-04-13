@@ -9,7 +9,7 @@ import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
-import { mexicoCities, mexicoCityForJobId } from '@/lib/mexicoLocation';
+import { displayCityForJob, mexicoCities } from '@/lib/mexicoLocation';
 import { getSiteOrigin } from '@/lib/siteUrl';
 
 const ITEMS_PER_PAGE = 30;
@@ -78,7 +78,7 @@ const JobList = () => {
       const rows = Array.isArray(data) ? data : [];
       if (!needsClientCityFilter) return { jobs: rows, count: count || 0 };
 
-      const filtered = rows.filter((j) => mexicoCityForJobId((j as { id?: unknown })?.id) === city);
+      const filtered = rows.filter((j) => displayCityForJob(j as { id: string; location?: string | null }) === city);
       const total = filtered.length;
       const start = (page - 1) * ITEMS_PER_PAGE;
       return { jobs: filtered.slice(start, start + ITEMS_PER_PAGE), count: total };

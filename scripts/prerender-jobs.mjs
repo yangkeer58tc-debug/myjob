@@ -63,6 +63,12 @@ const mexicoCityForJobId = (jobId) => {
   return MEXICO_CITIES[idx] || 'Ciudad de México';
 };
 
+const displayCityForJob = (job) => {
+  const loc = String(job.location ?? '').trim();
+  if (loc) return loc;
+  return mexicoCityForJobId(job.id);
+};
+
 const fetchJobs = async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
   const jobs = [];
@@ -70,7 +76,7 @@ const fetchJobs = async () => {
 
   for (let offset = 0; ; offset += pageSize) {
     const url = new URL(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/jobs`);
-    url.searchParams.set('select', ['id', 'title', 'summary', 'description', 'created_at', 'is_active', 'b_logo_url'].join(','));
+    url.searchParams.set('select', ['id', 'title', 'summary', 'description', 'created_at', 'is_active', 'b_logo_url', 'location'].join(','));
     url.searchParams.set('is_active', 'eq.true');
     url.searchParams.set('created_at', `gte.${cutoffIso}`);
     url.searchParams.set('order', 'created_at.desc');
@@ -162,7 +168,7 @@ const main = async () => {
 
   for (const job of jobs) {
     const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
-    const city = mexicoCityForJobId(job.id);
+    const city = displayCityForJob(job);
     const title = `${job.title || 'Vaga'} em ${city} | MyJob`;
     const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${city}`)).slice(0, 170);
     const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/placeholder.svg`;

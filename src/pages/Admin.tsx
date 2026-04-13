@@ -12,6 +12,9 @@ import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 import { parseHighlights } from '@/lib/highlightUtils';
+import { extractCompanyNameFromJd, extractSalaryFromJd, isPlaceholderEmployerName } from '@/lib/jdExtract';
+import { estimatedMonthlyMxnForJob } from '@/lib/mxSalaryFallback';
+import { isPlaceholderSalaryText } from '@/lib/salaryUtils';
 import { fixJobTextArtifacts, normalizeCompanyName, normalizeJobTextFields, normalizeJobTitle } from '@/lib/jobTextUtils';
 import {
   CATEGORY_OPTIONS,
@@ -469,7 +472,7 @@ const Admin = () => {
   const downloadTemplate = () => {
     const template = [
       ['id', 'b_name', 'b_logo_url', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
-      ['job-exemplo', 'MyJob', LOGO_URL, 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '2200', 'mensal', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Descreva a vaga em texto puro. Inclua como se candidatar pelo WhatsApp.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
+      ['job-exemplo', 'MyJob', LOGO_URL, 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '', '', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Sueldo mensual $12,000 MXN. Descreva a vaga em texto puro.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
     ];
     const csv = Papa.unparse(template);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -598,15 +601,45 @@ const Admin = () => {
             description: row.description || null,
             requirements: row.requirements || null,
           });
+          const jdBlob = [normalizedText.summary, normalizedText.description, normalizedText.requirements]
+            .filter(Boolean)
+            .join('\n\n');
+          const titleNorm = normalizeJobTitle(row.title || 'Sem título');
+          const categoryNorm = row.category ? normalizeOptionId(row.category, CATEGORY_OPTIONS) : null;
+
+          let b_name = normalizeCompanyName(row.b_name || '');
+          if (!b_name || isPlaceholderEmployerName(b_name)) {
+            const fromJd = extractCompanyNameFromJd(titleNorm, jdBlob);
+            if (fromJd) b_name = normalizeCompanyName(fromJd);
+          }
+          if (!b_name || isPlaceholderEmployerName(b_name)) b_name = 'MyJob';
+
+          let salary_amount = row.salary_amount ? normalizeSalaryInput(row.salary_amount) : '';
+          let payment_frequency = row.payment_frequency
+            ? normalizeOptionId(row.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)
+            : 'mensal';
+
+          if (!salary_amount.trim() || isPlaceholderSalaryText(salary_amount)) {
+            const ex = extractSalaryFromJd(jdBlob);
+            if (ex) {
+              salary_amount = normalizeSalaryInput(ex.amount);
+              payment_frequency = ex.payment_frequency;
+            } else {
+              const est = estimatedMonthlyMxnForJob(categoryNorm, titleNorm, location);
+              salary_amount = est.salary_amount;
+              payment_frequency = est.payment_frequency;
+            }
+          }
+
           return {
             id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            b_name: normalizeCompanyName(row.b_name || 'MyJob'),
+            b_name,
             b_logo_url: bLogo || null,
-            title: normalizeJobTitle(row.title || 'Sem título'),
-            category: row.category ? normalizeOptionId(row.category, CATEGORY_OPTIONS) : null,
+            title: titleNorm,
+            category: categoryNorm,
             location,
-            salary_amount: row.salary_amount ? normalizeSalaryInput(row.salary_amount) : 'A combinar',
-            payment_frequency: row.payment_frequency ? normalizeOptionId(row.payment_frequency, PAYMENT_FREQUENCY_OPTIONS) : 'mensal',
+            salary_amount,
+            payment_frequency,
             job_type: row.job_type ? normalizeOptionId(row.job_type, JOB_TYPE_OPTIONS) : 'tempo-integral',
             workplace_type: row.workplace_type ? normalizeOptionId(row.workplace_type, WORKPLACE_TYPE_OPTIONS) : 'presencial',
             summary: normalizedText.summary,
