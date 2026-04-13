@@ -8,7 +8,7 @@ import { useWhatsAppRedirect } from '@/hooks/useWhatsAppRedirect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatRelativeTime } from '@/lib/timeUtils';
 import { displaySalaryMXN } from '@/lib/salaryUtils';
-import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
+import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob } from '@/lib/mexicoLocation';
 import { jobPublicPath } from '@/lib/jobSeoPath';
@@ -121,7 +121,6 @@ const JobCard = ({ job }: JobCardProps) => {
           
           <div className="flex items-baseline space-x-1">
             <span className="text-xl font-bold text-primary">{displaySalaryMXN(job)}</span>
-            <span className="text-[10px] text-muted-foreground font-medium">{optionLabel(job.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)}</span>
           </div>
         </CardContent>
 
