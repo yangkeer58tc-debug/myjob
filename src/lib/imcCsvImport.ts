@@ -96,6 +96,12 @@ export function salaryHintFromAmountJson(amountRaw: string): string {
     return '';
   };
 
+  const minN = typeof o.min === 'number' ? o.min : typeof o.min === 'string' ? Number(o.min) : NaN;
+  const maxN = typeof o.max === 'number' ? o.max : typeof o.max === 'string' ? Number(o.max) : NaN;
+  if (Number.isFinite(minN) && Number.isFinite(maxN) && minN > 0 && maxN >= minN) {
+    return String(Math.round((minN + maxN) / 2));
+  }
+
   const direct =
     scalar(o.amount) ||
     scalar(o.value) ||
