@@ -10,7 +10,15 @@ import { formatSalaryMXN, salaryNumberForSchema } from '@/lib/salaryUtils';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
-import { optionLabel, CATEGORY_OPTIONS, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
+import {
+  optionLabel,
+  CATEGORY_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  EXPERIENCE_OPTIONS,
+  JOB_TYPE_OPTIONS,
+  WORKPLACE_TYPE_OPTIONS,
+  PAYMENT_FREQUENCY_OPTIONS,
+} from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { mexicoCityForJobId } from '@/lib/mexicoLocation';
 import { getSiteOrigin, safeJsonLdStringify, toAbsoluteUrl, toIsoDatePosted } from '@/lib/siteUrl';
@@ -319,6 +327,17 @@ const JobDetail = () => {
           name: 'MX',
         },
         jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
+        ...(job.experience
+          ? {
+              experienceRequirements: optionLabel(job.experience, EXPERIENCE_OPTIONS) || String(job.experience),
+            }
+          : {}),
+        ...(job.education_level
+          ? {
+              educationRequirements: optionLabel(job.education_level, EDUCATION_LEVEL_OPTIONS) || String(job.education_level),
+            }
+          : {}),
+        ...(job.industry ? { industry: String(job.industry) } : {}),
       }
     : null;
 

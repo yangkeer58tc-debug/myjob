@@ -5,13 +5,6 @@ const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const toIsoDate = (value) => {
-  if (!value) return undefined;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return date.toISOString();
-};
-
 const escapeHtml = (value) =>
   String(value)
     .replaceAll('&', '&amp;')
@@ -19,14 +12,6 @@ const escapeHtml = (value) =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-
-const escapeJsonLd = (value) =>
-  String(value)
-    .replaceAll('&', '\\u0026')
-    .replaceAll('<', '\\u003c')
-    .replaceAll('>', '\\u003e')
-    .replaceAll('\u2028', '\\u2028')
-    .replaceAll('\u2029', '\\u2029');
 
 const stripScripts = (value) => String(value || '').replace(/<script[^>]*>[\s\S]*?(?:<\/script>|$)/gi, '');
 const stripTags = (value) => String(value || '').replace(/<[^>]+>/g, '');
@@ -85,29 +70,7 @@ const fetchJobs = async () => {
 
   for (let offset = 0; ; offset += pageSize) {
     const url = new URL(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/jobs`);
-    url.searchParams.set(
-      'select',
-      [
-        'id',
-        'title',
-        'summary',
-        'description',
-        'requirements',
-        'highlights',
-        'created_at',
-        'is_active',
-        'location',
-        'category',
-        'salary_amount',
-        'payment_frequency',
-        'job_type',
-        'workplace_type',
-        'education_level',
-        'experience',
-        'b_name',
-        'b_logo_url',
-      ].join(','),
-    );
+    url.searchParams.set('select', ['id', 'title', 'summary', 'description', 'created_at', 'is_active', 'b_logo_url'].join(','));
     url.searchParams.set('is_active', 'eq.true');
     url.searchParams.set('created_at', `gte.${cutoffIso}`);
     url.searchParams.set('order', 'created_at.desc');
@@ -135,7 +98,7 @@ const fetchJobs = async () => {
   return jobs;
 };
 
-const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, ogImage }) => {
+const applyHead = ({ html, title, description, canonical, ogImage }) => {
   let out = html;
 
   out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
@@ -182,128 +145,7 @@ const applyHead = ({ html, title, description, canonical, jsonLd, breadcrumbLd, 
   
   out = out.replace(/<\/head>/i, `${ogTags}</head>`);
 
-  const ld = `
-<script type="application/ld+json">${escapeJsonLd(JSON.stringify(jsonLd))}</script>
-<script type="application/ld+json">${escapeJsonLd(JSON.stringify(breadcrumbLd))}</script>
-`;
-  if (/<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/i.test(out)) {
-    // If we have an existing ld+json, append our new ones
-    out = out.replace(/(<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>)/i, `$1${ld}`);
-  } else {
-    out = out.replace(/<\/head>/i, `${ld}</head>`);
-  }
-
   return out;
-};
-
-const buildJobPostingJsonLd = (job) => {
-  const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
-  const orgLogo = absoluteUrl(job.b_logo_url);
-  const validThrough = toIsoDate(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)) || undefined;
-  const city = mexicoCityForJobId(job.id);
-  const descriptionParts = [
-    textForSchema(job.summary || job.description || ''),
-    job.requirements ? `\n\nRequisitos:\n${textForSchema(job.requirements)}` : '',
-  ]
-    .filter(Boolean)
-    .join('');
-
-  const base = {
-    '@context': 'https://schema.org',
-    '@type': 'JobPosting',
-    title: job.title || '',
-    url: jobUrl,
-    identifier: {
-      '@type': 'PropertyValue',
-      name: 'MyJob',
-      value: String(job.id || ''),
-    },
-    description: descriptionParts,
-    datePosted: toIsoDate(job.created_at) || undefined,
-    validThrough,
-    employmentType:
-      job.job_type === 'tempo-integral'
-        ? 'FULL_TIME'
-        : job.job_type === 'meio-periodo'
-          ? 'PART_TIME'
-          : job.job_type === 'estagio'
-            ? 'INTERN'
-            : 'OTHER',
-    hiringOrganization: {
-      '@type': 'Organization',
-      name: job.b_name || 'MyJob',
-      sameAs: SITE_URL,
-      ...(orgLogo ? { logo: orgLogo } : {}),
-    },
-    jobLocation: {
-      '@type': 'Place',
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: city,
-        addressCountry: 'MX',
-      },
-    },
-    directApply: true,
-    applicantLocationRequirements: {
-      '@type': 'Country',
-      name: 'MX',
-    },
-    jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
-  };
-
-  if (job.industry) base.industry = String(job.industry);
-
-  if (job.education_level) base.educationRequirements = String(job.education_level);
-  if (job.experience) base.experienceRequirements = String(job.experience);
-
-  const numericSalary = typeof job.salary_amount === 'string' ? Number(job.salary_amount.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')) : NaN;
-  if (Number.isFinite(numericSalary) && numericSalary > 0) {
-    base.baseSalary = {
-      '@type': 'MonetaryAmount',
-      currency: 'MXN',
-      value: {
-        '@type': 'QuantitativeValue',
-        value: numericSalary,
-        unitText:
-          job.payment_frequency === 'mensal'
-            ? 'MONTH'
-            : job.payment_frequency === 'quinzenal'
-              ? 'WEEK'
-              : job.payment_frequency === 'hora'
-                ? 'HOUR'
-                : 'OTHER',
-      },
-    };
-  }
-
-  return base;
-};
-
-const buildBreadcrumbLd = (job) => {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Home',
-        item: SITE_URL,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Vagas',
-        item: `${SITE_URL}/empleos`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: job.title || 'Vaga',
-        item: `${SITE_URL}/empleo/${job.id}/`,
-      },
-    ],
-  };
 };
 
 const main = async () => {
@@ -323,10 +165,8 @@ const main = async () => {
     const city = mexicoCityForJobId(job.id);
     const title = `${job.title || 'Vaga'} em ${city} | MyJob`;
     const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${city}`)).slice(0, 170);
-    const jsonLd = buildJobPostingJsonLd(job);
-    const breadcrumbLd = buildBreadcrumbLd(job);
     const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/placeholder.svg`;
-    const html = applyHead({ html: template, title, description: desc, canonical: jobUrl, jsonLd, breadcrumbLd, ogImage });
+    const html = applyHead({ html: template, title, description: desc, canonical: jobUrl, ogImage });
 
     const outDir = path.join(distDir, 'empleo', String(job.id));
     await mkdir(outDir, { recursive: true });
