@@ -46,11 +46,25 @@ function normalizeHighlights(value: unknown): string[] {
   return out;
 }
 
+const openAiCompatibleKey = () =>
+  String(import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.LLM_API_KEY || '').trim();
+
+const openAiCompatibleBase = () =>
+  String(
+    import.meta.env.VITE_OPENAI_API_BASE_URL ||
+      import.meta.env.LLM_BASE_URL ||
+      'https://api.openai.com/v1',
+  )
+    .trim()
+    .replace(/\/$/, '');
+
+const openAiCompatibleModel = () =>
+  String(import.meta.env.VITE_OPENAI_MODEL || import.meta.env.LLM_MODEL || 'gpt-4o-mini').trim();
+
 /** True when any supported AI env is present (browser build: keys are visible in client bundle). */
 export function hasJobAiConfig(): boolean {
   const custom = String(import.meta.env.VITE_JOB_AI_URL || '').trim();
-  const openai = String(import.meta.env.VITE_OPENAI_API_KEY || '').trim();
-  return Boolean(custom || openai);
+  return Boolean(custom || openAiCompatibleKey());
 }
 
 /**
@@ -110,11 +124,11 @@ const buildUserPrompt = (description: string) => {
 };
 
 async function callOpenAiCompatible(description: string): Promise<JobAiEnrichment> {
-  const apiKey = String(import.meta.env.VITE_OPENAI_API_KEY || '').trim();
+  const apiKey = openAiCompatibleKey();
   if (!apiKey) return { summary: null, highlights: [] };
 
-  const base = String(import.meta.env.VITE_OPENAI_API_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-  const model = String(import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini').trim();
+  const base = openAiCompatibleBase();
+  const model = openAiCompatibleModel();
 
   const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
