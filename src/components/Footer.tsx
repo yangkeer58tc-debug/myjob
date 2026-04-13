@@ -35,7 +35,7 @@ const Footer = () => {
             {t('footer.jobs')}
           </Link>
           <a
-            href="https://wa.me/5218132689375"
+            href="https://wa.me/5218132689146"
             target="_blank"
             rel="noopener noreferrer"
             className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}

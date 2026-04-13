@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { QRCodeSVG } from 'qrcode.react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-const BOT_NUMBER = '5218132689375';
+const BOT_NUMBER = '5218132689146';
 
 export const useWhatsAppRedirect = (jobTitle: string, bName: string) => {
   const { t } = useLanguage();

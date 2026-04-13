@@ -23,7 +23,7 @@ type Candidate = {
   created_at: string;
 };
 
-const BOT_NUMBER = '5218132689375';
+const BOT_NUMBER = '5218132689146';
 
 const maskName = (firstName: string | null, lastName: string | null, fallback: string | null) => {
   const cap = (v: string) => (v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : v);
