@@ -62,7 +62,8 @@ const Home = () => {
       name: 'MyJob',
       url: `${siteOrigin}/`,
       description:
-        'Vagas no México com candidatura pelo WhatsApp. Encontre emprego ou divulgue oportunidades com fluxo rápido.',
+        'Empleos en México con postulación por WhatsApp. Encuentra vacantes o publica ofertas con flujo rápido.',
+      inLanguage: 'es-MX',
       potentialAction: {
         '@type': 'SearchAction',
         target: `${siteOrigin}/empleos?q={search_term_string}`,

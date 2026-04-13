@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { HelmetProvider } from 'react-helmet-async';
+import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
@@ -10,7 +10,10 @@ const PublicLayout = ({ children }: { children: ReactNode }) => {
   const isHome = location.pathname === '/';
 
   return (
-    <HelmetProvider>
+    <>
+      <Helmet htmlAttributes={{ lang: 'es-MX' }}>
+        <meta name="geo.region" content="MX" />
+      </Helmet>
       <div className={cn('min-h-screen flex flex-col w-full bg-background text-foreground', isHome && 'dark')}>
         <Navbar />
         <main className="flex-1 w-full" id="main-content" role="main">
@@ -18,7 +21,7 @@ const PublicLayout = ({ children }: { children: ReactNode }) => {
         </main>
         <Footer />
       </div>
-    </HelmetProvider>
+    </>
   );
 };
 

@@ -28,6 +28,22 @@ const escapeXml = (value) =>
 const DAYS_TO_EXPIRE = 60;
 const cutoffIso = new Date(Date.now() - DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000).toISOString();
 
+const slugify = (value) => {
+  const s = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return s || 'empleo';
+};
+
+const jobPath = (job) => {
+  const head = (job.slug && String(job.slug).trim()) ? slugify(job.slug) : slugify(job.title);
+  return `/empleo/${head}-${job.id}/`;
+};
+
 const fetchJobs = async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
   const jobs = [];
@@ -35,7 +51,7 @@ const fetchJobs = async () => {
 
   for (let offset = 0; ; offset += pageSize) {
     const url = new URL(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/jobs`);
-    url.searchParams.set('select', 'id,created_at');
+    url.searchParams.set('select', 'id,created_at,title,slug');
     url.searchParams.set('is_active', 'eq.true');
     url.searchParams.set('created_at', `gte.${cutoffIso}`);
     url.searchParams.set('order', 'created_at.desc');
@@ -91,7 +107,7 @@ const main = async () => {
     const jobs = await fetchJobs();
     for (const job of jobs) {
       urls.push({
-        loc: `${SITE_URL}/empleo/${job.id}/`,
+        loc: `${SITE_URL}${jobPath(job)}`,
         lastmod: toIsoDate(job.created_at),
         changefreq: 'daily',
         priority: 0.8,

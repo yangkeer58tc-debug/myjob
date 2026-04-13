@@ -10,6 +10,7 @@ import { displaySalaryMXN } from '@/lib/salaryUtils';
 import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTIONS, WORKPLACE_TYPE_OPTIONS, PAYMENT_FREQUENCY_OPTIONS } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob } from '@/lib/mexicoLocation';
+import { jobPublicPath } from '@/lib/jobSeoPath';
 
 interface JobCardProps {
   job: {
@@ -52,7 +53,7 @@ const JobCard = ({ job }: JobCardProps) => {
   return (
     <>
       <Card
-        onClick={() => navigate(`/empleo/${job.id}`)}
+        onClick={() => navigate(jobPublicPath(job))}
         className="group relative flex flex-col overflow-hidden transition-all hover:shadow-md cursor-pointer border-border/50"
       >
         <CardHeader className="p-5 pb-0">

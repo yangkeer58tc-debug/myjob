@@ -1,4 +1,5 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
 import { Briefcase, MapPin, Clock, Building2, MessageCircle, ChevronRight, AlertTriangle } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob, mexicoCityForJobId } from '@/lib/mexicoLocation';
 import { getSiteOrigin, safeJsonLdStringify, toAbsoluteUrl, toIsoDatePosted } from '@/lib/siteUrl';
+import { isLegacyNumericEmpleoPath, jobPublicPath, parseEmpleoParam } from '@/lib/jobSeoPath';
 
 const DAYS_TO_EXPIRE = 60;
 
@@ -174,22 +176,36 @@ const ReadableText = ({ text, suppressHeadings }: { text: string; suppressHeadin
 };
 
 const JobDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: routeSegment } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { lang, t } = useLanguage();
 
+  const parsed = useMemo(() => (routeSegment ? parseEmpleoParam(routeSegment) : null), [routeSegment]);
+
   const { data: job, isLoading } = useQuery({
-    queryKey: ['job', id],
+    queryKey: ['job', 'detail', parsed?.kind, parsed?.kind === 'id' ? parsed?.id : parsed?.slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', id!)
-        .single();
+      if (!parsed) return null;
+      if (parsed.kind === 'id' && !parsed.id) return null;
+      if (parsed.kind === 'slug' && !parsed.slug) return null;
+      let q = supabase.from('jobs').select('*');
+      if (parsed.kind === 'id') q = q.eq('id', parsed.id);
+      else q = q.eq('slug', parsed.slug);
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!id,
+    enabled:
+      !!parsed && (parsed.kind === 'id' ? !!parsed.id : !!parsed.slug),
   });
+
+  useEffect(() => {
+    if (!job) return;
+    if (isLegacyNumericEmpleoPath(location.pathname, job.id)) {
+      navigate(`${jobPublicPath(job)}${location.search}`, { replace: true });
+    }
+  }, [job, location.pathname, location.search, navigate]);
 
   const title = job?.title || '';
   const description = job?.description || '';
@@ -199,9 +215,8 @@ const JobDetail = () => {
 
   const safeTitle = maybeFixMojibake(title);
   const safeCompany = maybeFixMojibake(job?.b_name || '');
-  const safeLocation = job ? displayCityForJob(job) : mexicoCityForJobId(id);
+  const safeLocation = job ? displayCityForJob(job) : mexicoCityForJobId(routeSegment);
   const siteOrigin = getSiteOrigin();
-  const jobPageUrl = `${siteOrigin}/empleo/${job?.id ?? id}/`;
   const orgLogoUrl = job ? toAbsoluteUrl(job.b_logo_url, siteOrigin) : undefined;
 
   const { handleApply, QRModal } = useWhatsAppRedirect(safeTitle, safeCompany);
@@ -246,6 +261,8 @@ const JobDetail = () => {
       </PublicLayout>
     );
   }
+
+  const jobPageUrl = `${siteOrigin.replace(/\/+$/, '')}${jobPublicPath(job)}`;
 
   const now = Date.now();
   const createdAtMs = job.created_at ? Date.parse(String(job.created_at)) : NaN;
@@ -368,10 +385,12 @@ const JobDetail = () => {
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
         <link rel="canonical" href={pageUrl} />
+        <link rel="alternate" hrefLang="es-MX" href={pageUrl} />
+        <link rel="alternate" hrefLang="x-default" href={pageUrl} />
         {isExpired ? <meta name="robots" content="noindex,follow" /> : null}
         
         {/* Open Graph */}
-        <meta property="og:type" content="website" />
+        <meta property="og:type" content="article" />
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:image" content={pageImage} />

@@ -69,6 +69,22 @@ const displayCityForJob = (job) => {
   return mexicoCityForJobId(job.id);
 };
 
+const slugify = (value) => {
+  const s = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return s || 'empleo';
+};
+
+const jobPath = (job) => {
+  const head = (job.slug && String(job.slug).trim()) ? slugify(job.slug) : slugify(job.title);
+  return `/empleo/${head}-${job.id}/`;
+};
+
 const fetchJobs = async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
   const jobs = [];
@@ -76,7 +92,7 @@ const fetchJobs = async () => {
 
   for (let offset = 0; ; offset += pageSize) {
     const url = new URL(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/jobs`);
-    url.searchParams.set('select', ['id', 'title', 'summary', 'description', 'created_at', 'is_active', 'b_logo_url', 'location'].join(','));
+    url.searchParams.set('select', ['id', 'title', 'slug', 'summary', 'description', 'created_at', 'is_active', 'b_logo_url', 'location'].join(','));
     url.searchParams.set('is_active', 'eq.true');
     url.searchParams.set('created_at', `gte.${cutoffIso}`);
     url.searchParams.set('order', 'created_at.desc');
@@ -167,14 +183,15 @@ const main = async () => {
   }
 
   for (const job of jobs) {
-    const jobUrl = `${SITE_URL}/empleo/${job.id}/`;
+    const jobUrl = `${SITE_URL}${jobPath(job)}`;
     const city = displayCityForJob(job);
     const title = `${job.title || 'Vaga'} em ${city} | MyJob`;
     const desc = normalizeWhitespace(textForSchema(job.summary || job.description || `Vaga em ${city}`)).slice(0, 170);
     const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/placeholder.svg`;
     const html = applyHead({ html: template, title, description: desc, canonical: jobUrl, ogImage });
 
-    const outDir = path.join(distDir, 'empleo', String(job.id));
+    const pathSeg = jobPath(job).replace(/^\/+|\/+$/g, '').split('/');
+    const outDir = path.join(distDir, ...pathSeg);
     await mkdir(outDir, { recursive: true });
     await writeFile(path.join(outDir, 'index.html'), html, 'utf8');
   }
