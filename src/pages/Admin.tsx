@@ -53,6 +53,7 @@ interface JobForm {
   b_name: string;
   b_logo_url: string;
   b_same_as: string;
+  street_address: string;
   title: string;
   category: string;
   salary_amount: string;
@@ -180,6 +181,7 @@ const emptyForm: JobForm = {
   b_name: '',
   b_logo_url: '',
   b_same_as: '',
+  street_address: '',
   title: '',
   category: '',
   salary_amount: '',
@@ -205,6 +207,7 @@ type JobCsvPayloadRow = {
   b_name: string;
   b_logo_url: string | null;
   b_same_as: string | null;
+  street_address: string | null;
   title: string;
   category: string | null;
   location: string;
@@ -273,12 +276,17 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
       row.b_same_as || row.company_url || row.company_website || row.website || row.employer_url || '',
     );
     const b_same_as = bSameRaw ? normalizeEmployerSameAs(bSameRaw) : null;
+    const streetRaw = stripCsvCellDecorations(
+      row.street_address || row.direccion || row.calle || row.address_line || row.domicilio || '',
+    );
+    const street_address = streetRaw ? streetRaw.slice(0, 500) : null;
 
     return {
       id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       b_name,
       b_logo_url,
       b_same_as,
+      street_address,
       title: titleNorm,
       category: categoryNorm,
       location,
@@ -402,6 +410,7 @@ const Admin = () => {
         b_name: normalizeCompanyName(form.b_name),
         b_logo_url: normalizeImportedEmployerLogoUrl(form.b_logo_url),
         b_same_as: normalizeEmployerSameAs(form.b_same_as) || null,
+        street_address: form.street_address?.trim() ? form.street_address.trim().slice(0, 500) : null,
         title: normalizeJobTitle(form.title),
         category: normalizeOptionId(form.category, CATEGORY_OPTIONS) || null,
         salary_amount: form.salary_amount,
@@ -631,6 +640,7 @@ const Admin = () => {
       b_name: job.b_name,
       b_logo_url: job.b_logo_url || '',
       b_same_as: job.b_same_as || '',
+      street_address: job.street_address || '',
       title: job.title,
       category: job.category || '',
       salary_amount: job.salary_amount,
@@ -658,8 +668,8 @@ const Admin = () => {
 
   const downloadTemplate = () => {
     const template = [
-      ['id', 'b_name', 'b_logo_url', 'b_same_as', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
-      ['job-exemplo', 'MyJob', '', 'https://empresa-ejemplo.mx', 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '', '', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Sueldo mensual $12,000 MXN. Descreva a vaga em texto puro.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
+      ['id', 'b_name', 'b_logo_url', 'b_same_as', 'street_address', 'title', 'category', 'location', 'salary_amount', 'payment_frequency', 'job_type', 'workplace_type', 'summary', 'description', 'requirements', 'highlights', 'education_level', 'experience', 'industry', 'language_req', 'is_active'],
+      ['job-exemplo', 'MyJob', '', 'https://empresa-ejemplo.mx', '', 'Atendente de Call Center', 'call-center-customer-service', 'sao-paulo', '', '', 'tempo-integral', 'presencial', 'Atendimento ao cliente via telefone e WhatsApp.', 'Sueldo mensual $12,000 MXN. Descreva a vaga em texto puro.', 'Boa comunicação; disponibilidade de horário.', 'Vale-transporte, Vale-refeição', 'medio', 'sem-experiencia', 'Serviços', 'Português', 'TRUE']
     ];
     const csv = Papa.unparse(template);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1102,6 +1112,16 @@ const Admin = () => {
                   className="rounded-xl mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">Opcional. Para JobPosting en Google; si está vacío se usa el dominio del sitio.</p>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Calle / dirección del centro de trabajo (streetAddress)</Label>
+                <Input
+                  value={editing.street_address}
+                  onChange={(e) => setEditing({ ...editing, street_address: e.target.value })}
+                  placeholder="Ej. Av. Insurgentes Sur 1234, Col. Del Valle"
+                  className="rounded-xl mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Opcional. Mejora el marcado de dirección en Google si es la ubicación real del puesto.</p>
               </div>
               <div>
                 <Label>Categoría</Label>

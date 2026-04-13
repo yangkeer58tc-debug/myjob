@@ -343,6 +343,7 @@ const JobDetail = () => {
             ...(addressParts.addressRegion ? { addressRegion: addressParts.addressRegion } : {}),
             ...(addressParts.postalCode ? { postalCode: addressParts.postalCode } : {}),
             ...(addressParts.streetAddress ? { streetAddress: addressParts.streetAddress } : {}),
+            ...(job.street_address?.trim() ? { streetAddress: job.street_address.trim().slice(0, 500) } : {}),
           },
         },
         ...(schemaSalary ?? {}),

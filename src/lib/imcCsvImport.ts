@@ -165,6 +165,8 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
     id: id || row.id,
     b_name: b_name || row.b_name,
     b_same_as: b_same_as_hint || row.b_same_as || '',
+    street_address:
+      pick(row, 'street_address', 'direccion', 'calle', 'address_line', 'domicilio') || row.street_address || '',
     category: category || row.category,
     industry: industry || (row.industry ? normalizeIndustryLabelForMexico(row.industry) : ''),
     salary_amount: pick(row, 'salary_amount') || salaryFromAmount,

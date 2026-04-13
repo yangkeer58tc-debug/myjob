@@ -35,6 +35,7 @@ export type Database = {
           requirements: string | null
           salary_amount: string
           slug: string | null
+          street_address: string | null
           summary: string | null
           title: string
           workplace_type: string
@@ -59,6 +60,7 @@ export type Database = {
           requirements?: string | null
           salary_amount?: string
           slug?: string | null
+          street_address?: string | null
           summary?: string | null
           title?: string
           workplace_type?: string
@@ -83,6 +85,7 @@ export type Database = {
           requirements?: string | null
           salary_amount?: string
           slug?: string | null
+          street_address?: string | null
           summary?: string | null
           title?: string
           workplace_type?: string
