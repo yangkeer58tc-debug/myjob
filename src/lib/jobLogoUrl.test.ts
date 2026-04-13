@@ -16,6 +16,11 @@ describe('jobLogoUrl', () => {
     expect(collectFirstEmployerLogoRaw(row)).toBe('https://example.com/c.png');
   });
 
+  it('collects logo from Logo-style header after normalization', () => {
+    const row = { logo: 'https://cdn.example.com/x.png' };
+    expect(collectFirstEmployerLogoRaw(row)).toBe('https://cdn.example.com/x.png');
+  });
+
   it('detects CloudFront square logo', () => {
     expect(
       looksLikeCompanyLogoUrl(

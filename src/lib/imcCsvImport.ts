@@ -16,6 +16,8 @@ export function normalizeCsvRecordKeys(row: Record<string, string>): Record<stri
 export function isImcExportCsv(fieldNames: string[]): boolean {
   const set = new Set(fieldNames.map(normKey));
   if (set.has('category_full_path')) return true;
+  /** Title / Company / Logo / … job-board style sheets (even if a `b_name` column exists empty). */
+  if (set.has('company') && set.has('logo')) return true;
   if (set.has('company') && !set.has('b_name')) return true;
   return false;
 }
@@ -147,13 +149,13 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
     industry: industry || (row.industry ? normalizeIndustryLabelForMexico(row.industry) : ''),
     salary_amount: pick(row, 'salary_amount') || salaryFromAmount,
     location: pick(row, 'location') || row.location,
-    title: pick(row, 'title') || row.title,
+    title: pick(row, 'title', 'job_title') || row.title,
     description: pick(row, 'description') || row.description,
     requirements: pick(row, 'requirements') || row.requirements || '',
     summary: pick(row, 'summary') || row.summary || '',
     highlights: pick(row, 'highlights') || row.highlights || '',
     b_logo_url,
-    job_type: pick(row, 'job_type') || row.job_type || '',
+    job_type: pick(row, 'job_type', 'employment_type') || row.job_type || '',
     workplace_type: pick(row, 'workplace_type') || row.workplace_type || '',
     payment_frequency: pick(row, 'payment_frequency') || row.payment_frequency || '',
     education_level: pick(row, 'education_level') || row.education_level || '',

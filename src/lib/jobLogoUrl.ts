@@ -29,11 +29,26 @@ const EXPLICIT_LOGO_ROW_KEYS = [
   'squarelogo',
 ];
 
+/** Keys like `Logo`, `company_logo`, `logo_image` after CSV header normalization. */
+function rowKeyLooksLikeLogoColumn(key: string): boolean {
+  const k = key.toLowerCase();
+  if (k === 'logo') return true;
+  if (k.startsWith('logo_')) return true;
+  if (k.endsWith('_logo')) return true;
+  if (k.includes('_logo_')) return true;
+  return false;
+}
+
 /** First non-empty logo cell from a normalized (lowercase keys) CSV row. */
 export function collectFirstEmployerLogoRaw(row: Record<string, string>): string {
   for (const k of EXPLICIT_LOGO_ROW_KEYS) {
     const v = stripCsvCellDecorations(row[k] ?? '');
     if (v) return v;
+  }
+  for (const [k, raw] of Object.entries(row)) {
+    if (!rowKeyLooksLikeLogoColumn(k)) continue;
+    const v = stripCsvCellDecorations(raw ?? '');
+    if (v && /^https?:\/\//i.test(v)) return v;
   }
   return '';
 }

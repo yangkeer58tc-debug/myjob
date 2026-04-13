@@ -236,10 +236,12 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
     const jdBlob = [normalizedText.summary, normalizedText.description, normalizedText.requirements]
       .filter(Boolean)
       .join('\n\n');
-    const titleNorm = normalizeJobTitle(row.title || 'Sem título');
+    const titleNorm = normalizeJobTitle(
+      stripCsvCellDecorations(row.title || row.job_title || '') || 'Sem título',
+    );
     const categoryNorm = row.category ? normalizeOptionId(row.category, CATEGORY_OPTIONS) : null;
 
-    let b_name = normalizeCompanyName(row.b_name || '');
+    let b_name = normalizeCompanyName(stripCsvCellDecorations(row.b_name || row.company || ''));
     if (!b_name || isPlaceholderEmployerName(b_name)) {
       const fromJd = extractCompanyNameFromJd(titleNorm, jdBlob);
       if (fromJd) b_name = normalizeCompanyName(fromJd);
