@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import { LogOut, Plus, Pencil, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
@@ -37,6 +38,7 @@ import {
   hasJobAiConfig,
 } from '@/lib/jobSummaryAi';
 import { normalizeIndustryLabelForMexico } from '@/lib/industryEsMx';
+import { jobImportAiConcurrency, jobImportUpsertOnlyConcurrency, runPool } from '@/lib/jobImportPool';
 
 interface JobForm {
   id: string;
@@ -188,6 +190,101 @@ const emptyForm: JobForm = {
 
 const LOGO_URL = '/brand-logo.jpg';
 
+type JobCsvPayloadRow = {
+  id: string;
+  b_name: string;
+  b_logo_url: string | null;
+  title: string;
+  category: string | null;
+  location: string;
+  salary_amount: string;
+  payment_frequency: string;
+  job_type: string;
+  workplace_type: string;
+  summary: string | null;
+  description: string | null;
+  requirements: string | null;
+  highlights: string[] | null;
+  education_level: string | null;
+  industry: string | null;
+  language_req: string | null;
+  experience: string | null;
+  is_active: boolean;
+};
+
+function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): JobCsvPayloadRow[] {
+  return rowsForImport.map((row) => {
+    const locationRaw = row.location || 'Brasil';
+    const location = normalizeCity(locationRaw);
+    const bLogo = row.b_logo_url ? row.b_logo_url : LOGO_URL;
+    const normalizedText = normalizeJobTextFields({
+      summary: row.summary || null,
+      description: row.description || null,
+      requirements: row.requirements || null,
+    });
+    const jdBlob = [normalizedText.summary, normalizedText.description, normalizedText.requirements]
+      .filter(Boolean)
+      .join('\n\n');
+    const titleNorm = normalizeJobTitle(row.title || 'Sem título');
+    const categoryNorm = row.category ? normalizeOptionId(row.category, CATEGORY_OPTIONS) : null;
+
+    let b_name = normalizeCompanyName(row.b_name || '');
+    if (!b_name || isPlaceholderEmployerName(b_name)) {
+      const fromJd = extractCompanyNameFromJd(titleNorm, jdBlob);
+      if (fromJd) b_name = normalizeCompanyName(fromJd);
+    }
+    if (!b_name || isPlaceholderEmployerName(b_name)) b_name = 'MyJob';
+
+    let salary_amount = row.salary_amount ? normalizeSalaryInput(row.salary_amount) : '';
+    let payment_frequency = row.payment_frequency
+      ? normalizeOptionId(row.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)
+      : 'mensal';
+
+    if (!salary_amount.trim() || isPlaceholderSalaryText(salary_amount)) {
+      const ex = extractSalaryFromJd(jdBlob);
+      if (ex) {
+        salary_amount = normalizeSalaryInput(ex.amount);
+        payment_frequency = ex.payment_frequency;
+      } else {
+        const est = estimatedMonthlyMxnForJob(categoryNorm, titleNorm, location);
+        salary_amount = est.salary_amount;
+        payment_frequency = est.payment_frequency;
+      }
+    }
+
+    return {
+      id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      b_name,
+      b_logo_url: bLogo || null,
+      title: titleNorm,
+      category: categoryNorm,
+      location,
+      salary_amount,
+      payment_frequency,
+      job_type: row.job_type ? normalizeOptionId(row.job_type, JOB_TYPE_OPTIONS) : 'tempo-integral',
+      workplace_type: row.workplace_type ? normalizeOptionId(row.workplace_type, WORKPLACE_TYPE_OPTIONS) : 'presencial',
+      summary: normalizedText.summary,
+      description: normalizedText.description,
+      requirements: normalizedText.requirements,
+      highlights: row.highlights ? parseHighlights(row.highlights) : null,
+      education_level: row.education_level ? normalizeOptionId(row.education_level, EDUCATION_LEVEL_OPTIONS) : null,
+      industry: row.industry ? normalizeIndustryLabelForMexico(row.industry) : null,
+      language_req: row.language_req || null,
+      experience: row.experience ? normalizeOptionId(row.experience, EXPERIENCE_OPTIONS) : null,
+      is_active: parseBoolean(row.is_active, true),
+    };
+  });
+}
+
+type JobImportProgressState = {
+  isRunning: boolean;
+  total: number;
+  saved: number;
+  failed: number;
+  lastTitle?: string;
+  lastError?: string;
+};
+
 const Admin = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
@@ -200,6 +297,7 @@ const Admin = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const candidateFileInputRef = useRef<HTMLInputElement>(null);
+  const [jobImportProgress, setJobImportProgress] = useState<JobImportProgressState | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -635,6 +733,7 @@ const Admin = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (jobImportProgress?.isRunning) return;
 
     (async () => {
       try {
@@ -653,67 +752,12 @@ const Admin = () => {
           ? normalizedRows.map(mergeImcColumnsIntoClassicRow)
           : normalizedRows;
 
-        const payload = rowsForImport.map((row) => {
-          const locationRaw = row.location || 'Brasil';
-          const location = normalizeCity(locationRaw);
-          const bLogo = row.b_logo_url ? row.b_logo_url : LOGO_URL;
-          const normalizedText = normalizeJobTextFields({
-            summary: row.summary || null,
-            description: row.description || null,
-            requirements: row.requirements || null,
-          });
-          const jdBlob = [normalizedText.summary, normalizedText.description, normalizedText.requirements]
-            .filter(Boolean)
-            .join('\n\n');
-          const titleNorm = normalizeJobTitle(row.title || 'Sem título');
-          const categoryNorm = row.category ? normalizeOptionId(row.category, CATEGORY_OPTIONS) : null;
-
-          let b_name = normalizeCompanyName(row.b_name || '');
-          if (!b_name || isPlaceholderEmployerName(b_name)) {
-            const fromJd = extractCompanyNameFromJd(titleNorm, jdBlob);
-            if (fromJd) b_name = normalizeCompanyName(fromJd);
-          }
-          if (!b_name || isPlaceholderEmployerName(b_name)) b_name = 'MyJob';
-
-          let salary_amount = row.salary_amount ? normalizeSalaryInput(row.salary_amount) : '';
-          let payment_frequency = row.payment_frequency
-            ? normalizeOptionId(row.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)
-            : 'mensal';
-
-          if (!salary_amount.trim() || isPlaceholderSalaryText(salary_amount)) {
-            const ex = extractSalaryFromJd(jdBlob);
-            if (ex) {
-              salary_amount = normalizeSalaryInput(ex.amount);
-              payment_frequency = ex.payment_frequency;
-            } else {
-              const est = estimatedMonthlyMxnForJob(categoryNorm, titleNorm, location);
-              salary_amount = est.salary_amount;
-              payment_frequency = est.payment_frequency;
-            }
-          }
-
-          return {
-            id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            b_name,
-            b_logo_url: bLogo || null,
-            title: titleNorm,
-            category: categoryNorm,
-            location,
-            salary_amount,
-            payment_frequency,
-            job_type: row.job_type ? normalizeOptionId(row.job_type, JOB_TYPE_OPTIONS) : 'tempo-integral',
-            workplace_type: row.workplace_type ? normalizeOptionId(row.workplace_type, WORKPLACE_TYPE_OPTIONS) : 'presencial',
-            summary: normalizedText.summary,
-            description: normalizedText.description,
-            requirements: normalizedText.requirements,
-            highlights: row.highlights ? parseHighlights(row.highlights) : null,
-            education_level: row.education_level ? normalizeOptionId(row.education_level, EDUCATION_LEVEL_OPTIONS) : null,
-            industry: row.industry ? normalizeIndustryLabelForMexico(row.industry) : null,
-            language_req: row.language_req || null,
-            experience: row.experience ? normalizeOptionId(row.experience, EXPERIENCE_OPTIONS) : null,
-            is_active: parseBoolean(row.is_active, true),
-          };
-        });
+        const payload = buildJobsPayloadFromCsvRows(rowsForImport);
+        const total = payload.length;
+        if (total === 0) {
+          toast.message('CSV sin filas para importar.');
+          return;
+        }
 
         const shouldRunAiForIndex = (idx: number) => {
           if (!hasJobAiConfig()) return false;
@@ -727,52 +771,92 @@ const Admin = () => {
         };
 
         let aiFallbackUsed = false;
-        if (hasJobAiConfig()) {
-          const toastId = toast.loading('Gerando resumo e destaques com IA…');
-          try {
-            for (let i = 0; i < payload.length; i++) {
-              if (!shouldRunAiForIndex(i)) continue;
-              const desc = String(payload[i].description || '');
-              try {
-                const ai = await generateJobSummaryAndHighlights(desc);
-                if (ai.summary) payload[i].summary = ai.summary;
-                const hl =
-                  ai.highlights.length > 0 ? ai.highlights : fallbackHighlightsFromDescription(desc);
-                payload[i].highlights = hl.length ? hl : null;
-              } catch {
-                aiFallbackUsed = true;
-                if (!payload[i].highlights?.length) {
-                  const fb = fallbackHighlightsFromDescription(desc);
-                  payload[i].highlights = fb.length ? fb : null;
-                }
-              }
-            }
-          } finally {
-            toast.dismiss(toastId);
-          }
-          if (aiFallbackUsed) {
-            toast.message('Algumas vagas usaram destaques automáticos no texto porque a API de IA falhou.');
-          }
-        } else if (imcShape) {
-          for (let i = 0; i < payload.length; i++) {
-            const desc = String(payload[i].description || '');
-            if (!payload[i].highlights?.length && desc) {
-              const fb = fallbackHighlightsFromDescription(desc);
-              payload[i].highlights = fb.length ? fb : null;
-            }
-          }
+        const useAi = hasJobAiConfig();
+        const concurrency = useAi ? jobImportAiConcurrency() : jobImportUpsertOnlyConcurrency();
+
+        setJobImportProgress({
+          isRunning: true,
+          total,
+          saved: 0,
+          failed: 0,
+        });
+
+        if (imcShape && !useAi) {
           toast.message(
-            'Import IMC sem chave de IA (VITE_JOB_AI_URL ou VITE_OPENAI_API_KEY): destaques foram extraídos do próprio JD.',
-            { duration: 7000 },
+            'Import IMC sin IA: destaques por fila desde el JD. Puedes subir VITE_JOB_AI_URL o LLM_* para resúmenes con IA.',
+            { duration: 6000 },
           );
         }
 
-        const { error } = await supabase.from('jobs').upsert(payload);
-        if (error) throw error;
+        const processOne = async (i: number) => {
+          const row = payload[i];
+          const desc = String(row.description || '').trim();
 
-        toast.success(`Importadas ${payload.length} vagas com sucesso.`);
+          if (useAi && shouldRunAiForIndex(i)) {
+            try {
+              const ai = await generateJobSummaryAndHighlights(desc);
+              if (ai.summary) row.summary = ai.summary;
+              const hl =
+                ai.highlights.length > 0 ? ai.highlights : fallbackHighlightsFromDescription(desc);
+              row.highlights = hl.length ? hl : null;
+            } catch {
+              aiFallbackUsed = true;
+              if (!row.highlights?.length) {
+                const fb = fallbackHighlightsFromDescription(desc);
+                row.highlights = fb.length ? fb : null;
+              }
+            }
+          } else if (imcShape && !useAi && desc && !row.highlights?.length) {
+            const fb = fallbackHighlightsFromDescription(desc);
+            row.highlights = fb.length ? fb : null;
+          }
+
+          const { error } = await supabase.from('jobs').upsert([row]);
+          if (error) throw new Error(error.message || String(error));
+        };
+
+        const outcomes: boolean[] = [];
+        await runPool(total, concurrency, async (i) => {
+          let lastError: string | undefined;
+          try {
+            await processOne(i);
+            outcomes.push(true);
+          } catch (err: unknown) {
+            outcomes.push(false);
+            lastError = String((err as { message?: unknown })?.message || err);
+          }
+          const okN = outcomes.filter(Boolean).length;
+          const badN = outcomes.filter((x) => !x).length;
+          setJobImportProgress({
+            isRunning: true,
+            total,
+            saved: okN,
+            failed: badN,
+            lastTitle: payload[i]?.title,
+            ...(lastError ? { lastError: lastError.slice(0, 120) } : {}),
+          });
+        });
+
+        const saved = outcomes.filter(Boolean).length;
+        const failed = outcomes.length - saved;
+        setJobImportProgress({ isRunning: false, total, saved, failed });
+
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+
+        if (failed === 0) {
+          toast.success(`Importadas ${saved} vagas (guardado progresivo).`);
+        } else {
+          toast.error(`Importación terminada: ${saved} OK, ${failed} fallidas. Revisa datos o políticas RLS.`);
+        }
+        if (aiFallbackUsed) {
+          toast.message('Algumas vagas usaram destaques automáticos no texto porque a API de IA falhou.');
+        }
+
+        window.setTimeout(() => {
+          setJobImportProgress(null);
+        }, 3200);
       } catch (err: unknown) {
+        setJobImportProgress(null);
         toast.error(`Erro ao importar: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -822,6 +906,45 @@ const Admin = () => {
             Candidatos
           </Button>
         </div>
+        {activeTab === 'jobs' && jobImportProgress && (
+          <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 border border-border">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium mb-2">
+              <span>
+                {jobImportProgress.isRunning ? 'Importando vacantes (IA + guardado)…' : 'Importación terminada'}
+              </span>
+              <span className="text-muted-foreground">
+                {jobImportProgress.saved + jobImportProgress.failed} / {jobImportProgress.total}
+                {jobImportProgress.failed > 0 ? (
+                  <span className="text-destructive ml-2">({jobImportProgress.failed} errores)</span>
+                ) : null}
+              </span>
+            </div>
+            <Progress
+              value={
+                jobImportProgress.total > 0
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        ((jobImportProgress.saved + jobImportProgress.failed) / jobImportProgress.total) * 100,
+                      ),
+                    )
+                  : 0
+              }
+            />
+            {jobImportProgress.lastTitle ? (
+              <p className="text-xs text-muted-foreground mt-2 truncate">
+                Último: {jobImportProgress.lastTitle}
+              </p>
+            ) : null}
+            {jobImportProgress.lastError ? (
+              <p className="text-xs text-destructive mt-1 truncate">{jobImportProgress.lastError}</p>
+            ) : null}
+            <p className="text-xs text-muted-foreground mt-2">
+              Concurrencia: {hasJobAiConfig() ? jobImportAiConcurrency() : jobImportUpsertOnlyConcurrency()} filas en
+              paralelo (ajuste con VITE_JOB_IMPORT_AI_CONCURRENCY / VITE_JOB_IMPORT_UPSERT_CONCURRENCY).
+            </p>
+          </div>
+        )}
         {showForm && editing ? (
           <div className="bg-card rounded-2xl shadow-sm p-6 space-y-4">
             <h2 className="text-lg font-bold">{editing.id.startsWith('job-') ? t('admin.addJob') : t('admin.editJob')}</h2>
@@ -886,7 +1009,12 @@ const Admin = () => {
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                 />
-                <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="rounded-xl">
+                <Button
+                  variant="secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-xl"
+                  disabled={Boolean(jobImportProgress?.isRunning)}
+                >
                   <Upload className="h-4 w-4 mr-2" /> Importar CSV
                 </Button>
                 <Button

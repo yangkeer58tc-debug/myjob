@@ -13,4 +13,8 @@ interface ImportMetaEnv {
   readonly LLM_API_KEY?: string;
   readonly LLM_BASE_URL?: string;
   readonly LLM_MODEL?: string;
+  /** Parallel AI calls during CSV job import (default 6, max 20). */
+  readonly VITE_JOB_IMPORT_AI_CONCURRENCY?: string;
+  /** Parallel Supabase upserts when AI is off (default 15, max 30). */
+  readonly VITE_JOB_IMPORT_UPSERT_CONCURRENCY?: string;
 }
