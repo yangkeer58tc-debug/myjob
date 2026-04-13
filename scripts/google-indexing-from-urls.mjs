@@ -39,7 +39,12 @@ const main = async () => {
 
   const serviceAccount = await loadServiceAccount();
   const accessToken = String(process.env.GOOGLE_INDEXING_ACCESS_TOKEN || '').trim();
-  if (!serviceAccount && !accessToken) throw new Error('GOOGLE_INDEXING_ENABLED=1 but auth is missing');
+  if (!serviceAccount && !accessToken) {
+    console.warn(
+      '[google-indexing] GOOGLE_INDEXING_ENABLED=1 but auth is missing; skipping. Set GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON or GOOGLE_INDEXING_ACCESS_TOKEN.',
+    );
+    return;
+  }
 
   await publishUrls({ serviceAccount, accessToken, urls, type, concurrency });
 };
