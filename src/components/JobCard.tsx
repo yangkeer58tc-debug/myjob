@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, MapPin, Clock, MessageCircle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,11 @@ interface JobCardProps {
 const JobCard = ({ job }: JobCardProps) => {
   const navigate = useNavigate();
   const { lang, t } = useLanguage();
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [job.id, job.b_logo_url]);
 
   const title = fixJobTextArtifacts(job.title);
   const summary = job.summary;
@@ -59,8 +65,14 @@ const JobCard = ({ job }: JobCardProps) => {
         <CardHeader className="p-5 pb-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              {job.b_logo_url ? (
-                <img src={job.b_logo_url} alt={safeCompany} className="h-10 w-10 rounded-md object-cover border" />
+              {job.b_logo_url && !logoFailed ? (
+                <img
+                  src={job.b_logo_url}
+                  alt={safeCompany}
+                  className="h-10 w-10 rounded-md object-cover border"
+                  loading="lazy"
+                  onError={() => setLogoFailed(true)}
+                />
               ) : (
                 <div className="h-10 w-10 rounded-md bg-secondary flex items-center justify-center">
                   <Briefcase className="h-5 w-5 text-muted-foreground" />

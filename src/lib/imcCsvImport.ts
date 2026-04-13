@@ -1,4 +1,4 @@
-import { looksLikeCompanyLogoUrl } from '@/lib/jobLogoUrl';
+import { collectFirstEmployerLogoRaw, looksLikeCompanyLogoUrl, stripCsvCellDecorations } from '@/lib/jobLogoUrl';
 import { normalizeIndustryLabelForMexico } from '@/lib/industryEsMx';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 
@@ -22,7 +22,7 @@ export function isImcExportCsv(fieldNames: string[]): boolean {
 
 const pick = (row: Record<string, string>, ...keys: string[]) => {
   for (const k of keys) {
-    const v = String(row[k] ?? '').trim();
+    const v = stripCsvCellDecorations(String(row[k] ?? ''));
     if (v) return v;
   }
   return '';
@@ -136,8 +136,8 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
   const industry = industryRaw ? normalizeIndustryLabelForMexico(industryRaw) : '';
   const salaryFromAmount = salaryHintFromAmountJson(pick(row, 'amount'));
   const authorPro = pick(row, 'author_pro');
-  const logoExplicit = pick(row, 'b_logo_url', 'logo_url', 'company_logo_url');
-  const b_logo_url = logoExplicit || (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
+  const fromCols = collectFirstEmployerLogoRaw(row);
+  const b_logo_url = fromCols || (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
 
   return {
     ...row,

@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
 import { Briefcase, MapPin, Clock, Building2, MessageCircle, ChevronRight, AlertTriangle } from 'lucide-react';
@@ -182,6 +182,7 @@ const JobDetail = () => {
   const { lang, t } = useLanguage();
 
   const parsed = useMemo(() => (routeSegment ? parseEmpleoParam(routeSegment) : null), [routeSegment]);
+  const [detailLogoFailed, setDetailLogoFailed] = useState(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ['job', 'detail', parsed?.kind, parsed?.kind === 'id' ? parsed?.id : parsed?.slug],
@@ -206,6 +207,10 @@ const JobDetail = () => {
       navigate(`${jobPublicPath(job)}${location.search}`, { replace: true });
     }
   }, [job, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    setDetailLogoFailed(false);
+  }, [job?.id, job?.b_logo_url]);
 
   const title = job?.title || '';
   const description = job?.description || '';
@@ -433,8 +438,14 @@ const JobDetail = () => {
         {/* Header Module */}
         <div className="mb-8">
           <div className="flex items-start gap-4 mb-4">
-            {job.b_logo_url ? (
-              <img src={job.b_logo_url} alt={job.b_name} className="h-14 w-14 rounded-2xl object-cover flex-shrink-0 border border-border" />
+            {job.b_logo_url && !detailLogoFailed ? (
+              <img
+                src={job.b_logo_url}
+                alt={job.b_name}
+                className="h-14 w-14 rounded-2xl object-cover flex-shrink-0 border border-border"
+                loading="lazy"
+                onError={() => setDetailLogoFailed(true)}
+              />
             ) : (
               <div
                 className="h-14 w-14 rounded-2xl bg-secondary flex items-center justify-center flex-shrink-0 border border-border"

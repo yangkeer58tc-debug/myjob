@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { looksLikeCompanyLogoUrl, normalizeImportedEmployerLogoUrl } from './jobLogoUrl';
+import {
+  collectFirstEmployerLogoRaw,
+  looksLikeCompanyLogoUrl,
+  normalizeImportedEmployerLogoUrl,
+  stripCsvCellDecorations,
+} from './jobLogoUrl';
 
 describe('jobLogoUrl', () => {
+  it('strips CSV quotes around URL', () => {
+    expect(stripCsvCellDecorations('"https://example.com/a.png"')).toBe('https://example.com/a.png');
+  });
+
+  it('collects logo from alternate column names', () => {
+    const row = { company_logo: 'https://example.com/c.png', b_logo_url: '' };
+    expect(collectFirstEmployerLogoRaw(row)).toBe('https://example.com/c.png');
+  });
+
   it('detects CloudFront square logo', () => {
     expect(
       looksLikeCompanyLogoUrl(

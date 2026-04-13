@@ -40,7 +40,12 @@ import {
 } from '@/lib/jobSummaryAi';
 import { normalizeIndustryLabelForMexico } from '@/lib/industryEsMx';
 import { jobImportAiConcurrency, jobImportUpsertOnlyConcurrency, runPool } from '@/lib/jobImportPool';
-import { normalizeImportedEmployerLogoUrl } from '@/lib/jobLogoUrl';
+import {
+  collectFirstEmployerLogoRaw,
+  looksLikeCompanyLogoUrl,
+  normalizeImportedEmployerLogoUrl,
+  stripCsvCellDecorations,
+} from '@/lib/jobLogoUrl';
 
 interface JobForm {
   id: string;
@@ -218,7 +223,11 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
   return rowsForImport.map((row) => {
     const locationRaw = row.location || 'Brasil';
     const location = normalizeCity(locationRaw);
-    const b_logo_url = normalizeImportedEmployerLogoUrl(row.b_logo_url);
+    const authorPro = stripCsvCellDecorations(row.author_pro ?? '');
+    const logoRaw =
+      collectFirstEmployerLogoRaw(row) ||
+      (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
+    const b_logo_url = normalizeImportedEmployerLogoUrl(logoRaw);
     const normalizedText = normalizeJobTextFields({
       summary: row.summary || null,
       description: row.description || null,
