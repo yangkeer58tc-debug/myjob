@@ -30,6 +30,15 @@ const translations: Translations = {
   'joblist.allJobs': { es: 'Todos los empleos' },
   'joblist.noJobs': { es: 'No se encontraron vacantes.' },
   'joblist.filterCity': { es: 'Filtrar por ciudad' },
+  'joblist.searchPlaceholder': { es: 'Buscar por puesto, empresa o palabras clave…' },
+  'joblist.search': { es: 'Buscar' },
+  'joblist.clearFilters': { es: 'Limpiar filtros' },
+  'joblist.jobTypeFilter': { es: 'Tipo de empleo' },
+  'joblist.workplaceFilter': { es: 'Modalidad' },
+  'joblist.paymentFilter': { es: 'Frecuencia de pago' },
+  'joblist.educationFilter': { es: 'Educación' },
+  'joblist.experienceFilter': { es: 'Experiencia' },
+  'joblist.filterAll': { es: 'Todos' },
 
   // Job Detail
   'detail.breadHome': { es: 'Inicio' },

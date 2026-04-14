@@ -1,14 +1,24 @@
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
+import {
+  CATEGORY_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  EXPERIENCE_OPTIONS,
+  JOB_TYPE_OPTIONS,
+  PAYMENT_FREQUENCY_OPTIONS,
+  WORKPLACE_TYPE_OPTIONS,
+} from '@/lib/jobOptions';
+import { jobsTextSearchOrFilter } from '@/lib/jobSearchQuery';
 import { displayCityForJob, mexicoCities } from '@/lib/mexicoLocation';
 import { getSiteOrigin } from '@/lib/siteUrl';
 
@@ -40,24 +50,46 @@ const buildPagination = (current: number, total: number) => {
 const JobList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useLanguage();
+
   const city = searchParams.get('ciudad') || '';
   const category = searchParams.get('categoria') || '';
+  const qUrl = searchParams.get('q') || '';
+  const jobType = searchParams.get('tipo') || '';
+  const workplace = searchParams.get('modalidad') || '';
+  const payment = searchParams.get('pago') || '';
+  const education = searchParams.get('educacion') || '';
+  const experience = searchParams.get('experiencia') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
+
+  const [qDraft, setQDraft] = useState(qUrl);
+  useEffect(() => {
+    setQDraft(qUrl);
+  }, [qUrl]);
+
   const cutoffIso = useMemo(() => new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), []);
 
-  // Fetch unique cities
   const { data: cities } = useQuery({
     queryKey: ['cities'],
-    queryFn: async () => {
-      return mexicoCities();
-    },
+    queryFn: async () => mexicoCities(),
   });
 
-  // Fetch jobs
   const { data, isLoading } = useQuery({
-    queryKey: ['jobs', city, category, page],
+    queryKey: [
+      'jobs',
+      city,
+      category,
+      page,
+      qUrl,
+      jobType,
+      workplace,
+      payment,
+      education,
+      experience,
+      cutoffIso,
+    ],
     queryFn: async () => {
       const needsClientCityFilter = Boolean(city);
+
       let query = supabase
         .from('jobs')
         .select('*', { count: needsClientCityFilter ? undefined : 'exact' })
@@ -69,9 +101,15 @@ const JobList = () => {
           needsClientCityFilter ? CITY_FILTER_MAX - 1 : page * ITEMS_PER_PAGE - 1,
         );
 
-      if (category) {
-        query = query.eq('category', category);
-      }
+      if (category) query = query.eq('category', category);
+      if (jobType) query = query.eq('job_type', jobType);
+      if (workplace) query = query.eq('workplace_type', workplace);
+      if (payment) query = query.eq('payment_frequency', payment);
+      if (education) query = query.eq('education_level', education);
+      if (experience) query = query.eq('experience', experience);
+
+      const searchOr = jobsTextSearchOrFilter(qUrl);
+      if (searchOr) query = query.or(searchOr);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -86,9 +124,7 @@ const JobList = () => {
   });
 
   const totalPages = data ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
-  const pageTitle = city
-    ? `${t('joblist.title')} ${city}`
-    : t('joblist.allJobs');
+  const pageTitle = city ? `${t('joblist.title')} ${city}` : t('joblist.allJobs');
   const pageItems = buildPagination(page, totalPages);
 
   const jobsCanonicalUrl = useMemo(() => {
@@ -97,29 +133,36 @@ const JobList = () => {
     return q ? `${origin}/empleos?${q}` : `${origin}/empleos`;
   }, [searchParams]);
 
-  const handleCategoryChange = (value: string) => {
-    if (value === '__all__') {
-      searchParams.delete('categoria');
-    } else {
-      searchParams.set('categoria', value);
-    }
-    searchParams.set('page', '1');
-    setSearchParams(searchParams);
+  const hasActiveFilters = Boolean(
+    qUrl || category || city || jobType || workplace || payment || education || experience,
+  );
+
+  const setParam = (key: string, value: string, clearValue: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (!value || value === clearValue) next.delete(key);
+    else next.set(key, value);
+    next.set('page', '1');
+    setSearchParams(next);
   };
 
-  const handleCityChange = (value: string) => {
-    if (value === '__all__') {
-      searchParams.delete('ciudad');
-    } else {
-      searchParams.set('ciudad', value);
-    }
-    searchParams.set('page', '1');
-    setSearchParams(searchParams);
+  const applySearch = () => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = qDraft.trim();
+    if (trimmed) next.set('q', trimmed);
+    else next.delete('q');
+    next.set('page', '1');
+    setSearchParams(next);
+  };
+
+  const clearAllFilters = () => {
+    setQDraft('');
+    setSearchParams(new URLSearchParams());
   };
 
   const handlePageChange = (p: number) => {
-    searchParams.set('page', String(p));
-    setSearchParams(searchParams);
+    const next = new URLSearchParams(searchParams);
+    next.set('page', String(p));
+    setSearchParams(next);
     window.scrollTo(0, 0);
   };
 
@@ -127,41 +170,146 @@ const JobList = () => {
     <PublicLayout>
       <Helmet>
         <title>Empleos en México | MyJob</title>
-        <meta name="description" content="Encuentra vacantes en México y postúlate por WhatsApp. Filtra por ciudad y categoría y habla directo con las empresas." />
+        <meta
+          name="description"
+          content="Encuentra vacantes en México y postúlate por WhatsApp. Busca por palabras clave y filtra por ciudad, categoría, modalidad y más."
+        />
         <link rel="canonical" href={jobsCanonicalUrl} />
       </Helmet>
-      
+
       <div className="container mx-auto px-4 py-10">
-        {/* Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-extrabold text-foreground">{pageTitle}</h1>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Select value={category || '__all__'} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="w-full sm:w-[260px] rounded-xl">
-                <SelectValue placeholder="Filtrar por categoría" />
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={qDraft}
+                onChange={(e) => setQDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') applySearch();
+                }}
+                placeholder={t('joblist.searchPlaceholder')}
+                className="pl-9 rounded-xl h-11"
+                aria-label={t('joblist.searchPlaceholder')}
+              />
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button type="button" className="rounded-xl h-11 px-6" onClick={applySearch}>
+                {t('joblist.search')}
+              </Button>
+              {hasActiveFilters ? (
+                <Button type="button" variant="outline" className="rounded-xl h-11" onClick={clearAllFilters}>
+                  {t('joblist.clearFilters')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Select value={category || '__all__'} onValueChange={(v) => setParam('categoria', v, '__all__')}>
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue placeholder="Categoría" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todas las categorías</SelectItem>
                 {CATEGORY_OPTIONS.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={city || '__all__'} onValueChange={handleCityChange}>
-              <SelectTrigger className="w-full sm:w-[220px] rounded-xl">
+
+            <Select value={city || '__all__'} onValueChange={(v) => setParam('ciudad', v, '__all__')}>
+              <SelectTrigger className="w-full rounded-xl">
                 <SelectValue placeholder={t('joblist.filterCity')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">{t('joblist.allCities')}</SelectItem>
                 {cities?.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={jobType || '__all__'} onValueChange={(v) => setParam('tipo', v, '__all__')}>
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue placeholder={t('joblist.jobTypeFilter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
+                {JOB_TYPE_OPTIONS.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={workplace || '__all__'} onValueChange={(v) => setParam('modalidad', v, '__all__')}>
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue placeholder={t('joblist.workplaceFilter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
+                {WORKPLACE_TYPE_OPTIONS.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={payment || '__all__'} onValueChange={(v) => setParam('pago', v, '__all__')}>
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue placeholder={t('joblist.paymentFilter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
+                {PAYMENT_FREQUENCY_OPTIONS.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={education || '__all__'} onValueChange={(v) => setParam('educacion', v, '__all__')}>
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue placeholder={t('joblist.educationFilter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
+                {EDUCATION_LEVEL_OPTIONS.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={experience || '__all__'} onValueChange={(v) => setParam('experiencia', v, '__all__')}>
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue placeholder={t('joblist.experienceFilter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
+                {EXPERIENCE_OPTIONS.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Job Feed */}
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
@@ -176,7 +324,6 @@ const JobList = () => {
               ))}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-12">
                 <Button
