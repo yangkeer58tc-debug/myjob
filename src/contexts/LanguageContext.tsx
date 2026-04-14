@@ -44,6 +44,10 @@ const translations: Translations = {
     es: 'Cada campo tiene su nombre arriba. Toca un criterio para cambiarlo o usa las etiquetas para quitar uno.',
   },
   'joblist.resultsLine': { es: '{n} vacantes encontradas' },
+  'joblist.resultsLineRanked': { es: '{n} vacantes · orden por relevancia (título primero)' },
+  'joblist.resultsLineSearchRanked': {
+    es: '~{total} coincidencias; mostramos las {shown} más recientes ordenadas por relevancia.',
+  },
   'joblist.resultsLineApprox': { es: 'Aprox. {n} vacantes (ciudad filtrada en esta página)' },
   'joblist.anyCategory': { es: 'Cualquier categoría' },
   'joblist.anyCity': { es: 'Cualquier ciudad' },

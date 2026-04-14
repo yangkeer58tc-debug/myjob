@@ -21,12 +21,15 @@ import {
   optionLabel,
 } from '@/lib/jobOptions';
 import { jobsTextSearchOrFilter } from '@/lib/jobSearchQuery';
+import { sortJobsBySearchRelevance } from '@/lib/jobSearchRank';
 import { displayCityForJob, mexicoCities } from '@/lib/mexicoLocation';
 import { getSiteOrigin } from '@/lib/siteUrl';
 import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 30;
 const CITY_FILTER_MAX = 5000;
+/** Max rows loaded when text search is active, then re-sorted by relevance (title-first + intent). */
+const SEARCH_RANK_FETCH_CAP = 1800;
 
 const buildPagination = (current: number, total: number) => {
   if (total <= 1) return [];
@@ -126,6 +129,19 @@ const JobList = () => {
     queryKey: ['jobs', city, category, page, qUrl, salarioUrl, jobType, workplace, payment, cutoffIso],
     queryFn: async () => {
       const needsClientCityFilter = Boolean(city);
+      const searchOr = jobsTextSearchOrFilter(qUrl);
+      const useSearchRanking = Boolean(searchOr);
+
+      let rangeStart = 0;
+      let rangeEnd = CITY_FILTER_MAX - 1;
+      if (!needsClientCityFilter) {
+        if (useSearchRanking) {
+          rangeEnd = SEARCH_RANK_FETCH_CAP - 1;
+        } else {
+          rangeStart = (page - 1) * ITEMS_PER_PAGE;
+          rangeEnd = page * ITEMS_PER_PAGE - 1;
+        }
+      }
 
       let query = supabase
         .from('jobs')
@@ -133,10 +149,7 @@ const JobList = () => {
         .eq('is_active', true)
         .gte('created_at', cutoffIso)
         .order('created_at', { ascending: false })
-        .range(
-          needsClientCityFilter ? 0 : (page - 1) * ITEMS_PER_PAGE,
-          needsClientCityFilter ? CITY_FILTER_MAX - 1 : page * ITEMS_PER_PAGE - 1,
-        );
+        .range(rangeStart, rangeEnd);
 
       if (category) query = query.eq('category', category);
       if (jobType) query = query.eq('job_type', jobType);
@@ -149,18 +162,47 @@ const JobList = () => {
         query = query.ilike('salary_amount', `%${esc}%`);
       }
 
-      const searchOr = jobsTextSearchOrFilter(qUrl);
       if (searchOr) query = query.or(searchOr);
 
       const { data, error, count } = await query;
       if (error) throw error;
-      const rows = Array.isArray(data) ? data : [];
-      if (!needsClientCityFilter) return { jobs: rows, count: count || 0 };
+      let rows = Array.isArray(data) ? data : [];
+      const fullCount = count ?? rows.length;
 
-      const filtered = rows.filter((j) => displayCityForJob(j as { id: string; location?: string | null }) === city);
-      const total = filtered.length;
-      const start = (page - 1) * ITEMS_PER_PAGE;
-      return { jobs: filtered.slice(start, start + ITEMS_PER_PAGE), count: total };
+      if (needsClientCityFilter) {
+        rows = rows.filter((j) => displayCityForJob(j as { id: string; location?: string | null }) === city);
+        if (useSearchRanking) {
+          rows = sortJobsBySearchRelevance(rows, qUrl);
+        }
+        const total = rows.length;
+        const start = (page - 1) * ITEMS_PER_PAGE;
+        return {
+          jobs: rows.slice(start, start + ITEMS_PER_PAGE),
+          count: total,
+          searchRankingActive: useSearchRanking,
+          searchRankingCapped: false,
+        };
+      }
+
+      if (useSearchRanking) {
+        rows = sortJobsBySearchRelevance(rows, qUrl);
+        const cappedTotal = Math.min(fullCount, SEARCH_RANK_FETCH_CAP);
+        const start = (page - 1) * ITEMS_PER_PAGE;
+        return {
+          jobs: rows.slice(start, start + ITEMS_PER_PAGE),
+          count: cappedTotal,
+          searchRankingActive: true,
+          searchRankingCapped: fullCount > SEARCH_RANK_FETCH_CAP,
+          fullSearchCount: fullCount,
+        };
+      }
+
+      return {
+        jobs: rows,
+        count: fullCount,
+        searchRankingActive: false,
+        searchRankingCapped: false,
+      };
     },
   });
 
@@ -285,9 +327,13 @@ const JobList = () => {
 
   const resultCountText =
     data !== undefined && !isLoading
-      ? city
-        ? t('joblist.resultsLineApprox', { n: data.count })
-        : t('joblist.resultsLine', { n: data.count })
+      ? data.searchRankingCapped && data.fullSearchCount != null
+        ? t('joblist.resultsLineSearchRanked', { shown: data.count, total: data.fullSearchCount })
+        : data.searchRankingActive && !city
+          ? t('joblist.resultsLineRanked', { n: data.count })
+          : city
+            ? t('joblist.resultsLineApprox', { n: data.count })
+            : t('joblist.resultsLine', { n: data.count })
       : null;
 
   return (
