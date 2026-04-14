@@ -1,14 +1,26 @@
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import {
+  Briefcase,
+  Building2,
+  Clock,
+  GraduationCap,
+  LineChart,
+  MapPin,
+  Search,
+  Wallet,
+  X,
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/PublicLayout';
 import JobCard from '@/components/JobCard';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   CATEGORY_OPTIONS,
@@ -17,10 +29,12 @@ import {
   JOB_TYPE_OPTIONS,
   PAYMENT_FREQUENCY_OPTIONS,
   WORKPLACE_TYPE_OPTIONS,
+  optionLabel,
 } from '@/lib/jobOptions';
 import { jobsTextSearchOrFilter } from '@/lib/jobSearchQuery';
 import { displayCityForJob, mexicoCities } from '@/lib/mexicoLocation';
 import { getSiteOrigin } from '@/lib/siteUrl';
+import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 30;
 const CITY_FILTER_MAX = 5000;
@@ -46,6 +60,44 @@ const buildPagination = (current: number, total: number) => {
   }
   return out;
 };
+
+type LucideIcon = ComponentType<{ className?: string }>;
+
+function FilterField({
+  id,
+  label,
+  hint,
+  icon: Icon,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  icon: LucideIcon;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-3">
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/[0.07] text-primary shadow-sm"
+          aria-hidden
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1 pt-0.5">
+          <Label htmlFor={id} className="text-sm font-semibold leading-none text-foreground cursor-pointer">
+            {label}
+          </Label>
+          <p id={`${id}-hint`} className="text-xs text-muted-foreground leading-snug">
+            {hint}
+          </p>
+        </div>
+      </div>
+      <div className="pl-0 sm:pl-[52px]">{children}</div>
+    </div>
+  );
+}
 
 const JobList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -73,7 +125,7 @@ const JobList = () => {
     queryFn: async () => mexicoCities(),
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       'jobs',
       city,
@@ -137,10 +189,67 @@ const JobList = () => {
     qUrl || category || city || jobType || workplace || payment || education || experience,
   );
 
+  const activeChips = useMemo(() => {
+    const chips: { param: string; text: string }[] = [];
+    const qTrim = qUrl.trim();
+    if (qTrim) {
+      const short = qTrim.length > 42 ? `${qTrim.slice(0, 42)}…` : qTrim;
+      chips.push({ param: 'q', text: `${t('joblist.chipSearch')}: “${short}”` });
+    }
+    if (category) {
+      chips.push({
+        param: 'categoria',
+        text: `${t('joblist.labelCategory')}: ${optionLabel(category, CATEGORY_OPTIONS)}`,
+      });
+    }
+    if (city) {
+      chips.push({ param: 'ciudad', text: `${t('joblist.labelCity')}: ${city}` });
+    }
+    if (jobType) {
+      chips.push({
+        param: 'tipo',
+        text: `${t('joblist.jobTypeFilter')}: ${optionLabel(jobType, JOB_TYPE_OPTIONS)}`,
+      });
+    }
+    if (workplace) {
+      chips.push({
+        param: 'modalidad',
+        text: `${t('joblist.workplaceFilter')}: ${optionLabel(workplace, WORKPLACE_TYPE_OPTIONS)}`,
+      });
+    }
+    if (payment) {
+      chips.push({
+        param: 'pago',
+        text: `${t('joblist.paymentFilter')}: ${optionLabel(payment, PAYMENT_FREQUENCY_OPTIONS)}`,
+      });
+    }
+    if (education) {
+      chips.push({
+        param: 'educacion',
+        text: `${t('joblist.educationFilter')}: ${optionLabel(education, EDUCATION_LEVEL_OPTIONS)}`,
+      });
+    }
+    if (experience) {
+      chips.push({
+        param: 'experiencia',
+        text: `${t('joblist.experienceFilter')}: ${optionLabel(experience, EXPERIENCE_OPTIONS)}`,
+      });
+    }
+    return chips;
+  }, [qUrl, category, city, jobType, workplace, payment, education, experience, t]);
+
   const setParam = (key: string, value: string, clearValue: string) => {
     const next = new URLSearchParams(searchParams);
     if (!value || value === clearValue) next.delete(key);
     else next.set(key, value);
+    next.set('page', '1');
+    setSearchParams(next);
+  };
+
+  const removeFilter = (param: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete(param);
+    if (param === 'q') setQDraft('');
     next.set('page', '1');
     setSearchParams(next);
   };
@@ -166,6 +275,16 @@ const JobList = () => {
     window.scrollTo(0, 0);
   };
 
+  const selectTriggerClass =
+    'h-11 w-full rounded-xl border-border/90 bg-muted/30 text-left font-medium shadow-sm transition hover:bg-muted/45 hover:border-border focus:ring-2 focus:ring-primary/20';
+
+  const resultCountText =
+    data !== undefined && !isLoading
+      ? city
+        ? t('joblist.resultsLineApprox', { n: data.count })
+        : t('joblist.resultsLine', { n: data.count })
+      : null;
+
   return (
     <PublicLayout>
       <Helmet>
@@ -177,138 +296,248 @@ const JobList = () => {
         <link rel="canonical" href={jobsCanonicalUrl} />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-10">
-        <div className="mb-6">
-          <h1 className="text-3xl font-extrabold text-foreground">{pageTitle}</h1>
+      <div className="container mx-auto px-4 py-8 sm:py-10">
+        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{pageTitle}</h1>
+          {resultCountText ? (
+            <p
+              className={cn(
+                'text-sm font-semibold tabular-nums text-primary sm:text-right',
+                isFetching && 'opacity-60',
+              )}
+            >
+              {resultCountText}
+            </p>
+          ) : null}
         </div>
 
-        <div className="space-y-4 mb-8">
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                value={qDraft}
-                onChange={(e) => setQDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') applySearch();
-                }}
-                placeholder={t('joblist.searchPlaceholder')}
-                className="pl-9 rounded-xl h-11"
-                aria-label={t('joblist.searchPlaceholder')}
-              />
+        <section
+          className="mb-10 rounded-2xl border border-border/80 bg-card/90 p-5 shadow-md ring-1 ring-black/[0.04] dark:bg-card/50 dark:ring-white/[0.06] sm:p-6"
+          aria-labelledby="job-filters-heading"
+        >
+          <div className="flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <h2 id="job-filters-heading" className="text-lg font-bold tracking-tight text-foreground">
+                {t('joblist.filtersTitle')}
+              </h2>
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{t('joblist.filtersSubtitle')}</p>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Button type="button" className="rounded-xl h-11 px-6" onClick={applySearch}>
+            {hasActiveFilters ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 self-start rounded-full border-dashed px-4 font-semibold"
+                onClick={clearAllFilters}
+              >
+                {t('joblist.clearFilters')}
+              </Button>
+            ) : null}
+          </div>
+
+          <div className="pt-5 space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+              <div className="relative min-h-[3rem] flex-1 rounded-xl border border-border/90 bg-muted/20 shadow-inner transition focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15">
+                <Search
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-[1.125rem] w-[1.125rem] -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <Input
+                  id="job-search-input"
+                  value={qDraft}
+                  onChange={(e) => setQDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') applySearch();
+                  }}
+                  placeholder={t('joblist.searchPlaceholder')}
+                  className="h-12 border-0 bg-transparent pl-10 pr-3 text-base shadow-none focus-visible:ring-0 sm:h-[3rem] sm:text-[0.95rem]"
+                  aria-describedby="job-search-hint"
+                />
+              </div>
+              <Button
+                type="button"
+                className="h-12 shrink-0 rounded-xl px-8 font-bold shadow-sm sm:h-[3rem]"
+                onClick={applySearch}
+              >
                 {t('joblist.search')}
               </Button>
-              {hasActiveFilters ? (
-                <Button type="button" variant="outline" className="rounded-xl h-11" onClick={clearAllFilters}>
-                  {t('joblist.clearFilters')}
-                </Button>
-              ) : null}
             </div>
+            <p id="job-search-hint" className="text-xs text-muted-foreground sm:pl-1">
+              {t('joblist.searchHint')}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Select value={category || '__all__'} onValueChange={(v) => setParam('categoria', v, '__all__')}>
-              <SelectTrigger className="w-full rounded-xl">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todas las categorías</SelectItem>
-                {CATEGORY_OPTIONS.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.label}
-                  </SelectItem>
+          {activeChips.length > 0 ? (
+            <div className="mt-5 flex flex-col gap-2 border-t border-border/60 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('joblist.activeFiltersTitle')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {activeChips.map((chip) => (
+                  <Badge
+                    key={chip.param}
+                    variant="secondary"
+                    className="h-auto max-w-full gap-1.5 py-1.5 pl-2.5 pr-1 font-normal shadow-sm"
+                  >
+                    <span className="truncate">{chip.text}</span>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-full p-1 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+                      aria-label={`${t('joblist.removeFilter')}: ${chip.text}`}
+                      onClick={() => removeFilter(chip.param)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </Badge>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            </div>
+          ) : null}
 
-            <Select value={city || '__all__'} onValueChange={(v) => setParam('ciudad', v, '__all__')}>
-              <SelectTrigger className="w-full rounded-xl">
-                <SelectValue placeholder={t('joblist.filterCity')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('joblist.allCities')}</SelectItem>
-                {cities?.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <FilterField
+              id="filter-categoria"
+              label={t('joblist.labelCategory')}
+              hint={t('joblist.hintCategory')}
+              icon={Briefcase}
+            >
+              <Select value={category || '__all__'} onValueChange={(v) => setParam('categoria', v, '__all__')}>
+                <SelectTrigger id="filter-categoria" className={selectTriggerClass} aria-describedby="filter-categoria-hint">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="rounded-xl">
+                  <SelectItem value="__all__">{t('joblist.anyCategory')}</SelectItem>
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
 
-            <Select value={jobType || '__all__'} onValueChange={(v) => setParam('tipo', v, '__all__')}>
-              <SelectTrigger className="w-full rounded-xl">
-                <SelectValue placeholder={t('joblist.jobTypeFilter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
-                {JOB_TYPE_OPTIONS.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FilterField id="filter-ciudad" label={t('joblist.labelCity')} hint={t('joblist.hintCity')} icon={MapPin}>
+              <Select value={city || '__all__'} onValueChange={(v) => setParam('ciudad', v, '__all__')}>
+                <SelectTrigger id="filter-ciudad" className={selectTriggerClass} aria-describedby="filter-ciudad-hint">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-72 rounded-xl">
+                  <SelectItem value="__all__">{t('joblist.anyCity')}</SelectItem>
+                  {cities?.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
 
-            <Select value={workplace || '__all__'} onValueChange={(v) => setParam('modalidad', v, '__all__')}>
-              <SelectTrigger className="w-full rounded-xl">
-                <SelectValue placeholder={t('joblist.workplaceFilter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
-                {WORKPLACE_TYPE_OPTIONS.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FilterField
+              id="filter-tipo"
+              label={t('joblist.jobTypeFilter')}
+              hint={t('joblist.hintJobType')}
+              icon={Clock}
+            >
+              <Select value={jobType || '__all__'} onValueChange={(v) => setParam('tipo', v, '__all__')}>
+                <SelectTrigger id="filter-tipo" className={selectTriggerClass} aria-describedby="filter-tipo-hint">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="rounded-xl">
+                  <SelectItem value="__all__">{t('joblist.anyJobType')}</SelectItem>
+                  {JOB_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
 
-            <Select value={payment || '__all__'} onValueChange={(v) => setParam('pago', v, '__all__')}>
-              <SelectTrigger className="w-full rounded-xl">
-                <SelectValue placeholder={t('joblist.paymentFilter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
-                {PAYMENT_FREQUENCY_OPTIONS.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FilterField
+              id="filter-modalidad"
+              label={t('joblist.workplaceFilter')}
+              hint={t('joblist.hintWorkplace')}
+              icon={Building2}
+            >
+              <Select value={workplace || '__all__'} onValueChange={(v) => setParam('modalidad', v, '__all__')}>
+                <SelectTrigger id="filter-modalidad" className={selectTriggerClass} aria-describedby="filter-modalidad-hint">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="rounded-xl">
+                  <SelectItem value="__all__">{t('joblist.anyWorkplace')}</SelectItem>
+                  {WORKPLACE_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
 
-            <Select value={education || '__all__'} onValueChange={(v) => setParam('educacion', v, '__all__')}>
-              <SelectTrigger className="w-full rounded-xl">
-                <SelectValue placeholder={t('joblist.educationFilter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
-                {EDUCATION_LEVEL_OPTIONS.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FilterField
+              id="filter-pago"
+              label={t('joblist.paymentFilter')}
+              hint={t('joblist.hintPayment')}
+              icon={Wallet}
+            >
+              <Select value={payment || '__all__'} onValueChange={(v) => setParam('pago', v, '__all__')}>
+                <SelectTrigger id="filter-pago" className={selectTriggerClass} aria-describedby="filter-pago-hint">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="rounded-xl">
+                  <SelectItem value="__all__">{t('joblist.anyPayment')}</SelectItem>
+                  {PAYMENT_FREQUENCY_OPTIONS.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
 
-            <Select value={experience || '__all__'} onValueChange={(v) => setParam('experiencia', v, '__all__')}>
-              <SelectTrigger className="w-full rounded-xl">
-                <SelectValue placeholder={t('joblist.experienceFilter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t('joblist.filterAll')}</SelectItem>
-                {EXPERIENCE_OPTIONS.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FilterField
+              id="filter-educacion"
+              label={t('joblist.educationFilter')}
+              hint={t('joblist.hintEducation')}
+              icon={GraduationCap}
+            >
+              <Select value={education || '__all__'} onValueChange={(v) => setParam('educacion', v, '__all__')}>
+                <SelectTrigger id="filter-educacion" className={selectTriggerClass} aria-describedby="filter-educacion-hint">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-72 rounded-xl">
+                  <SelectItem value="__all__">{t('joblist.anyEducation')}</SelectItem>
+                  {EDUCATION_LEVEL_OPTIONS.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
+
+            <FilterField
+              id="filter-experiencia"
+              label={t('joblist.experienceFilter')}
+              hint={t('joblist.hintExperience')}
+              icon={LineChart}
+            >
+              <Select value={experience || '__all__'} onValueChange={(v) => setParam('experiencia', v, '__all__')}>
+                <SelectTrigger id="filter-experiencia" className={selectTriggerClass} aria-describedby="filter-experiencia-hint">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="rounded-xl">
+                  <SelectItem value="__all__">{t('joblist.anyExperience')}</SelectItem>
+                  {EXPERIENCE_OPTIONS.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
           </div>
-        </div>
+        </section>
 
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
