@@ -20,7 +20,11 @@ import {
   WORKPLACE_TYPE_OPTIONS,
   optionLabel,
 } from '@/lib/jobOptions';
-import { jobsTextSearchOrFilter } from '@/lib/jobSearchQuery';
+import {
+  jobMatchesJobsTextSearch,
+  jobsTextSearchOrFilter,
+  type JobTextSearchRow,
+} from '@/lib/jobSearchQuery';
 import { sortJobsBySearchRelevance } from '@/lib/jobSearchRank';
 import { displayCityForJob, mexicoCities } from '@/lib/mexicoLocation';
 import { getSiteOrigin } from '@/lib/siteUrl';
@@ -167,6 +171,9 @@ const JobList = () => {
       const { data, error, count } = await query;
       if (error) throw error;
       let rows = Array.isArray(data) ? data : [];
+      if (searchOr) {
+        rows = rows.filter((j) => jobMatchesJobsTextSearch(j as JobTextSearchRow, qUrl));
+      }
       const fullCount = count ?? rows.length;
 
       if (needsClientCityFilter) {
