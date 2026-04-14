@@ -65,6 +65,15 @@ const translations: Translations = {
   'joblist.labelCategory': { es: 'Categoría' },
   'joblist.labelCity': { es: 'Ciudad' },
   'joblist.activeFiltersTitle': { es: 'Filtros activos' },
+  'joblist.filtersPanelTitle': { es: 'Filtros' },
+  'joblist.filtersPanelOpenHint': { es: 'Toca para ocultar' },
+  'joblist.filtersPanelClosedHint': { es: 'Categoría, ciudad, tipo, modalidad y sueldo' },
+  'joblist.compensationLabel': { es: 'Sueldo' },
+  'joblist.compensationPeriod': { es: 'Periodicidad' },
+  'joblist.salaryMatchLabel': { es: 'Coincidencia en texto' },
+  'joblist.salaryPlaceholder': { es: 'Ej. 15000, mensual, negociable…' },
+  'joblist.applySalaryBtn': { es: 'Aplicar' },
+  'joblist.salaryChip': { es: 'Sueldo' },
 
   // Job Detail
   'detail.breadHome': { es: 'Inicio' },

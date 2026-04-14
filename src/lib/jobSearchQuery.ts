@@ -12,6 +12,6 @@ export function jobsTextSearchOrFilter(q: string): string | null {
 
   const escaped = raw.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
   const pattern = `%${escaped}%`;
-  const cols = ['title', 'b_name', 'summary', 'description', 'requirements', 'industry'] as const;
+  const cols = ['title', 'b_name', 'summary', 'description', 'requirements', 'industry', 'salary_amount'] as const;
   return cols.map((c) => `${c}.ilike.${pattern}`).join(',');
 }

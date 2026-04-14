@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
+import { queryMatchesText, renderSearchHighlight } from '@/lib/searchHighlight';
 import { QRCodeSVG } from 'qrcode.react';
 
 type Candidate = {
@@ -40,45 +41,6 @@ const maskName = (firstName: string | null, lastName: string | null, fallback: s
   if (first) return cap(first);
   if (last) return `${cap(last[0])}.`;
   return 'Profesional';
-};
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const getQueryTokens = (query: string) =>
-  Array.from(new Set(String(query || '').trim().split(/\s+/).map((t) => t.trim()).filter(Boolean)));
-
-const queryMatches = (text: string, query: string) => {
-  const tokens = getQueryTokens(query);
-  if (tokens.length === 0) return false;
-  const hay = String(text || '').toLowerCase();
-  return tokens.some((t) => hay.includes(t.toLowerCase()));
-};
-
-const renderHighlighted = (text: string, query: string) => {
-  const q = String(query || '').trim();
-  if (!q) return text;
-  const tokens = getQueryTokens(q);
-  if (tokens.length === 0) return text;
-  const pattern = tokens.map(escapeRegExp).join('|');
-  if (!pattern) return text;
-  const re = new RegExp(`(${pattern})`, 'gi');
-  const parts = text.split(re);
-  if (parts.length <= 1) return text;
-  return (
-    <>
-      {parts.map((part, idx) => {
-        const isHit = re.test(part);
-        re.lastIndex = 0;
-        return isHit ? (
-          <mark key={idx} className="bg-primary/20 text-foreground px-1 rounded-sm">
-            {part}
-          </mark>
-        ) : (
-          <span key={idx}>{part}</span>
-        );
-      })}
-    </>
-  );
 };
 
 const toTitleCase = (value: string) =>
@@ -135,7 +97,7 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
   const location = [country, city].filter(Boolean).join(' • ') || 'México';
   const roleRaw = fixJobTextArtifacts(candidate.job_title || candidate.role_slug || '');
   const q = query || '';
-  const highlightByRawRole = queryMatches(roleRaw, q) && !queryMatches(title, q);
+  const highlightByRawRole = queryMatchesText(roleRaw, q) && !queryMatchesText(title, q);
   const [qrOpen, setQrOpen] = useState(false);
   const waUrl = useMemo(() => buildWaUrl(candidate), [candidate]);
   const waText = useMemo(() => encodeURIComponent(buildWaMessage(candidate)), [candidate]);
@@ -154,7 +116,7 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
               {highlightByRawRole ? (
                 <mark className="bg-primary/20 text-foreground px-1 rounded-sm">{title}</mark>
               ) : (
-                renderHighlighted(title, q)
+                renderSearchHighlight(title, q)
               )}
             </h3>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -189,7 +151,7 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
       </CardHeader>
 
       <CardContent className="p-6 pt-4 space-y-4">
-        {summary ? <p className="text-sm text-muted-foreground leading-relaxed">{renderHighlighted(summary, q)}</p> : null}
+        {summary ? <p className="text-sm text-muted-foreground leading-relaxed">{renderSearchHighlight(summary, q)}</p> : null}
       </CardContent>
 
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>

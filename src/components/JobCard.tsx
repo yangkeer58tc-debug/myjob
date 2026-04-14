@@ -12,8 +12,10 @@ import { optionLabel, EDUCATION_LEVEL_OPTIONS, EXPERIENCE_OPTIONS, JOB_TYPE_OPTI
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob } from '@/lib/mexicoLocation';
 import { jobPublicPath } from '@/lib/jobSeoPath';
+import { renderSearchHighlight } from '@/lib/searchHighlight';
 
 interface JobCardProps {
+  searchQuery?: string;
   job: {
     id: string;
     title: string;
@@ -36,7 +38,7 @@ interface JobCardProps {
   };
 }
 
-const JobCard = ({ job }: JobCardProps) => {
+const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
   const navigate = useNavigate();
   const { lang, t } = useLanguage();
   const [logoFailed, setLogoFailed] = useState(false);
@@ -79,7 +81,9 @@ const JobCard = ({ job }: JobCardProps) => {
                 </div>
               )}
               <div className="space-y-0.5">
-                <p className="text-sm font-semibold leading-none">{safeCompany}</p>
+                <p className="text-sm font-semibold leading-none">
+                  {renderSearchHighlight(safeCompany, searchQuery)}
+                </p>
                 <div className="flex items-center text-[10px] text-muted-foreground">
                   <Clock className="mr-1 h-3 w-3" />
                   {formatRelativeTime(job.created_at, lang)}
@@ -88,13 +92,13 @@ const JobCard = ({ job }: JobCardProps) => {
             </div>
           </div>
           <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
-            {title}
+            {renderSearchHighlight(title, searchQuery)}
           </CardTitle>
           {(summary || tagsPreview) && (
             <div className="mt-2 min-h-[2.5rem] space-y-1">
               {summary && (
                 <CardDescription className="text-xs line-clamp-2">
-                  {summary}
+                  {renderSearchHighlight(summary, searchQuery)}
                 </CardDescription>
               )}
               {tagsPreview && (
@@ -120,7 +124,9 @@ const JobCard = ({ job }: JobCardProps) => {
           </div>
           
           <div className="flex items-baseline space-x-1">
-            <span className="text-xl font-bold text-primary">{displaySalaryMXN(job)}</span>
+            <span className="text-xl font-bold text-primary">
+              {renderSearchHighlight(displaySalaryMXN(job), searchQuery)}
+            </span>
           </div>
         </CardContent>
 
