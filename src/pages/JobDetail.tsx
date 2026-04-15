@@ -226,6 +226,8 @@ const JobDetail = () => {
 
   const safeTitle = maybeFixMojibake(title);
   const safeCompany = maybeFixMojibake(job?.b_name || '');
+  /** Non-empty label for UI + JobPosting (matches prerender fallback). */
+  const displayCompanyName = safeCompany.trim() || 'Empresa';
   const safeLocation = job ? displayCityForJob(job) : mexicoCityForJobId(routeSegment);
   const siteOrigin = getSiteOrigin();
   const orgLogoUrl = job ? toAbsoluteUrl(job.b_logo_url, siteOrigin) : undefined;
@@ -337,7 +339,7 @@ const JobDetail = () => {
                 : 'OTHER',
         hiringOrganization: {
           '@type': 'Organization',
-          name: safeCompany,
+          name: displayCompanyName,
           sameAs: employerSameAs ?? siteOrigin,
           ...(orgLogoUrl ? { logo: orgLogoUrl } : {}),
         },
@@ -457,7 +459,7 @@ const JobDetail = () => {
             )}
             <div>
               <h1 className="text-3xl md:text-4xl font-extrabold text-foreground leading-tight">{safeTitle}</h1>
-              <p className="text-lg text-muted-foreground mt-1">{safeCompany}</p>
+              <p className="text-lg text-muted-foreground mt-1">{displayCompanyName}</p>
             </div>
           </div>
 

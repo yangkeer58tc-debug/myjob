@@ -1,1 +1,5 @@
+# Canonical host: send www → apex. Remove this rule if your primary URL is https://www.myjob.com/
+https://www.myjob.com/* https://myjob.com/:splat 301!
+
+# SPA: all routes serve index.html (Vite/React)
 /* /index.html 200
