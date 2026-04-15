@@ -114,14 +114,29 @@ export const publishUrls = async ({ serviceAccount, accessToken, urls, type, sco
 
   const queue = [...urls];
   const results = [];
+  const failures = [];
   const workers = Array.from({ length: Math.max(1, concurrency) }).map(async () => {
     while (queue.length) {
       const url = queue.shift();
       if (!url) break;
-      results.push(await publishUrlNotification({ accessToken: resolvedToken, url, type }));
+      try {
+        results.push(await publishUrlNotification({ accessToken: resolvedToken, url, type }));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error(`[google-indexing] FAILED ${url}\n  ${msg}`);
+        failures.push({ url, error: msg });
+      }
     }
   });
   await Promise.all(workers);
-  console.log(`[google-indexing] Finished: ${results.length} URL notification(s) published (type=${type}).`);
+  const ok = results.length;
+  const bad = failures.length;
+  console.log(`[google-indexing] Finished: ${ok} OK, ${bad} failed (type=${type}).`);
+  if (bad > 0 && ok === 0) {
+    throw new Error(`All ${bad} Indexing API request(s) failed. Check Search Console owner for the service account and Indexing API quota.`);
+  }
+  if (bad > 0) {
+    console.warn(`[google-indexing] ${bad} URL(s) failed; others succeeded.`);
+  }
   return results;
 };
