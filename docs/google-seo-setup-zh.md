@@ -209,7 +209,7 @@ npm run build
    - 应能识别 **JobPosting**（可能带「非严重」警告，属正常）。
 
 2. **网址检查**（在 GSC 顶部搜索框）：  
-   - 粘贴同一 URL，看 **「已编入索引」** 否（新站可能要几天）。
+   - 粘贴**完整职位 URL**，必须含路径 **`/empleo/`**（与浏览器地址栏、sitemap 中 `<loc>` 一致），再查看 **「已编入索引」** 否（新站可能要几天）。
 
 ---
 
@@ -232,7 +232,19 @@ npm run build
 
 **Q2：Indexing 全部 403？**  
 - 第五步行了吗？邮箱是否**完全一致**？  
-- GSC 当前资源是否和 URL 的域名一致？
+- GSC 当前资源是否和 URL 的域名一致？  
+- **Google Cloud 控制台 → 结算**：若顶部出现「试用需付款 / 绑定结算账号」等提示，或项目**未关联有效结算账号**，部分 API 会返回 **403**（控制台里 `UrlService.PublishUrlNotification` 错误率会很高）。处理步骤：  
+  1. 打开 [Google Cloud 结算](https://console.cloud.google.com/billing)。  
+  2. 创建或选择**结算账号**（信用卡/借记卡；Indexing API 本身通常不产生费用，但项目常要求账户状态有效）。  
+  3. 在 **IAM 与管理员 → 设置** 中，把该**结算账号关联到你的 GCP 项目**（「My First Project」或实际承载 Indexing API 的项目）。  
+  4. 等待数分钟～24 小时后再跑 GitHub Actions，并观察 Cloud Console 里该 API 的 403 是否下降。
+
+**Q2b：网址检查里职位「未编入索引 / 已发现尚未抓取」，且「引荐来源网页：无」？**  
+- **先确认 URL 是否写对**：本站职位页路径必须是 **`/empleo/...`**，不能少一段。  
+  - **错误示例**：`https://myjob.com/某职位-slug-数字/`（缺少 `empleo`）→ 路由不匹配，Google 也无法对应到真实详情页。  
+  - **正确示例**：`https://myjob.com/empleo/某职位-slug-数字/`（与 `sitemap.xml` 里 `<loc>` 一致）。  
+- 「无引荐链接」表示几乎没人从站内其它页面点到该 URL，只有站点地图等发现；建议在 **`/empleos` 列表、首页、分类** 增加指向具体职位页的链接，便于爬虫顺藤摸瓜。  
+- 「已发现未抓取」在**新站/大量 URL** 时很常见；在 **403 修好后**，Indexing API 与内链会帮助加快处理，但仍非秒级。
 
 **Q3：`www` 和 `myjob.com` 两个都能打开？**  
 - 选一个做主域，另一个 **301** 到主域；GSC 只添加**主域**属性；`SITE_URL`、canonical、站点地图里的 URL 全部用同一套。
