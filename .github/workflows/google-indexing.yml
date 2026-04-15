@@ -1,9 +1,14 @@
+# Regenerates sitemap from Supabase, then notifies Google via Indexing API (URLs from sitemap).
+# Schedule: daily 02:15 UTC (~墨西哥晚间 / 北京上午).
+# Repo secrets (Settings → Secrets): VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY; optional SITE_URL.
 name: Google Indexing (Jobs)
 
 on:
   workflow_dispatch: {}
   push:
     branches: [ main ]
+  schedule:
+    - cron: '15 2 * * *'
 
 permissions:
   id-token: write
@@ -13,6 +18,11 @@ jobs:
   indexing:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SITE_URL: ${{ secrets.SITE_URL || 'https://myjob.com' }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +40,11 @@ jobs:
 
       - run: npm ci
 
-      - run: |
+      - name: Regenerate sitemap (Supabase)
+        run: npm run sitemap
+
+      - name: Publish job URLs (Indexing API)
+        run: |
           export GOOGLE_INDEXING_ENABLED=1
           export GOOGLE_INDEXING_ACCESS_TOKEN="${{ steps.auth.outputs.access_token }}"
           export GOOGLE_INDEXING_LIMIT=50
