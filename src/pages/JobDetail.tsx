@@ -275,6 +275,13 @@ const JobDetail = () => {
 
   const jobPageUrl = `${siteOrigin.replace(/\/+$/, '')}${jobPublicPath(job)}`;
 
+  /** Static prerender already embeds JSON-LD; skip Helmet scripts only for that exact job to avoid duplicates. */
+  const prerenderJobId =
+    typeof document !== 'undefined'
+      ? document.querySelector('meta[name="myjob-prerender-job"]')?.getAttribute('content')?.trim()
+      : undefined;
+  const skipHelmetJobStructuredData = Boolean(prerenderJobId && prerenderJobId === String(job.id));
+
   const now = Date.now();
   const createdAtMs = job.created_at ? Date.parse(String(job.created_at)) : NaN;
   const isExpired = Number.isFinite(createdAtMs) ? now - createdAtMs > DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000 : false;
@@ -397,8 +404,12 @@ const JobDetail = () => {
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={pageImage} />
         
-        {jsonLd ? <script type="application/ld+json">{safeJsonLdStringify(jsonLd)}</script> : null}
-        <script type="application/ld+json">{safeJsonLdStringify(breadcrumbLd)}</script>
+        {jsonLd && !skipHelmetJobStructuredData ? (
+          <script type="application/ld+json">{safeJsonLdStringify(jsonLd)}</script>
+        ) : null}
+        {!skipHelmetJobStructuredData ? (
+          <script type="application/ld+json">{safeJsonLdStringify(breadcrumbLd)}</script>
+        ) : null}
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

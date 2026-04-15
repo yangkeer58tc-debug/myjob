@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { buildBreadcrumbJsonLd, buildJobPostingJsonLd, injectPrerenderJobJsonLd } from './jobPostingPrerenderLd.mjs';
 
 const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://myjob.com').replace(/\/+$/, '');
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
@@ -104,7 +105,32 @@ const fetchJobs = async () => {
 
   for (let offset = 0; ; offset += pageSize) {
     const url = new URL(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/jobs`);
-    url.searchParams.set('select', ['id', 'title', 'slug', 'summary', 'description', 'created_at', 'is_active', 'b_logo_url', 'location'].join(','));
+    url.searchParams.set(
+      'select',
+      [
+        'id',
+        'title',
+        'slug',
+        'summary',
+        'description',
+        'created_at',
+        'is_active',
+        'b_logo_url',
+        'location',
+        'b_name',
+        'b_same_as',
+        'requirements',
+        'job_type',
+        'workplace_type',
+        'experience',
+        'education_level',
+        'industry',
+        'street_address',
+        'salary_amount',
+        'payment_frequency',
+        'category',
+      ].join(','),
+    );
     url.searchParams.set('is_active', 'eq.true');
     url.searchParams.set('created_at', `gte.${cutoffIso}`);
     url.searchParams.set('order', 'created_at.desc');
@@ -204,6 +230,13 @@ const main = async () => {
     const desc = normalizeWhitespace(bodyPlain).slice(0, 170);
     const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/placeholder.svg`;
     let html = applyHead({ html: template, title, description: desc, canonical: jobUrl, ogImage });
+    const jobPostingLd = buildJobPostingJsonLd(job, {
+      siteOrigin: SITE_URL,
+      jobPageUrl: jobUrl,
+      displayCity: city,
+    });
+    const breadcrumbLd = buildBreadcrumbJsonLd(job.title || 'Vacante', jobUrl, SITE_URL);
+    html = injectPrerenderJobJsonLd(html, jobPostingLd, breadcrumbLd, job.id);
     html = injectVisibleRootStub(html, job.title || 'Vacante', bodyPlain);
 
     const pathSeg = jobPath(job).replace(/^\/+|\/+$/g, '').split('/');
