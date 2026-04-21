@@ -20,7 +20,6 @@ import {
   JOB_TYPE_OPTIONS,
   WORKPLACE_TYPE_OPTIONS,
   occupationalExperienceRequirements,
-  educationRequirementsStructured,
 } from '@/lib/jobOptions';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob, mexicoCityForJobId } from '@/lib/mexicoLocation';
@@ -32,7 +31,8 @@ import {
   schemaBaseSalaryFromJob,
 } from '@/lib/jobPostingSchema';
 
-const DAYS_TO_EXPIRE = 60;
+// Keep postings indexable longer; manual deactivation still uses is_active.
+const DAYS_TO_EXPIRE = 180;
 
 const maybeFixMojibake = (value: string) => {
   const s = value || '';
@@ -310,7 +310,6 @@ const JobDetail = () => {
       return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
     })();
   const occExpReq = occupationalExperienceRequirements(job.experience);
-  const eduReq = educationRequirementsStructured(job.education_level);
   const addressParts = postalAddressPartsForLocality(safeLocation);
   const employerSameAs = normalizeEmployerSameAs(job.b_same_as);
   const schemaSalary = schemaBaseSalaryFromJob(job);
@@ -363,7 +362,6 @@ const JobDetail = () => {
         },
         jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
         ...(occExpReq ? { experienceRequirements: occExpReq } : {}),
-        ...(eduReq ? { educationRequirements: eduReq } : {}),
         ...(job.industry ? { industry: String(job.industry) } : {}),
       }
     : null;

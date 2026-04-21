@@ -47,9 +47,6 @@ const absoluteUrl = (href) => {
   return `${SITE_URL}${s.startsWith('/') ? '' : '/'}${s}`;
 };
 
-const DAYS_TO_EXPIRE = 60;
-const cutoffIso = new Date(Date.now() - DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000).toISOString();
-
 const MEXICO_CITIES = [
   'Ciudad de México',
   'Guadalajara',
@@ -132,7 +129,6 @@ const fetchJobs = async () => {
       ].join(','),
     );
     url.searchParams.set('is_active', 'eq.true');
-    url.searchParams.set('created_at', `gte.${cutoffIso}`);
     url.searchParams.set('order', 'created_at.desc');
     url.searchParams.set('limit', String(pageSize));
     url.searchParams.set('offset', String(offset));

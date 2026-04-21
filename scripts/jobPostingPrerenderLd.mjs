@@ -3,7 +3,7 @@
  * Logic mirrors src/pages/JobDetail.tsx + jobPostingSchema / mxPostalAddress / jobOptions (subset).
  */
 
-const DAYS_TO_EXPIRE = 60;
+const DAYS_TO_EXPIRE = 180;
 
 const escapeHtmlForJsonLd = (value) =>
   String(value || '')
@@ -194,6 +194,7 @@ const LOCALITY_MAP = [
   { match: (s) => s.includes('guadalajara'), addressRegion: 'Jalisco', postalCode: '44100' },
   { match: (s) => s.includes('monterrey'), addressRegion: 'Nuevo León', postalCode: '64000' },
   { match: (s) => s.includes('puebla'), addressRegion: 'Puebla', postalCode: '72000' },
+  { match: (s) => s.includes('veracruz'), addressRegion: 'Veracruz', postalCode: '91700' },
   { match: (s) => s.includes('tijuana'), addressRegion: 'Baja California', postalCode: '22000' },
   { match: (s) => s.includes('leon'), addressRegion: 'Guanajuato', postalCode: '37000' },
   { match: (s) => s.includes('merida'), addressRegion: 'Yucatán', postalCode: '97000' },
@@ -325,7 +326,6 @@ export const buildJobPostingJsonLd = (job, ctx) => {
     })();
   const validThrough = new Date(now + DAYS_TO_EXPIRE * 24 * 60 * 60 * 1000).toISOString();
   const occExpReq = occupationalExperienceRequirements(job.experience);
-  const eduReq = educationRequirementsStructured(job.education_level);
   const addressParts = postalAddressPartsForLocality(displayCity);
   const employerSameAs = normalizeEmployerSameAs(job.b_same_as);
   const schemaSalary = schemaBaseSalaryFromJob(job);
@@ -374,7 +374,6 @@ export const buildJobPostingJsonLd = (job, ctx) => {
     },
     jobLocationType: job.workplace_type === 'remoto' ? 'TELECOMMUTE' : undefined,
     ...(occExpReq ? { experienceRequirements: occExpReq } : {}),
-    ...(eduReq ? { educationRequirements: eduReq } : {}),
     ...(job.industry ? { industry: String(job.industry) } : {}),
   };
 };
