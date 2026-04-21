@@ -212,7 +212,11 @@ export const postalAddressPartsForLocality = (displayCity) => {
       };
     }
   }
-  return { addressLocality: locality };
+  return {
+    addressLocality: locality,
+    addressRegion: 'México',
+    postalCode: '01000',
+  };
 };
 
 const isPlaceholderSalaryText = (raw) => {

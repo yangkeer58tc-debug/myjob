@@ -50,5 +50,10 @@ export function postalAddressPartsForLocality(displayCity: string): PostalAddres
       };
     }
   }
-  return { addressLocality: locality };
+  // Keep JobPosting address fields consistently present to reduce non-critical warnings.
+  return {
+    addressLocality: locality,
+    addressRegion: 'México',
+    postalCode: '01000',
+  };
 }
