@@ -311,6 +311,10 @@ const JobDetail = () => {
     })();
   const occExpReq = occupationalExperienceRequirements(job.experience);
   const addressParts = postalAddressPartsForLocality(safeLocation);
+  const schemaStreetAddress =
+    job.street_address?.trim()?.slice(0, 500) ||
+    addressParts.streetAddress ||
+    'Dirección no publicada por el empleador';
   const employerSameAs = normalizeEmployerSameAs(job.b_same_as);
   const schemaSalary = schemaBaseSalaryFromJob(job);
 
@@ -350,8 +354,7 @@ const JobDetail = () => {
             addressCountry: 'MX',
             ...(addressParts.addressRegion ? { addressRegion: addressParts.addressRegion } : {}),
             ...(addressParts.postalCode ? { postalCode: addressParts.postalCode } : {}),
-            ...(addressParts.streetAddress ? { streetAddress: addressParts.streetAddress } : {}),
-            ...(job.street_address?.trim() ? { streetAddress: job.street_address.trim().slice(0, 500) } : {}),
+            ...(schemaStreetAddress ? { streetAddress: schemaStreetAddress } : {}),
           },
         },
         ...(schemaSalary ?? {}),

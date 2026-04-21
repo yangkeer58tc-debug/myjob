@@ -332,14 +332,17 @@ export const buildJobPostingJsonLd = (job, ctx) => {
   const orgLogoUrl = toAbsoluteUrl(job.b_logo_url, siteOrigin);
 
   const street = String(job.street_address || '').trim();
+  const schemaStreetAddress =
+    (street ? street.slice(0, 500) : '') ||
+    addressParts.streetAddress ||
+    'Dirección no publicada por el empleador';
   const address = {
     '@type': 'PostalAddress',
     addressLocality: addressParts.addressLocality,
     addressCountry: 'MX',
     ...(addressParts.addressRegion ? { addressRegion: addressParts.addressRegion } : {}),
     ...(addressParts.postalCode ? { postalCode: addressParts.postalCode } : {}),
-    ...(addressParts.streetAddress ? { streetAddress: addressParts.streetAddress } : {}),
-    ...(street ? { streetAddress: street.slice(0, 500) } : {}),
+    ...(schemaStreetAddress ? { streetAddress: schemaStreetAddress } : {}),
   };
 
   return {
