@@ -26,4 +26,9 @@ describe('schemaBaseSalaryFromJob', () => {
     expect(r?.baseSalary.value.value).toBe(12000);
     expect(r?.baseSalary.value.unitText).toBe('MONTH');
   });
+
+  it('parses formatted salary strings with currency markers', () => {
+    const r = schemaBaseSalaryFromJob({ salary_amount: 'MXN $ 12,000', payment_frequency: 'mensal' });
+    expect(r?.baseSalary.value.value).toBe(12000);
+  });
 });

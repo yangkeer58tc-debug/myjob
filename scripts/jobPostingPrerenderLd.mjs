@@ -230,7 +230,7 @@ const isPlaceholderSalaryText = (raw) => {
 const salaryNumberForSchema = (value) => {
   if (!value) return null;
   const raw = String(value).trim().replace(/\u00A0/g, ' ');
-  if (!raw || /[A-Za-z]/.test(raw)) return null;
+  if (!raw) return null;
   const cleaned = raw
     .replace(/(brl|mxn|r\$|mx\$|\$)/gi, '')
     .replace(/[^\d.,-]/g, '')

@@ -4,7 +4,6 @@ import { estimatedMonthlyMxnForJob } from './mxSalaryFallback';
 const parseSalaryNumber = (input: string) => {
   const raw = input.trim().replace(/\u00A0/g, ' ');
   if (!raw) return null;
-  if (/[A-Za-z]/.test(raw)) return null;
 
   const cleaned = raw
     .replace(/(brl|mxn|r\$|mx\$|\$)/gi, '')
