@@ -29,6 +29,7 @@ import { sortJobsBySearchRelevance } from '@/lib/jobSearchRank';
 import { displayCityForJob, mexicoCities } from '@/lib/mexicoLocation';
 import { getSiteOrigin } from '@/lib/siteUrl';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 
 const ITEMS_PER_PAGE = 30;
 const CITY_FILTER_MAX = 5000;
@@ -304,6 +305,11 @@ const JobList = () => {
     if (trimmed) next.set('q', trimmed);
     else next.delete('q');
     next.set('page', '1');
+    trackEvent('job_search_submit', {
+      query: trimmed || '(empty)',
+      city_filter: city || '(all)',
+      category_filter: category || '(all)',
+    });
     setSearchParams(next);
   };
 
@@ -313,18 +319,24 @@ const JobList = () => {
     if (trimmed) next.set('salario', trimmed);
     else next.delete('salario');
     next.set('page', '1');
+    trackEvent('job_salary_filter_apply', {
+      salary_filter: trimmed || '(empty)',
+      payment_filter: payment || '(all)',
+    });
     setSearchParams(next);
   };
 
   const clearAllFilters = () => {
     setQDraft('');
     setSalarioDraft('');
+    trackEvent('job_filters_clear_all');
     setSearchParams(new URLSearchParams());
   };
 
   const handlePageChange = (p: number) => {
     const next = new URLSearchParams(searchParams);
     next.set('page', String(p));
+    trackEvent('job_list_pagination_click', { target_page: p });
     setSearchParams(next);
     window.scrollTo(0, 0);
   };

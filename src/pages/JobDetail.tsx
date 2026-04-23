@@ -30,6 +30,7 @@ import {
   normalizeEmployerSameAs,
   schemaBaseSalaryFromJob,
 } from '@/lib/jobPostingSchema';
+import { trackEvent } from '@/lib/analytics';
 
 // Keep postings indexable longer; manual deactivation still uses is_active.
 const DAYS_TO_EXPIRE = 180;
@@ -496,7 +497,19 @@ const JobDetail = () => {
         <Button
           variant={job.is_active ? 'whatsapp' : 'whatsappDisabled'}
           className="w-full rounded-2xl h-14 text-lg mb-10"
-          onClick={job.is_active ? handleApply : undefined}
+          onClick={
+            job.is_active
+              ? (e) => {
+                  trackEvent('job_apply_click', {
+                    job_id: job.id,
+                    job_title: safeTitle,
+                    company_name: displayCompanyName,
+                    source: 'job_detail',
+                  });
+                  handleApply(e);
+                }
+              : undefined
+          }
           disabled={!job.is_active}
         >
           <MessageCircle className="h-6 w-6" />

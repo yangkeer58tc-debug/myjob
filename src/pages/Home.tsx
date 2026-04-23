@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 import { getSiteOrigin, safeJsonLdStringify } from '@/lib/siteUrl';
+import { trackEvent } from '@/lib/analytics';
 
 const CITIES = ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana'];
 const CATEGORIES = CATEGORY_OPTIONS.map((c) => ({ value: c.id, name: c.label }));
@@ -165,7 +166,10 @@ const Home = () => {
                   <div className="mt-8 grid sm:grid-cols-2 gap-4">
                     <button
                       type="button"
-                      onClick={() => navigate('/empleos')}
+                      onClick={() => {
+                        trackEvent('home_cta_click', { cta_name: 'candidate_entry', target_path: '/empleos' });
+                        navigate('/empleos');
+                      }}
                       className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_20%_10%,rgba(37,211,102,0.16),transparent_55%),radial-gradient(circle_at_80%_40%,rgba(7,94,84,0.14),transparent_60%)]" />
@@ -191,7 +195,10 @@ const Home = () => {
 
                     <button
                       type="button"
-                      onClick={() => navigate('/buscar-candidatos')}
+                      onClick={() => {
+                        trackEvent('home_cta_click', { cta_name: 'company_entry', target_path: '/buscar-candidatos' });
+                        navigate('/buscar-candidatos');
+                      }}
                       className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_30%_20%,rgba(37,211,102,0.16),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(7,94,84,0.14),transparent_60%)]" />
@@ -313,7 +320,10 @@ const Home = () => {
                 <Button
                   variant="outline"
                   className="rounded-xl border-white/15 bg-white/[0.06] text-white hover:bg-white/10"
-                  onClick={() => navigate('/empleos')}
+                  onClick={() => {
+                    trackEvent('home_cta_click', { cta_name: 'testimonials_jobs', target_path: '/empleos' });
+                    navigate('/empleos');
+                  }}
                 >
                   Ver empleos
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -340,7 +350,10 @@ const Home = () => {
                 <Button
                   variant="outline"
                   className="rounded-xl border-white/15 bg-white/[0.06] text-white hover:bg-white/10"
-                  onClick={() => navigate('/empleos')}
+                  onClick={() => {
+                    trackEvent('home_cta_click', { cta_name: 'categories_view_all', target_path: '/empleos' });
+                    navigate('/empleos');
+                  }}
                 >
                   Ver todas
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -353,7 +366,10 @@ const Home = () => {
                 <Reveal key={cat.value} from="none" delayMs={Math.min(idx * 30, 210)}>
                   <button
                     type="button"
-                    onClick={() => navigate(`/empleos?categoria=${encodeURIComponent(cat.value)}`)}
+                    onClick={() => {
+                      trackEvent('home_category_click', { category_id: cat.value, category_name: cat.name });
+                      navigate(`/empleos?categoria=${encodeURIComponent(cat.value)}`);
+                    }}
                     className="group min-w-[220px] flex-shrink-0 rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                   >
                     <p className="text-sm font-black text-white group-hover:text-[#25D366] transition-colors">{cat.name}</p>
@@ -387,7 +403,10 @@ const Home = () => {
               <div className="mt-12 text-center">
                 <Button
                   className="rounded-xl h-12 px-8 font-bold bg-gradient-to-r from-[#25D366] to-[#128C7E] text-slate-950 hover:opacity-95"
-                  onClick={() => navigate('/empleos')}
+                  onClick={() => {
+                    trackEvent('home_cta_click', { cta_name: 'featured_jobs_more', target_path: '/empleos' });
+                    navigate('/empleos');
+                  }}
                 >
                   Ver más empleos
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -411,7 +430,10 @@ const Home = () => {
                 <Reveal key={city} from="none" delayMs={Math.min(idx * 40, 240)}>
                   <button
                     type="button"
-                    onClick={() => navigate(`/empleos?ciudad=${encodeURIComponent(city)}`)}
+                    onClick={() => {
+                      trackEvent('home_city_click', { city_name: city });
+                      navigate(`/empleos?ciudad=${encodeURIComponent(city)}`);
+                    }}
                     className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white/80 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10"
                   >
                     <MapPin className="h-4 w-4" />

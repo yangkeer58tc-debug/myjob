@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 
 const Footer = () => {
   const { t } = useLanguage();
@@ -28,10 +29,18 @@ const Footer = () => {
           </p>
         </div>
         <div className={cn('flex items-center space-x-4 text-sm font-medium', isHome ? 'text-white/60' : 'text-muted-foreground')}>
-          <Link to="/" className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}>
+          <Link
+            to="/"
+            className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}
+            onClick={() => trackEvent('footer_click', { footer_target: 'home' })}
+          >
             {t('footer.home')}
           </Link>
-          <Link to="/empleos" className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}>
+          <Link
+            to="/empleos"
+            className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}
+            onClick={() => trackEvent('footer_click', { footer_target: 'jobs' })}
+          >
             {t('footer.jobs')}
           </Link>
           <a
@@ -39,6 +48,7 @@ const Footer = () => {
             target="_blank"
             rel="noopener noreferrer"
             className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}
+            onClick={() => trackEvent('footer_click', { footer_target: 'whatsapp_contact' })}
           >
             {t('footer.contact')}
           </a>

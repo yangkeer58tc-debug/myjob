@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 
 const Navbar = () => {
   const { t } = useLanguage();
@@ -16,7 +17,11 @@ const Navbar = () => {
     >
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link
+          to="/"
+          className="flex items-center gap-2 group"
+          onClick={() => trackEvent('nav_click', { nav_target: 'home' })}
+        >
           <div
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center transition-all overflow-hidden border',
@@ -35,6 +40,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-6">
           <Link
             to="/empleos"
+            onClick={() => trackEvent('nav_click', { nav_target: 'jobs' })}
             className={cn(
               'text-sm font-medium transition-colors',
               isHome ? 'text-white/70 hover:text-white' : 'text-muted-foreground hover:text-primary',
@@ -44,6 +50,7 @@ const Navbar = () => {
           </Link>
           <Link
             to="/buscar-candidatos"
+            onClick={() => trackEvent('nav_click', { nav_target: 'candidates' })}
             className={cn(
               'text-sm font-medium transition-colors',
               isHome ? 'text-white/70 hover:text-white' : 'text-muted-foreground hover:text-primary',

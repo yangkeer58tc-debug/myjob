@@ -13,6 +13,7 @@ import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob } from '@/lib/mexicoLocation';
 import { jobPublicPath } from '@/lib/jobSeoPath';
 import { renderSearchHighlight } from '@/lib/searchHighlight';
+import { trackEvent } from '@/lib/analytics';
 
 interface JobCardProps {
   searchQuery?: string;
@@ -57,11 +58,20 @@ const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
   const safeCompany = fixJobTextArtifacts(job.b_name);
   const safeLocation = displayCityForJob(job);
   const { handleApply, QRModal } = useWhatsAppRedirect(title, safeCompany);
+  const cardPath = jobPublicPath(job);
 
   return (
     <>
       <Card
-        onClick={() => navigate(jobPublicPath(job))}
+        onClick={() => {
+          trackEvent('job_card_click', {
+            job_id: job.id,
+            job_title: title,
+            company_name: safeCompany,
+            page_path: typeof window !== 'undefined' ? window.location.pathname : '',
+          });
+          navigate(cardPath);
+        }}
         className="group relative flex flex-col overflow-hidden transition-all hover:shadow-md cursor-pointer border-border/50"
       >
         <CardHeader className="p-5 pb-0">
@@ -134,7 +144,15 @@ const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
           <Button
             variant="whatsapp"
             className="w-full font-bold shadow-sm"
-            onClick={(e) => handleApply(e)}
+            onClick={(e) => {
+              trackEvent('job_apply_click', {
+                job_id: job.id,
+                job_title: title,
+                company_name: safeCompany,
+                source: 'job_card',
+              });
+              handleApply(e);
+            }}
           >
             <MessageCircle className="mr-2 h-4 w-4" />
             {t('wa.apply')}

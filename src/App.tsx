@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 import Home from "./pages/Home";
 import JobList from "./pages/JobList";
 import JobDetail from "./pages/JobDetail";
@@ -24,6 +25,7 @@ const App = () => (
           <Sonner />
           <ErrorBoundary>
             <BrowserRouter>
+              <AnalyticsTracker />
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/empleos" element={<JobList />} />
