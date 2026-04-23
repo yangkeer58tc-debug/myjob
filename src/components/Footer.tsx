@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { trackEvent } from '@/lib/analytics';
+import { trackContactClick, trackEvent } from '@/lib/analytics';
 
 const Footer = () => {
   const { t } = useLanguage();
@@ -48,7 +48,13 @@ const Footer = () => {
             target="_blank"
             rel="noopener noreferrer"
             className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}
-            onClick={() => trackEvent('footer_click', { footer_target: 'whatsapp_contact' })}
+            onClick={() =>
+              trackContactClick({
+                contact_channel: 'whatsapp',
+                contact_location: 'footer_contact_link',
+                source: 'footer',
+              })
+            }
           >
             {t('footer.contact')}
           </a>

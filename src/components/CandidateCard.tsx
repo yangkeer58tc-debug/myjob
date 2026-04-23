@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { queryMatchesText, renderSearchHighlight } from '@/lib/searchHighlight';
 import { QRCodeSVG } from 'qrcode.react';
+import { trackContactClick } from '@/lib/analytics';
 
 type Candidate = {
   id: string;
@@ -103,6 +104,13 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
   const waText = useMemo(() => encodeURIComponent(buildWaMessage(candidate)), [candidate]);
 
   const handleWhatsApp = () => {
+    trackContactClick({
+      contact_channel: 'whatsapp',
+      contact_location: 'candidate_card_hire_button',
+      source: 'candidate_card',
+      candidate_id: candidate.id,
+      candidate_role: title,
+    });
     if (isMobileDevice()) window.location.href = `whatsapp://send?phone=${BOT_NUMBER}&text=${waText}`;
     else setQrOpen(true);
   };

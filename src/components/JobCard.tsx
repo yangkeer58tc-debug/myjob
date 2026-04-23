@@ -57,7 +57,13 @@ const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
 
   const safeCompany = fixJobTextArtifacts(job.b_name);
   const safeLocation = displayCityForJob(job);
-  const { handleApply, QRModal } = useWhatsAppRedirect(title, safeCompany);
+  const { handleApply, QRModal } = useWhatsAppRedirect(title, safeCompany, {
+    contact_location: 'job_card_apply_button',
+    source: 'job_card',
+    job_id: job.id,
+    job_title: title,
+    company_name: safeCompany,
+  });
   const cardPath = jobPublicPath(job);
 
   return (

@@ -8,6 +8,18 @@ This project pushes custom events to `window.dataLayer` for GTM.
   - `page_path`
   - `page_title`
 
+- `contact_click` (unified contact event)
+  - `contact_channel` (`whatsapp` | `phone` | `email` | `other`)
+  - `contact_location` (where the click happened)
+  - `source` (optional)
+  - `page_path` (auto)
+  - optional context fields:
+    - `job_id`
+    - `job_title`
+    - `company_name`
+    - `candidate_id`
+    - `candidate_role`
+
 - `nav_click`
   - `nav_target` (`home` | `jobs` | `candidates`)
 

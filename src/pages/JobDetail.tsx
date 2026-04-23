@@ -233,7 +233,13 @@ const JobDetail = () => {
   const siteOrigin = getSiteOrigin();
   const orgLogoUrl = job ? toAbsoluteUrl(job.b_logo_url, siteOrigin) : undefined;
 
-  const { handleApply, QRModal } = useWhatsAppRedirect(safeTitle, safeCompany);
+  const { handleApply, QRModal } = useWhatsAppRedirect(safeTitle, safeCompany, {
+    contact_location: 'job_detail_apply_button',
+    source: 'job_detail',
+    job_id: job?.id,
+    job_title: safeTitle,
+    company_name: displayCompanyName,
+  });
 
   // Related jobs (same city, active, excluding current)
   const { data: relatedJobs } = useQuery({

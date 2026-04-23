@@ -8,6 +8,16 @@ type DataLayerValue =
   | Array<unknown>;
 
 export type AnalyticsParams = Record<string, DataLayerValue>;
+export type ContactClickParams = {
+  contact_channel: "whatsapp" | "phone" | "email" | "other";
+  contact_location: string;
+  source?: string;
+  job_id?: string;
+  job_title?: string;
+  company_name?: string;
+  candidate_id?: string;
+  candidate_role?: string;
+};
 
 declare global {
   interface Window {
@@ -36,5 +46,17 @@ export const trackPageView = (
   trackEvent("page_view", {
     page_path: `${pathname}${search}`,
     page_title: title,
+  });
+};
+
+export const trackContactClick = (params: ContactClickParams) => {
+  const pagePath =
+    typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}`
+      : "";
+
+  trackEvent("contact_click", {
+    ...params,
+    page_path: pagePath,
   });
 };

@@ -2,10 +2,22 @@ import { useCallback, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { trackContactClick } from '@/lib/analytics';
 
 const BOT_NUMBER = '5218132689146';
+type ContactTrackingContext = {
+  contact_location: string;
+  source?: string;
+  job_id?: string;
+  job_title?: string;
+  company_name?: string;
+};
 
-export const useWhatsAppRedirect = (jobTitle: string, bName: string) => {
+export const useWhatsAppRedirect = (
+  jobTitle: string,
+  bName: string,
+  trackingContext?: ContactTrackingContext,
+) => {
   const { t } = useLanguage();
   const [qrOpen, setQrOpen] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
@@ -21,13 +33,21 @@ export const useWhatsAppRedirect = (jobTitle: string, bName: string) => {
 
   const handleApply = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
+    trackContactClick({
+      contact_channel: 'whatsapp',
+      contact_location: trackingContext?.contact_location || 'unknown',
+      source: trackingContext?.source,
+      job_id: trackingContext?.job_id,
+      job_title: trackingContext?.job_title || jobTitle,
+      company_name: trackingContext?.company_name || bName,
+    });
     if (isMobile) {
       window.location.href = `whatsapp://send?phone=${BOT_NUMBER}&text=${encodedMsg}`;
     } else {
       setQrUrl(waUrl);
       setQrOpen(true);
     }
-  }, [encodedMsg, isMobile, waUrl]);
+  }, [bName, encodedMsg, isMobile, jobTitle, trackingContext, waUrl]);
 
   const QRModal = () => (
     <Dialog open={qrOpen} onOpenChange={setQrOpen}>
