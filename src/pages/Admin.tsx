@@ -824,10 +824,36 @@ const Admin = () => {
           ? normalizedRows.map(mergeImcColumnsIntoClassicRow)
           : normalizedRows;
 
-        const payload = buildJobsPayloadFromCsvRows(rowsForImport);
+        let payload = buildJobsPayloadFromCsvRows(rowsForImport);
+        const sourceTotal = payload.length;
+        const incomingIds = Array.from(
+          new Set(
+            payload
+              .map((row) => String(row.id ?? '').trim())
+              .filter(Boolean),
+          ),
+        );
+        if (incomingIds.length > 0) {
+          const existingIds = new Set<string>();
+          for (const part of chunkArray(incomingIds, 200)) {
+            const { data, error } = await supabase.from('jobs').select('id').in('id', part);
+            if (error) throw error;
+            for (const row of data || []) {
+              if (row?.id) existingIds.add(String(row.id));
+            }
+          }
+          if (existingIds.size > 0) {
+            payload = payload.filter((row) => !existingIds.has(String(row.id)));
+            const skipped = sourceTotal - payload.length;
+            if (skipped > 0) {
+              toast.message(`Se omitieron ${skipped} fila(s) porque el id ya existe en jobs.`);
+            }
+          }
+        }
+
         const total = payload.length;
         if (total === 0) {
-          toast.message('CSV sin filas para importar.');
+          toast.message('No hay filas nuevas para importar (ids ya existentes fueron omitidos).');
           return;
         }
 
