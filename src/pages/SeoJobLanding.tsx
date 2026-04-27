@@ -10,6 +10,23 @@ import { displayCityForJob } from '@/lib/mexicoLocation';
 import { jobMatchesJobsTextSearch, jobsTextSearchOrFilter, type JobTextSearchRow } from '@/lib/jobSearchQuery';
 import { SEO_CITIES, SEO_ROLES, seoCityBySlug, seoRoleBySlug, seoCityPath, seoCityRolePath } from '@/lib/seoLanding';
 
+const normalize = (s: string) =>
+  String(s || '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim();
+
+const cityMatches = (jobLocation: string, cityName: string) => {
+  const loc = normalize(jobLocation);
+  const city = normalize(cityName);
+  if (!loc || !city) return false;
+  if (loc.includes(city)) return true;
+  // Common aliases to avoid empty landings (e.g., CDMX vs Ciudad de Mexico)
+  if (city === 'ciudad de mexico' && (loc.includes('cdmx') || loc === 'mexico')) return true;
+  return false;
+};
+
 const SeoJobLanding = () => {
   const { citySlug = '', roleSlug = '' } = useParams<{ citySlug: string; roleSlug?: string }>();
   const siteOrigin = useMemo(() => getSiteOrigin(), []);
@@ -31,12 +48,13 @@ const SeoJobLanding = () => {
         .limit(1000);
       if (error) throw error;
       let rows = Array.isArray(data) ? data : [];
-      if (city) {
-        rows = rows.filter((j) => displayCityForJob(j as { id: string; location?: string | null }) === city.name);
-      }
+      if (city) rows = rows.filter((j) => cityMatches(displayCityForJob(j as { id: string; location?: string | null }), city.name));
+      const cityRows = [...rows];
       if (searchOr && role) {
         rows = rows.filter((j) => jobMatchesJobsTextSearch(j as JobTextSearchRow, role.query));
       }
+      // Avoid empty SEO pages: if no role match, show freshest city jobs.
+      if (role && rows.length === 0) return cityRows.slice(0, 60);
       return rows.slice(0, 60);
     },
     enabled: Boolean(city),
