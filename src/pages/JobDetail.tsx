@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
 import { Briefcase, MapPin, Clock, Building2, MessageCircle, ChevronRight, AlertTriangle } from 'lucide-react';
@@ -218,6 +218,16 @@ const JobDetail = () => {
   useEffect(() => {
     setDetailLogoFailed(false);
   }, [job?.id, job?.b_logo_url]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+    const prev = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    return () => {
+      window.history.scrollRestoration = prev;
+    };
+  }, [routeSegment, location.key]);
 
   const title = job?.title || '';
   const description = job?.description || '';
