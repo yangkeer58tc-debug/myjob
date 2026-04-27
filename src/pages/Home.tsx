@@ -22,9 +22,9 @@ const PhoneMockup = () => {
       <div className="absolute inset-0 rounded-[3rem] bg-slate-900 shadow-2xl border-8 border-slate-800" />
       <div className="absolute inset-[4px] rounded-[2.5rem] bg-[#efeae2] overflow-hidden flex flex-col">
         {/* WhatsApp Header */}
-        <div className="bg-[#2B66FF] px-4 py-4 flex items-center gap-3 text-white">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-            <Briefcase className="h-5 w-5 text-white" />
+        <div className="bg-[#075e54] px-4 py-4 flex items-center gap-3 text-white">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm overflow-hidden">
+            <img src="/brand-logo.png" alt="MyJob Logo" className="h-full w-full object-cover" />
           </div>
           <div>
             <p className="text-sm font-bold">MyJob Oficial</p>
@@ -40,7 +40,7 @@ const PhoneMockup = () => {
           <div className="self-end bg-[#dcf8c6] rounded-2xl rounded-tr-none px-4 py-2.5 max-w-[85%] shadow-sm">
             <p className="text-sm text-slate-800">Me interesa. ¿Cómo postulo?</p>
             <p className="text-[10px] text-slate-500 text-right mt-1 flex items-center justify-end gap-1">
-              10:31 AM <span className="text-[#2B66FF]">✓✓</span>
+              10:31 AM <span className="text-[#34b7f1]">✓✓</span>
             </p>
           </div>
           <div className="self-start bg-white rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[85%] shadow-sm">
@@ -123,7 +123,7 @@ const Home = () => {
       <div className="bg-background text-foreground">
         <section className="relative overflow-hidden pt-20 pb-14 lg:pt-28 lg:pb-20">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(109,221,62,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(43,102,255,0.16),transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(37,211,102,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(7,94,84,0.16),transparent_50%)]" />
             <div
               className="absolute inset-0 opacity-40"
               style={{
@@ -150,12 +150,12 @@ const Home = () => {
               <div className="grid lg:grid-cols-12 gap-10 items-center">
                 <div className="lg:col-span-6">
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-bold text-white/80 backdrop-blur">
-                    <span className="h-2 w-2 rounded-full bg-[#6DDD3E]" />
+                    <span className="h-2 w-2 rounded-full bg-[#25D366]" />
                     WhatsApp-first · Dos entradas (candidato / empresa)
                   </div>
                   <h1 className="mt-6 text-5xl md:text-6xl font-black leading-[1.05] tracking-tight text-white">
                     Encuentra empleo o contrata
-                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#2B66FF] to-[#6DDD3E]">
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-[#128C7E]">
                       con rapidez.
                     </span>
                   </h1>
@@ -172,7 +172,7 @@ const Home = () => {
                       }}
                       className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_20%_10%,rgba(109,221,62,0.16),transparent_55%),radial-gradient(circle_at_80%_40%,rgba(54,181,85,0.14),transparent_60%)]" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_20%_10%,rgba(37,211,102,0.16),transparent_55%),radial-gradient(circle_at_80%_40%,rgba(7,94,84,0.14),transparent_60%)]" />
                       <div className="relative">
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -185,7 +185,7 @@ const Home = () => {
                         </div>
                         <p className="mt-3 text-sm text-white/70">Postúlate por WhatsApp y avanza más rápido.</p>
                         <div className="mt-5">
-                          <Button className="rounded-xl h-11 px-5 font-bold bg-gradient-to-r from-[#6DDD3E] to-[#36B555] text-slate-950 hover:opacity-95">
+                          <Button className="rounded-xl h-11 px-5 font-bold bg-gradient-to-r from-[#25D366] to-[#128C7E] text-slate-950 hover:opacity-95">
                             Abrir empleos
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
@@ -201,7 +201,7 @@ const Home = () => {
                       }}
                       className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_30%_20%,rgba(43,102,255,0.18),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(26,78,214,0.16),transparent_60%)]" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_30%_20%,rgba(37,211,102,0.16),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(7,94,84,0.14),transparent_60%)]" />
                       <div className="relative">
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -214,7 +214,7 @@ const Home = () => {
                         </div>
                         <p className="mt-3 text-sm text-white/70">Filtrado rápido, privacidad y contacto por WhatsApp.</p>
                         <div className="mt-5">
-                          <Button variant="outline" className="rounded-xl h-11 px-5 font-bold border-[#2B66FF]/40 bg-[#2B66FF]/15 text-[#dbe6ff] hover:bg-[#2B66FF]/25">
+                          <Button variant="outline" className="rounded-xl h-11 px-5 font-bold border-white/15 bg-white/[0.06] text-white hover:bg-white/10">
                             Ir a la búsqueda
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
@@ -372,7 +372,7 @@ const Home = () => {
                     }}
                     className="group min-w-[220px] flex-shrink-0 rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
                   >
-                    <p className="text-sm font-black text-white group-hover:text-[#6DDD3E] transition-colors">{cat.name}</p>
+                    <p className="text-sm font-black text-white group-hover:text-[#25D366] transition-colors">{cat.name}</p>
                     <p className="mt-2 text-xs font-semibold text-white/60">
                       {(categoryCounts?.[cat.value] ?? 0).toLocaleString('es-MX')} vacantes
                     </p>
@@ -402,7 +402,7 @@ const Home = () => {
               </div>
               <div className="mt-12 text-center">
                 <Button
-                  className="rounded-xl h-12 px-8 font-bold bg-gradient-to-r from-[#6DDD3E] to-[#36B555] text-slate-950 hover:opacity-95"
+                  className="rounded-xl h-12 px-8 font-bold bg-gradient-to-r from-[#25D366] to-[#128C7E] text-slate-950 hover:opacity-95"
                   onClick={() => {
                     trackEvent('home_cta_click', { cta_name: 'featured_jobs_more', target_path: '/empleos' });
                     navigate('/empleos');

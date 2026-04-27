@@ -33,8 +33,7 @@ const Navbar = () => {
             <img src="/brand-logo.png" alt="MyJob Logo" className="w-full h-full object-cover" />
           </div>
           <span className={cn('text-xl font-black tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
-            <span className={cn(isHome ? 'text-[#2B66FF]' : 'text-[#2B66FF]')}>My</span>
-            <span className={cn(isHome ? 'text-[#6DDD3E]' : 'text-[#6DDD3E]')}>Job</span>
+            My<span className={cn(isHome ? 'text-[#25D366]' : 'text-primary')}>Job</span>
           </span>
         </Link>
         
