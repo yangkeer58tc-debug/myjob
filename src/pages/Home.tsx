@@ -307,49 +307,6 @@ const Home = () => {
           </div>
         </section>
 
-        <section className="relative py-14 border-t border-border/60">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl">
-              <h2 className="text-2xl md:text-3xl font-black text-foreground">Explora empleos por ciudad y puesto</h2>
-              <p className="mt-2 text-muted-foreground">
-                Accesos directos para encontrar vacantes activas en México por ubicación y tipo de trabajo.
-              </p>
-            </div>
-            <div className="mt-6 grid md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Ciudades populares</h3>
-                <ul className="mt-3 space-y-2">
-                  {SEO_CITIES.map((city) => (
-                    <li key={city.slug}>
-                      <Link
-                        to={seoCityPath(city.slug)}
-                        className="text-sm text-primary hover:underline underline-offset-4"
-                      >
-                        Empleos en {city.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Puestos buscados</h3>
-                <ul className="mt-3 space-y-2">
-                  {SEO_ROLES.map((role) => (
-                    <li key={role.slug}>
-                      <Link
-                        to={seoCityRolePath('ciudad-de-mexico', role.slug)}
-                        className="text-sm text-primary hover:underline underline-offset-4"
-                      >
-                        Vacantes de {role.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="relative py-20 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(37,211,102,0.12),transparent_55%)]" />
           <div className="container mx-auto px-4 relative">
@@ -484,6 +441,47 @@ const Home = () => {
                   </button>
                 </Reveal>
               ))}
+            </div>
+
+            <div className="mt-14 pt-10 border-t border-border/60">
+              <div className="max-w-4xl">
+                <h3 className="text-2xl md:text-3xl font-black text-foreground">Explora empleos por ciudad y puesto</h3>
+                <p className="mt-2 text-muted-foreground">
+                  Accesos directos para encontrar vacantes activas en México por ubicación y tipo de trabajo.
+                </p>
+              </div>
+              <div className="mt-6 grid md:grid-cols-2 gap-8">
+                <div>
+                  <h4 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Ciudades populares</h4>
+                  <ul className="mt-3 space-y-2">
+                    {SEO_CITIES.map((city) => (
+                      <li key={city.slug}>
+                        <Link
+                          to={seoCityPath(city.slug)}
+                          className="text-sm text-primary hover:underline underline-offset-4"
+                        >
+                          Empleos en {city.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Puestos buscados</h4>
+                  <ul className="mt-3 space-y-2">
+                    {SEO_ROLES.map((role) => (
+                      <li key={role.slug}>
+                        <Link
+                          to={seoCityRolePath('ciudad-de-mexico', role.slug)}
+                          className="text-sm text-primary hover:underline underline-offset-4"
+                        >
+                          Vacantes de {role.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </section>
