@@ -140,7 +140,7 @@ const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
           </div>
           
           <div className="flex items-baseline space-x-1">
-            <span className="text-xl font-bold text-primary">
+            <span className="text-xl font-bold text-whatsapp">
               {renderSearchHighlight(displaySalaryMXN(job), searchQuery)}
             </span>
           </div>
