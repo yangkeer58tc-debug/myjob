@@ -47,7 +47,8 @@ const SeoJobLanding = () => {
         .order('created_at', { ascending: false })
         .limit(1000);
       if (error) throw error;
-      let rows = Array.isArray(data) ? data : [];
+      const allRows = Array.isArray(data) ? data : [];
+      let rows = [...allRows];
       if (city) rows = rows.filter((j) => cityMatches(displayCityForJob(j as { id: string; location?: string | null }), city.name));
       const cityRows = [...rows];
       if (searchOr && role) {
@@ -55,6 +56,8 @@ const SeoJobLanding = () => {
       }
       // Avoid empty SEO pages: if no role match, show freshest city jobs.
       if (role && rows.length === 0) return cityRows.slice(0, 60);
+      // Last fallback: keep page useful with latest active jobs sitewide.
+      if (rows.length === 0) return allRows.slice(0, 60);
       return rows.slice(0, 60);
     },
     enabled: Boolean(city),
