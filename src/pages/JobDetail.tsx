@@ -388,7 +388,7 @@ const JobDetail = () => {
 
   const pageTitle = `${safeTitle} en ${safeLocation || 'México'} | MyJob`;
   const pageDescription = (summary || description || '').slice(0, 160);
-  const pageImage = orgLogoUrl || `${siteOrigin}/placeholder.svg`;
+  const pageImage = orgLogoUrl || `${siteOrigin}/brand-logo.png`;
   const pageUrl = jobPageUrl;
 
   return (

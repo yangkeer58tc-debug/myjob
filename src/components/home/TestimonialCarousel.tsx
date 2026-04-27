@@ -122,7 +122,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={cn('h-4 w-4', i < t.score ? 'text-[#25D366]' : 'text-white/20')}
+                          className={cn('h-4 w-4', i < t.score ? 'text-[#6DDD3E]' : 'text-white/20')}
                           fill={i < t.score ? 'currentColor' : 'none'}
                         />
                       ))}
@@ -149,7 +149,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
               className="rounded-full"
             >
               {isActive ? (
-                <span className="block h-1.5 w-14 rounded-full bg-gradient-to-r from-[#25D366] to-[#128C7E] bg-[length:200%_200%] motion-safe:animate-gradient-x" />
+                <span className="block h-1.5 w-14 rounded-full bg-gradient-to-r from-[#2B66FF] to-[#6DDD3E] bg-[length:200%_200%] motion-safe:animate-gradient-x" />
               ) : (
                 <span className="block h-1.5 w-3 rounded-full bg-white/15" />
               )}

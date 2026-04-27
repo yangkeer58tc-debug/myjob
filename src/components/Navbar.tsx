@@ -30,10 +30,11 @@ const Navbar = () => {
                 : 'bg-primary/10 border-transparent group-hover:bg-primary/20',
             )}
           >
-            <img src="/brand-logo.jpg" alt="MyJob Logo" className="w-full h-full object-cover" />
+            <img src="/brand-logo.png" alt="MyJob Logo" className="w-full h-full object-cover" />
           </div>
           <span className={cn('text-xl font-black tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
-            My<span className={cn(isHome ? 'text-[#25D366]' : 'text-primary')}>Job</span>
+            <span className={cn(isHome ? 'text-[#2B66FF]' : 'text-[#2B66FF]')}>My</span>
+            <span className={cn(isHome ? 'text-[#6DDD3E]' : 'text-[#6DDD3E]')}>Job</span>
           </span>
         </Link>
         

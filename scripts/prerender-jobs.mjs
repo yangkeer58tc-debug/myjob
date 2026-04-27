@@ -224,7 +224,7 @@ const main = async () => {
       job.summary || job.description || `Vacante en ${city}. Postúlate por WhatsApp en MyJob.`,
     );
     const desc = normalizeWhitespace(bodyPlain).slice(0, 170);
-    const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/placeholder.svg`;
+    const ogImage = absoluteUrl(job.b_logo_url) || `${SITE_URL}/brand-logo.png`;
     let html = applyHead({ html: template, title, description: desc, canonical: jobUrl, ogImage });
     const jobPostingLd = buildJobPostingJsonLd(job, {
       siteOrigin: SITE_URL,

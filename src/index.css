@@ -15,8 +15,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 160 84% 39%;
+    --primary: 104 70% 55%;
     --primary-foreground: 0 0% 100%;
+    --brand-c: 104 70% 55%;
+    --brand-b: 222 100% 58%;
 
     --secondary: 210 18% 96%;
     --secondary-foreground: 222 47% 11%;
@@ -30,16 +32,16 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --whatsapp: 142 70% 45%;
+    --whatsapp: 104 67% 52%;
     --whatsapp-foreground: 0 0% 100%;
-    --whatsapp-hover: 142 70% 40%;
+    --whatsapp-hover: 104 62% 46%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 11%;
 
     --border: 214 20% 90%;
     --input: 214 20% 90%;
-    --ring: 160 84% 39%;
+    --ring: 104 70% 55%;
 
     --radius: 0.9rem;
 
@@ -60,7 +62,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 160 84% 45%;
+    --primary: 104 70% 58%;
     --primary-foreground: 222 47% 7%;
     --secondary: 222 33% 16%;
     --secondary-foreground: 210 40% 98%;
@@ -72,7 +74,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 222 33% 16%;
     --input: 222 33% 16%;
-    --ring: 160 84% 45%;
+    --ring: 104 70% 58%;
   }
 }
 
