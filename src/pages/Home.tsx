@@ -469,18 +469,18 @@ const Home = () => {
               </div>
             </Reveal>
             <div className="mt-10 flex flex-wrap justify-center gap-3">
-              {CITIES.map((city, idx) => (
-                <Reveal key={city} from="none" delayMs={Math.min(idx * 40, 240)}>
+              {SEO_CITIES.map((city, idx) => (
+                <Reveal key={city.slug} from="none" delayMs={Math.min(idx * 40, 240)}>
                   <button
                     type="button"
                     onClick={() => {
-                      trackEvent('home_city_click', { city_name: city });
-                      navigate(`/empleos?ciudad=${encodeURIComponent(city)}`);
+                      trackEvent('home_city_click', { city_name: city.name });
+                      navigate(seoCityPath(city.slug));
                     }}
                     className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white/80 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10"
                   >
                     <MapPin className="h-4 w-4" />
-                    {city}
+                    {city.name}
                   </button>
                 </Reveal>
               ))}
