@@ -12,10 +12,34 @@ type Testimonial = {
   avatarSrc: string;
 };
 
-const encodePrompt = (s: string) => encodeURIComponent(s);
+const initialsFromName = (name: string) => {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return 'MJ';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+};
 
-const img = (prompt: string, size: string = 'square') =>
-  `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodePrompt(prompt)}&image_size=${size}`;
+const avatarSvgDataUri = (name: string, bg: string, fg: string = '#F8FAFC') => {
+  const initials = initialsFromName(name);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${bg}" stop-opacity="1" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.85" />
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#g)" />
+  <circle cx="60" cy="44" r="18" fill="rgba(255,255,255,0.15)" />
+  <rect x="28" y="70" width="64" height="24" rx="12" fill="rgba(255,255,255,0.15)" />
+  <text x="60" y="111" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="800" fill="${fg}">
+    ${initials}
+  </text>
+</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
 
 const TestimonialCarousel = ({ className }: { className?: string }) => {
   const testimonials = useMemo<Testimonial[]>(
@@ -26,7 +50,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
         quote:
           'Me gustó porque es directo: entiendes la vacante y hablas con la empresa. Sin registro largo y sin fricción.',
         score: 5,
-        avatarSrc: img('portrait photo, mexican woman, professional headshot, soft studio lighting, neutral background, high-end modern style, sharp focus, 50mm', 'square'),
+        avatarSrc: avatarSvgDataUri('Mariana S.', '#14B8A6'),
       },
       {
         name: 'Rafael M.',
@@ -34,7 +58,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
         quote:
           'El flujo por WhatsApp me ayudó a tener respuesta más rápido. Se siente como una conversación, no como un formulario.',
         score: 5,
-        avatarSrc: img('portrait photo, mexican man, professional headshot, soft studio lighting, neutral background, high-end modern style, sharp focus, 50mm', 'square'),
+        avatarSrc: avatarSvgDataUri('Rafael M.', '#3B82F6'),
       },
       {
         name: 'Camila A.',
@@ -43,7 +67,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
         quote:
           'La búsqueda de perfiles es clara y el contacto se abre con contexto. Se puede avanzar rápido con un filtrado simple.',
         score: 5,
-        avatarSrc: img('portrait photo, latina woman, HR manager, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
+        avatarSrc: avatarSvgDataUri('Camila A.', '#8B5CF6'),
       },
       {
         name: 'Bruno C.',
@@ -52,7 +76,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
         quote:
           'Para contratar, la privacidad importa. Aquí puedes evaluar antes de abrir el contacto.',
         score: 5,
-        avatarSrc: img('portrait photo, mexican man, manager, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
+        avatarSrc: avatarSvgDataUri('Bruno C.', '#16A34A'),
       },
       {
         name: 'Juliana P.',
@@ -60,7 +84,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
         quote:
           'Interfaz limpia y foco en lo esencial. Pude postularme sin perderme en pantallas y filtros confusos.',
         score: 5,
-        avatarSrc: img('portrait photo, mexican woman, professional headshot, soft studio lighting, neutral background, high-end modern style', 'square'),
+        avatarSrc: avatarSvgDataUri('Juliana P.', '#F59E0B'),
       },
     ],
     [],
@@ -122,7 +146,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={cn('h-4 w-4', i < t.score ? 'text-[#6DDD3E]' : 'text-white/20')}
+                          className={cn('h-4 w-4', i < t.score ? 'text-[#25D366]' : 'text-white/20')}
                           fill={i < t.score ? 'currentColor' : 'none'}
                         />
                       ))}
@@ -149,7 +173,7 @@ const TestimonialCarousel = ({ className }: { className?: string }) => {
               className="rounded-full"
             >
               {isActive ? (
-                <span className="block h-1.5 w-14 rounded-full bg-gradient-to-r from-[#2B66FF] to-[#6DDD3E] bg-[length:200%_200%] motion-safe:animate-gradient-x" />
+                <span className="block h-1.5 w-14 rounded-full bg-gradient-to-r from-[#25D366] to-[#128C7E] bg-[length:200%_200%] motion-safe:animate-gradient-x" />
               ) : (
                 <span className="block h-1.5 w-3 rounded-full bg-white/15" />
               )}
