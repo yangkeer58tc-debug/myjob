@@ -123,15 +123,13 @@ const JobList = () => {
     setSalarioDraft(salarioUrl);
   }, [salarioUrl]);
 
-  const cutoffIso = useMemo(() => new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), []);
-
   const { data: cities } = useQuery({
     queryKey: ['cities'],
     queryFn: async () => mexicoCities(),
   });
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['jobs', city, category, page, qUrl, salarioUrl, jobType, workplace, payment, cutoffIso],
+    queryKey: ['jobs', city, category, page, qUrl, salarioUrl, jobType, workplace, payment],
     queryFn: async () => {
       const needsClientCityFilter = Boolean(city);
       const searchOr = jobsTextSearchOrFilter(qUrl);
@@ -152,7 +150,6 @@ const JobList = () => {
         .from('jobs')
         .select('*', { count: needsClientCityFilter ? undefined : 'exact' })
         .eq('is_active', true)
-        .gte('created_at', cutoffIso)
         .order('created_at', { ascending: false })
         .range(rangeStart, rangeEnd);
 

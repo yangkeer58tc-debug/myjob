@@ -8,6 +8,17 @@ const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const staticUrls = [
   { path: '/', changefreq: 'daily', priority: 1.0 },
   { path: '/empleos', changefreq: 'hourly', priority: 0.9 },
+  { path: '/empleos?q=chofer', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?q=ayudante%20general', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?q=seguridad', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?q=cajero', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?q=atencion%20al%20cliente', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?q=almacenista', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?ciudad=Ciudad%20de%20M%C3%A9xico', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?ciudad=Guadalajara', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?ciudad=Monterrey', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?ciudad=Puebla', changefreq: 'daily', priority: 0.8 },
+  { path: '/empleos?ciudad=Tijuana', changefreq: 'daily', priority: 0.8 },
 ];
 
 const toIsoDate = (value) => {

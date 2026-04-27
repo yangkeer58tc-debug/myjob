@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Briefcase, Building2, MessageCircle, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PublicLayout from '@/components/PublicLayout';
@@ -15,6 +15,14 @@ import { trackEvent } from '@/lib/analytics';
 
 const CITIES = ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana'];
 const CATEGORIES = CATEGORY_OPTIONS.map((c) => ({ value: c.id, name: c.label }));
+const SEO_ROLE_QUERIES = [
+  'chofer',
+  'ayudante general',
+  'seguridad',
+  'cajero',
+  'atencion al cliente',
+  'almacenista',
+];
 
 const PhoneMockup = () => {
   return (
@@ -303,6 +311,49 @@ const Home = () => {
                   </p>
                 </div>
               </Reveal>
+            </div>
+          </div>
+        </section>
+
+        <section className="relative py-14 border-t border-border/60">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl">
+              <h2 className="text-2xl md:text-3xl font-black text-foreground">Explora empleos por ciudad y puesto</h2>
+              <p className="mt-2 text-muted-foreground">
+                Accesos directos para encontrar vacantes activas en México por ubicación y tipo de trabajo.
+              </p>
+            </div>
+            <div className="mt-6 grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Ciudades populares</h3>
+                <ul className="mt-3 space-y-2">
+                  {CITIES.map((city) => (
+                    <li key={city}>
+                      <Link
+                        to={`/empleos?ciudad=${encodeURIComponent(city)}`}
+                        className="text-sm text-primary hover:underline underline-offset-4"
+                      >
+                        Empleos en {city}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Puestos buscados</h3>
+                <ul className="mt-3 space-y-2">
+                  {SEO_ROLE_QUERIES.map((q) => (
+                    <li key={q}>
+                      <Link
+                        to={`/empleos?q=${encodeURIComponent(q)}`}
+                        className="text-sm text-primary hover:underline underline-offset-4"
+                      >
+                        Vacantes de {q}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </section>
