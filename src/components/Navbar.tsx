@@ -22,18 +22,9 @@ const Navbar = () => {
           className="flex items-center gap-2 group"
           onClick={() => trackEvent('nav_click', { nav_target: 'home' })}
         >
-          <div
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center transition-all overflow-hidden border',
-              isHome
-                ? 'bg-white/5 border-white/10 group-hover:bg-white/10'
-                : 'bg-primary/10 border-transparent group-hover:bg-primary/20',
-            )}
-          >
-            <img src="/brand-logo.png" alt="MyJob Logo" className="w-full h-full object-cover" />
-          </div>
-          <span className={cn('text-xl font-black tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
-            My<span className={cn(isHome ? 'text-[#25D366]' : 'text-primary')}>Job</span>
+          <img src="/brand-logo.png" alt="MyJob Logo" className="h-9 w-9 object-cover" />
+          <span className={cn('text-4xl font-black leading-none tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
+            MyJob
           </span>
         </Link>
         
