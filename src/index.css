@@ -30,9 +30,9 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --whatsapp: 149 45% 36%;
+    --whatsapp: 142 71% 45%;
     --whatsapp-foreground: 0 0% 100%;
-    --whatsapp-hover: 149 40% 31%;
+    --whatsapp-hover: 142 71% 40%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 11%;
@@ -70,9 +70,9 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --whatsapp: 149 42% 42%;
+    --whatsapp: 142 71% 45%;
     --whatsapp-foreground: 0 0% 100%;
-    --whatsapp-hover: 149 36% 36%;
+    --whatsapp-hover: 142 71% 40%;
     --border: 222 33% 16%;
     --input: 222 33% 16%;
     --ring: 160 84% 45%;
