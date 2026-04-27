@@ -10,6 +10,7 @@ import AnalyticsTracker from "@/components/AnalyticsTracker";
 import Home from "./pages/Home";
 import JobList from "./pages/JobList";
 import JobDetail from "./pages/JobDetail";
+import SeoJobLanding from "./pages/SeoJobLanding";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import CandidateSearch from "./pages/CandidateSearch";
@@ -29,6 +30,8 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/empleos" element={<JobList />} />
+                <Route path="/empleos-en/:citySlug" element={<SeoJobLanding />} />
+                <Route path="/empleos-en/:citySlug/:roleSlug" element={<SeoJobLanding />} />
                 <Route path="/empleo/:id" element={<JobDetail />} />
                 <Route path="/buscar-candidatos" element={<CandidateSearch />} />
                 <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />

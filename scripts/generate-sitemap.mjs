@@ -21,6 +21,9 @@ const staticUrls = [
   { path: '/empleos?ciudad=Tijuana', changefreq: 'daily', priority: 0.8 },
 ];
 
+const SEO_CITY_SLUGS = ['ciudad-de-mexico', 'guadalajara', 'monterrey', 'puebla', 'tijuana'];
+const SEO_ROLE_SLUGS = ['chofer', 'ayudante-general', 'seguridad', 'cajero', 'atencion-al-cliente', 'almacenista'];
+
 const toIsoDate = (value) => {
   if (!value) return undefined;
   const date = new Date(value);
@@ -110,6 +113,20 @@ const main = async () => {
     changefreq: u.changefreq,
     priority: u.priority,
   }));
+  for (const city of SEO_CITY_SLUGS) {
+    urls.push({
+      loc: `${SITE_URL}/empleos-en/${city}`,
+      changefreq: 'daily',
+      priority: 0.85,
+    });
+    for (const role of SEO_ROLE_SLUGS) {
+      urls.push({
+        loc: `${SITE_URL}/empleos-en/${city}/${role}`,
+        changefreq: 'daily',
+        priority: 0.8,
+      });
+    }
+  }
 
   try {
     const jobs = await fetchJobs();

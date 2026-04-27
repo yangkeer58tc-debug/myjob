@@ -12,17 +12,9 @@ import { useQuery } from '@tanstack/react-query';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 import { getSiteOrigin, safeJsonLdStringify } from '@/lib/siteUrl';
 import { trackEvent } from '@/lib/analytics';
+import { SEO_CITIES, SEO_ROLES, seoCityPath, seoCityRolePath } from '@/lib/seoLanding';
 
-const CITIES = ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana'];
 const CATEGORIES = CATEGORY_OPTIONS.map((c) => ({ value: c.id, name: c.label }));
-const SEO_ROLE_QUERIES = [
-  'chofer',
-  'ayudante general',
-  'seguridad',
-  'cajero',
-  'atencion al cliente',
-  'almacenista',
-];
 
 const PhoneMockup = () => {
   return (
@@ -327,13 +319,13 @@ const Home = () => {
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Ciudades populares</h3>
                 <ul className="mt-3 space-y-2">
-                  {CITIES.map((city) => (
-                    <li key={city}>
+                  {SEO_CITIES.map((city) => (
+                    <li key={city.slug}>
                       <Link
-                        to={`/empleos?ciudad=${encodeURIComponent(city)}`}
+                        to={seoCityPath(city.slug)}
                         className="text-sm text-primary hover:underline underline-offset-4"
                       >
-                        Empleos en {city}
+                        Empleos en {city.name}
                       </Link>
                     </li>
                   ))}
@@ -342,13 +334,13 @@ const Home = () => {
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Puestos buscados</h3>
                 <ul className="mt-3 space-y-2">
-                  {SEO_ROLE_QUERIES.map((q) => (
-                    <li key={q}>
+                  {SEO_ROLES.map((role) => (
+                    <li key={role.slug}>
                       <Link
-                        to={`/empleos?q=${encodeURIComponent(q)}`}
+                        to={seoCityRolePath('ciudad-de-mexico', role.slug)}
                         className="text-sm text-primary hover:underline underline-offset-4"
                       >
-                        Vacantes de {q}
+                        Vacantes de {role.label}
                       </Link>
                     </li>
                   ))}
