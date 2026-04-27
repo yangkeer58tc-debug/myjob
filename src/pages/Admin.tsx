@@ -299,6 +299,24 @@ type JobImportProgressState = {
   lastError?: string;
 };
 
+type JobOperationKind = 'import_jobs_csv' | 'deactivate_by_id_csv';
+
+type JobOperationLog = {
+  id: string;
+  created_at: string;
+  operation: JobOperationKind;
+  total_input: number;
+  total_processed: number;
+  online_before: number;
+  online_after: number;
+  skipped: number;
+  success: number;
+  failed: number;
+  failed_records: Array<{ id: string; error: string }>;
+};
+
+const JOB_UPLOAD_LOG_STORAGE_KEY = 'myjob_job_upload_logs_v1';
+
 const Admin = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
@@ -310,11 +328,13 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState<'jobs' | 'candidates'>('jobs');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const deactivateIdsFileInputRef = useRef<HTMLInputElement>(null);
   const candidateFileInputRef = useRef<HTMLInputElement>(null);
   const [jobImportProgress, setJobImportProgress] = useState<JobImportProgressState | null>(null);
   const jobImportPauseRef = useRef(false);
   const [adminJobsPage, setAdminJobsPage] = useState(1);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+  const [jobOpLogs, setJobOpLogs] = useState<JobOperationLog[]>([]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -333,6 +353,64 @@ const Admin = () => {
   };
 
   const handleLogout = () => supabase.auth.signOut();
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(JOB_UPLOAD_LOG_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as JobOperationLog[];
+      if (Array.isArray(parsed)) setJobOpLogs(parsed.slice(0, 50));
+    } catch {
+      // ignore malformed local storage
+    }
+  }, []);
+
+  const appendJobOpLog = (entry: Omit<JobOperationLog, 'id' | 'created_at'>) => {
+    const log: JobOperationLog = {
+      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      created_at: new Date().toISOString(),
+      ...entry,
+    };
+    setJobOpLogs((prev) => {
+      const next = [log, ...prev].slice(0, 50);
+      localStorage.setItem(JOB_UPLOAD_LOG_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const fetchOnlineJobsCount = async () => {
+    const { count, error } = await supabase
+      .from('jobs')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+    if (error) throw error;
+    return count || 0;
+  };
+
+  const extractIdsForDeactivate = (text: string): string[] => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const push = (raw: unknown) => {
+      const id = stripCsvCellDecorations(String(raw ?? '')).trim();
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      out.push(id);
+    };
+
+    const withHeader = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true });
+    const fields = (withHeader.meta?.fields || []).map((f) => String(f || '').trim().toLowerCase());
+    if (fields.includes('id')) {
+      for (const row of withHeader.data || []) push((row as Record<string, string>).id);
+      return out;
+    }
+
+    const noHeader = Papa.parse<string[]>(text, { header: false, skipEmptyLines: true });
+    for (const row of noHeader.data || []) {
+      if (!Array.isArray(row) || row.length === 0) continue;
+      push(row[0]);
+    }
+    return out;
+  };
 
   const { data: jobs, isLoading, error: jobsError } = useQuery({
     queryKey: ['adminJobs'],
@@ -796,6 +874,81 @@ const Admin = () => {
     })();
   };
 
+  const handleDeactivateIdsFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (jobImportProgress?.isRunning) return;
+
+    (async () => {
+      const failedRecords: Array<{ id: string; error: string }> = [];
+      let skipped = 0;
+      let success = 0;
+      let failed = 0;
+      let onlineBefore = 0;
+      let onlineAfter = 0;
+      let totalInput = 0;
+
+      try {
+        const text = await decodeCsvFile(file);
+        const ids = extractIdsForDeactivate(text);
+        totalInput = ids.length;
+        if (ids.length === 0) {
+          toast.message('No se encontraron IDs en el archivo.');
+          return;
+        }
+
+        onlineBefore = await fetchOnlineJobsCount();
+
+        const existingIds = new Set<string>();
+        for (const part of chunkArray(ids, 200)) {
+          const { data, error } = await supabase.from('jobs').select('id').in('id', part);
+          if (error) throw error;
+          for (const row of data || []) if (row?.id) existingIds.add(String(row.id));
+        }
+
+        const toDeactivate = ids.filter((id) => existingIds.has(id));
+        skipped = ids.length - toDeactivate.length;
+
+        for (const part of chunkArray(toDeactivate, 200)) {
+          const { error } = await supabase.from('jobs').update({ is_active: false }).in('id', part);
+          if (error) {
+            for (const id of part) {
+              failed += 1;
+              failedRecords.push({ id, error: String(error.message || error) });
+            }
+            continue;
+          }
+          success += part.length;
+        }
+
+        onlineAfter = await fetchOnlineJobsCount();
+        queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+
+        const summary = `下架完成：成功 ${success}，失败 ${failed}，跳过 ${skipped}`;
+        if (failed > 0) toast.error(summary);
+        else toast.success(summary);
+      } catch (err: unknown) {
+        const msg = String((err as { message?: unknown })?.message || err);
+        failed += 1;
+        failedRecords.push({ id: 'batch', error: msg });
+        toast.error(`批量下架失败：${msg}`);
+      } finally {
+        if (deactivateIdsFileInputRef.current) deactivateIdsFileInputRef.current.value = '';
+        appendJobOpLog({
+          operation: 'deactivate_by_id_csv',
+          total_input: totalInput,
+          total_processed: success + failed,
+          online_before: onlineBefore,
+          online_after: onlineAfter,
+          skipped,
+          success,
+          failed,
+          failed_records: failedRecords.slice(0, 100),
+        });
+      }
+    })();
+  };
+
   const handleJobImportPauseToggle = () => {
     const next = !jobImportPauseRef.current;
     jobImportPauseRef.current = next;
@@ -808,6 +961,13 @@ const Admin = () => {
     if (jobImportProgress?.isRunning) return;
 
     (async () => {
+      const failedRecords: Array<{ id: string; error: string }> = [];
+      let skipped = 0;
+      let success = 0;
+      let failed = 0;
+      let onlineBefore = 0;
+      let onlineAfter = 0;
+      let totalInput = 0;
       try {
         const text = await decodeCsvFile(file);
         const results = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true });
@@ -825,6 +985,8 @@ const Admin = () => {
           : normalizedRows;
 
         let payload = buildJobsPayloadFromCsvRows(rowsForImport);
+        totalInput = payload.length;
+        onlineBefore = await fetchOnlineJobsCount();
         const sourceTotal = payload.length;
         const incomingIds = Array.from(
           new Set(
@@ -844,7 +1006,7 @@ const Admin = () => {
           }
           if (existingIds.size > 0) {
             payload = payload.filter((row) => !existingIds.has(String(row.id)));
-            const skipped = sourceTotal - payload.length;
+            skipped = sourceTotal - payload.length;
             if (skipped > 0) {
               toast.message(`Se omitieron ${skipped} fila(s) porque el id ya existe en jobs.`);
             }
@@ -939,6 +1101,7 @@ const Admin = () => {
             } catch (err: unknown) {
               outcomes.push(false);
               lastError = String((err as { message?: unknown })?.message || err);
+              failedRecords.push({ id: payload[i]?.id || 'unknown', error: lastError });
             }
             const okN = outcomes.filter(Boolean).length;
             const badN = outcomes.filter((x) => !x).length;
@@ -959,10 +1122,12 @@ const Admin = () => {
         );
 
         const saved = outcomes.filter(Boolean).length;
-        const failed = outcomes.length - saved;
+        failed = outcomes.length - saved;
+        success = saved;
         jobImportPauseRef.current = false;
         setJobImportProgress({ isRunning: false, total, saved, failed, paused: false });
 
+        onlineAfter = await fetchOnlineJobsCount();
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
         if (failed === 0) {
@@ -980,9 +1145,24 @@ const Admin = () => {
       } catch (err: unknown) {
         jobImportPauseRef.current = false;
         setJobImportProgress(null);
+        failed = failed || 1;
+        if (failedRecords.length === 0) {
+          failedRecords.push({ id: 'batch', error: String((err as { message?: unknown })?.message || err) });
+        }
         toast.error(`Error al importar: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';
+        appendJobOpLog({
+          operation: 'import_jobs_csv',
+          total_input: totalInput,
+          total_processed: success + failed,
+          online_before: onlineBefore,
+          online_after: onlineAfter,
+          skipped,
+          success,
+          failed,
+          failed_records: failedRecords.slice(0, 100),
+        });
       }
     })();
   };
@@ -1163,6 +1343,13 @@ const Admin = () => {
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                 />
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  className="hidden"
+                  ref={deactivateIdsFileInputRef}
+                  onChange={handleDeactivateIdsFileUpload}
+                />
                 <Button
                   variant="secondary"
                   onClick={() => fileInputRef.current?.click()}
@@ -1170,6 +1357,14 @@ const Admin = () => {
                   disabled={Boolean(jobImportProgress?.isRunning)}
                 >
                   <Upload className="h-4 w-4 mr-2" /> Importar CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => deactivateIdsFileInputRef.current?.click()}
+                  className="rounded-xl"
+                  disabled={Boolean(jobImportProgress?.isRunning)}
+                >
+                  <Upload className="h-4 w-4 mr-2" /> 按ID批量下架
                 </Button>
                 <Button
                   variant="destructive"
@@ -1220,6 +1415,45 @@ const Admin = () => {
               >
                 Limpiar selección
               </Button>
+            </div>
+            <div className="bg-card rounded-2xl shadow-sm p-4 mb-3 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">上传记录</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => {
+                    setJobOpLogs([]);
+                    localStorage.removeItem(JOB_UPLOAD_LOG_STORAGE_KEY);
+                  }}
+                >
+                  清空
+                </Button>
+              </div>
+              {jobOpLogs.length === 0 ? (
+                <p className="text-xs text-muted-foreground">暂无记录</p>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-auto">
+                  {jobOpLogs.map((log) => (
+                    <div key={log.id} className="text-xs border border-border rounded-lg p-2">
+                      <div className="font-medium">
+                        {log.operation === 'deactivate_by_id_csv' ? '按ID下架' : '导入帖子'} ·{' '}
+                        {new Date(log.created_at).toLocaleString()}
+                      </div>
+                      <div className="text-muted-foreground">
+                        操作前在线: {log.online_before}，操作后在线: {log.online_after}，输入: {log.total_input}，处理:{' '}
+                        {log.total_processed}，成功: {log.success}，失败: {log.failed}，跳过: {log.skipped}
+                      </div>
+                      {log.failed_records.length > 0 ? (
+                        <div className="text-destructive mt-1">
+                          失败记录: {log.failed_records.slice(0, 3).map((r) => `${r.id}(${r.error})`).join(' ; ')}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="bg-card rounded-2xl shadow-sm overflow-hidden">
               <table className="w-full text-sm">
