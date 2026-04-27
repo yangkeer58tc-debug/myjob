@@ -22,8 +22,8 @@ const Navbar = () => {
           className="flex items-center gap-2 group"
           onClick={() => trackEvent('nav_click', { nav_target: 'home' })}
         >
-          <img src="/brand-logo.png" alt="MyJob Logo" className="h-9 w-9 object-cover" />
-          <span className={cn('text-4xl font-black leading-none tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
+          <img src="/brand-logo.png" alt="MyJob Logo" className="h-11 w-11 object-cover" />
+          <span className={cn('text-3xl font-black leading-none tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
             MyJob
           </span>
         </Link>
