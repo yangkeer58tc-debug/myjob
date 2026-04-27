@@ -23,7 +23,7 @@ const Navbar = () => {
           onClick={() => trackEvent('nav_click', { nav_target: 'home' })}
         >
           <img src="/brand-logo.png" alt="MyJob Logo" className="h-11 w-11 object-cover" />
-          <span className={cn('text-3xl font-black leading-none tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
+          <span className={cn('text-2xl font-black leading-none tracking-tight', isHome ? 'text-white' : 'text-foreground')}>
             MyJob
           </span>
         </Link>
