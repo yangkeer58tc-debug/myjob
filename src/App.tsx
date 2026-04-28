@@ -14,6 +14,7 @@ import SeoJobLanding from "./pages/SeoJobLanding";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import CandidateSearch from "./pages/CandidateSearch";
+import { EmpleosPrefixJobRedirect, EmployToEmpleoRedirect } from "./components/SeoCanonicalRedirects";
 
 const queryClient = new QueryClient();
 
@@ -30,8 +31,10 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/empleos" element={<JobList />} />
+                <Route path="/empleos/:jobSlug" element={<EmpleosPrefixJobRedirect />} />
                 <Route path="/empleos-en/:citySlug" element={<SeoJobLanding />} />
                 <Route path="/empleos-en/:citySlug/:roleSlug" element={<SeoJobLanding />} />
+                <Route path="/employ/:id/*" element={<EmployToEmpleoRedirect />} />
                 <Route path="/empleo/:id" element={<JobDetail />} />
                 <Route path="/buscar-candidatos" element={<CandidateSearch />} />
                 <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />

@@ -1,5 +1,18 @@
 # Canonical host: send www → apex. Remove this rule if your primary URL is https://www.myjob.com/
 https://www.myjob.com/* https://myjob.com/:splat 301!
 
+# Legacy job path (wrong English segment) → Spanish canonical
+/employ/:id /empleo/:id/ 301
+/employ/:id/ /empleo/:id/ 301
+
+# Wrong prefix for job detail pages (listing is /empleos only). Prevents duplicate vs /empleo/…
+/empleos/* /empleo/:splat 301
+
+# Legacy default documents (were returning SPA shell + soft 404 in GSC)
+/Default.aspx / 301
+/default.aspx / 301
+/index.asp / 301
+/index.aspx / 301
+
 # SPA: all routes serve index.html (Vite/React)
 /* /index.html 200
