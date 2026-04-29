@@ -15,6 +15,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import CandidateSearch from "./pages/CandidateSearch";
 import { EmpleosPrefixJobRedirect, EmployToEmpleoRedirect } from "./components/SeoCanonicalRedirects";
+import StagingBanner from "./components/StagingBanner";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
           <Sonner />
           <ErrorBoundary>
             <BrowserRouter>
+              <StagingBanner />
               <AnalyticsTracker />
               <Routes>
                 <Route path="/" element={<Home />} />
