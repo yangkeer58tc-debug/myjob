@@ -12,6 +12,7 @@
     "indexing:sitemap": "node scripts/google-indexing-from-sitemap.mjs",
     "indexing:one": "node scripts/google-indexing-one.mjs",
     "indexing:urls": "node scripts/google-indexing-from-urls.mjs",
+    "sync:sample:staging": "node scripts/sync-sample-to-staging.mjs",
     "build:dev": "vite build --mode development",
     "build:staging": "vite build --mode staging",
     "preview:staging": "npm run build:staging && vite preview",
