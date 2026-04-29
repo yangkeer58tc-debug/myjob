@@ -14,9 +14,5 @@ https://www.myjob.com/* https://myjob.com/:splat 301!
 /index.asp / 301
 /index.aspx / 301
 
-# Legal pages (clean URLs without .html)
-/refund-policy /refund-policy.html 200
-/terms /terms-and-conditions.html 200
-
 # SPA: all routes serve index.html (Vite/React)
 /* /index.html 200
