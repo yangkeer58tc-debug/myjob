@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { getSiteOrigin } from '@/lib/siteUrl';
+import { unlockCandidateContact } from '@/lib/candidateContactUnlock';
+import { trackStructuredEvent } from '@/lib/analytics';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -165,6 +168,28 @@ const CandidateSearch = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const awStatus = searchParams.get('aw_status');
+  const awCandidate = searchParams.get('aw_candidate');
+  const hasTrackedCandidateListShow = useRef(false);
+
+  useEffect(() => {
+    if (awStatus !== 'success' || !awCandidate) return;
+    unlockCandidateContact(awCandidate);
+    const next = new URLSearchParams(searchParams);
+    next.delete('aw_status');
+    next.delete('aw_candidate');
+    next.delete('aw_intent');
+    setSearchParams(next, { replace: true });
+  }, [awStatus, awCandidate, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (hasTrackedCandidateListShow.current) return;
+    hasTrackedCandidateListShow.current = true;
+    trackStructuredEvent('list_b_show', {
+      module: 'candidate_list_page',
+      item_name: role ? fixJobTextArtifacts(role) : undefined,
+    });
+  }, [role]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['candidates', role, q, page],
@@ -332,8 +357,13 @@ const CandidateSearch = () => {
         ) : data && data.candidates.length > 0 ? (
           <>
             <div className="grid lg:grid-cols-2 gap-6">
-              {data.candidates.map((c) => (
-                <CandidateCard key={c.id} candidate={c} query={q} />
+              {data.candidates.map((c, idx) => (
+                <CandidateCard
+                  key={c.id}
+                  candidate={c}
+                  query={q}
+                  trackingPosition={(page - 1) * ITEMS_PER_PAGE + idx + 1}
+                />
               ))}
             </div>
 

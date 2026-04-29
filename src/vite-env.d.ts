@@ -17,4 +17,6 @@ interface ImportMetaEnv {
   readonly VITE_JOB_IMPORT_AI_CONCURRENCY?: string;
   /** Parallel Supabase upserts when AI is off (default 15, max 30). */
   readonly VITE_JOB_IMPORT_UPSERT_CONCURRENCY?: string;
+  /** Candidate contact unlock price in MXN for staging payment wall. */
+  readonly VITE_CANDIDATE_CONTACT_PRICE_MXN?: string;
 }

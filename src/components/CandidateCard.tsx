@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { queryMatchesText, renderSearchHighlight } from '@/lib/searchHighlight';
 import { QRCodeSVG } from 'qrcode.react';
-import { trackContactClick } from '@/lib/analytics';
+import { trackStructuredEvent } from '@/lib/analytics';
+import { supabase } from '@/integrations/supabase/client';
+import { isCandidateContactUnlocked } from '@/lib/candidateContactUnlock';
 
 type Candidate = {
   id: string;
@@ -26,6 +28,7 @@ type Candidate = {
 };
 
 const BOT_NUMBER = '5218132689146';
+const DEFAULT_CONTACT_PRICE_MXN = 49;
 
 const maskName = (firstName: string | null, lastName: string | null, fallback: string | null) => {
   const cap = (v: string) => (v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : v);
@@ -89,7 +92,15 @@ const buildWaUrl = (candidate: Candidate) => {
   return `https://wa.me/${BOT_NUMBER}?text=${encodeURIComponent(msg)}`;
 };
 
-const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: string }) => {
+const CandidateCard = ({
+  candidate,
+  query,
+  trackingPosition,
+}: {
+  candidate: Candidate;
+  query?: string;
+  trackingPosition?: number;
+}) => {
   const title = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'Profesional');
   const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
   const country = candidate.country ? fixJobTextArtifacts(candidate.country) : '';
@@ -100,19 +111,69 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
   const q = query || '';
   const highlightByRawRole = queryMatchesText(roleRaw, q) && !queryMatchesText(title, q);
   const [qrOpen, setQrOpen] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [creatingCheckout, setCreatingCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isCandidateContactUnlocked(candidate.id));
   const waUrl = useMemo(() => buildWaUrl(candidate), [candidate]);
   const waText = useMemo(() => encodeURIComponent(buildWaMessage(candidate)), [candidate]);
+  const contactPriceMxn = Number(import.meta.env.VITE_CANDIDATE_CONTACT_PRICE_MXN || DEFAULT_CONTACT_PRICE_MXN);
+  const normalizedPrice = Number.isFinite(contactPriceMxn) && contactPriceMxn > 0 ? Math.round(contactPriceMxn * 100) / 100 : DEFAULT_CONTACT_PRICE_MXN;
 
   const handleWhatsApp = () => {
-    trackContactClick({
-      contact_channel: 'whatsapp',
-      contact_location: 'candidate_card_hire_button',
-      source: 'candidate_card',
-      candidate_id: candidate.id,
-      candidate_role: title,
+    if (!isUnlocked) {
+      setCheckoutError(null);
+      setPaywallOpen(true);
+      return;
+    }
+    trackStructuredEvent('list_b_btn_click', {
+      module: 'candidate_list_results',
+      item_id: candidate.id,
+      item_name: title,
+      position: trackingPosition,
+      cta_name: 'hire_whatsapp',
     });
     if (isMobileDevice()) window.location.href = `whatsapp://send?phone=${BOT_NUMBER}&text=${waText}`;
     else setQrOpen(true);
+  };
+
+  const handleCreateCheckout = async () => {
+    setCreatingCheckout(true);
+    setCheckoutError(null);
+    try {
+      const returnUrl = new URL(window.location.href);
+      returnUrl.searchParams.set('aw_status', 'success');
+      returnUrl.searchParams.set('aw_candidate', candidate.id);
+
+      const cancelUrl = new URL(window.location.href);
+      cancelUrl.searchParams.set('aw_status', 'cancel');
+      cancelUrl.searchParams.set('aw_candidate', candidate.id);
+
+      const { data, error } = await supabase.functions.invoke('airwallex-create-checkout', {
+        body: {
+          candidateId: candidate.id,
+          amount: normalizedPrice,
+          currency: 'MXN',
+          returnUrl: returnUrl.toString(),
+          cancelUrl: cancelUrl.toString(),
+          locale: 'es-MX',
+          metadata: {
+            candidate_role: title,
+            source: 'candidate_card',
+          },
+        },
+      });
+
+      if (error) throw error;
+      const checkoutUrl = String((data as { checkoutUrl?: unknown })?.checkoutUrl || '').trim();
+      if (!checkoutUrl) throw new Error('Airwallex 未返回可用的支付链接。');
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      const message = String((err as { message?: unknown })?.message || err || 'No se pudo iniciar el pago.');
+      setCheckoutError(message);
+    } finally {
+      setCreatingCheckout(false);
+    }
   };
 
   return (
@@ -132,7 +193,7 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
             </p>
           </div>
           <Button variant="whatsapp" className="rounded-2xl font-bold" onClick={handleWhatsApp}>
-            Contratar agora
+            {isUnlocked ? 'Contactar ahora' : 'Desbloquear contacto'}
           </Button>
         </div>
 
@@ -174,6 +235,39 @@ const CandidateCard = ({ candidate, query }: { candidate: Candidate; query?: str
             <p className="text-center text-sm text-muted-foreground max-w-xs">
               Escanea este código QR con WhatsApp en tu teléfono para abrir la conversación.
             </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={paywallOpen}
+        onOpenChange={(open) => {
+          setPaywallOpen(open);
+          if (!open) setCheckoutError(null);
+          setIsUnlocked(isCandidateContactUnlocked(candidate.id));
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Desbloquea el contacto del candidato</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Realiza el pago para continuar y abrir WhatsApp con la solicitud de contacto de este perfil.
+            </p>
+            <div className="rounded-xl border border-border/60 p-4 bg-muted/20 flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">Acceso por candidato</span>
+              <span className="text-xl font-extrabold text-foreground">${normalizedPrice.toFixed(2)} MXN</span>
+            </div>
+            {checkoutError ? <p className="text-sm text-destructive break-words">{checkoutError}</p> : null}
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <Button variant="outline" onClick={() => setPaywallOpen(false)} disabled={creatingCheckout}>
+                Cancelar
+              </Button>
+              <Button onClick={handleCreateCheckout} disabled={creatingCheckout}>
+                {creatingCheckout ? 'Redirigiendo...' : 'Pagar con Airwallex (test)'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
