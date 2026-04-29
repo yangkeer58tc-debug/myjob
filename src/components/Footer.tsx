@@ -51,6 +51,12 @@ const Footer = () => {
           >
             {t('footer.contact')}
           </a>
+          <a href="/refund-policy" className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}>
+            Refund Policy
+          </a>
+          <a href="/terms" className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}>
+            Terms & Conditions
+          </a>
         </div>
       </div>
       <div className={cn('container border-t py-6 text-center text-xs', isHome ? 'border-white/10 text-white/50' : 'border-border text-muted-foreground')}>
