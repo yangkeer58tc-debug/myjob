@@ -1,0 +1,33 @@
+---
+description: 先测试环境后正式 — 在 staging 分支开发并推送，只有用户明确要求时才合并到 main 上线（staging-first workflow）
+alwaysApply: true
+---
+
+# Staging first, then production / 先测试环境，再上线
+
+This repo uses a **staging / 测试环境** pipeline. Details: `docs/staging-environment-zh.md`, `npm run build:staging`, `.env.staging.example`.
+
+## Default branch for feature and fix work
+
+1. For **features, refactors, and bugfixes**, do **not** land changes only on `main`. Work on branch **`staging`**.
+2. **Before** editing project source/config/assets for such work: ensure you are on `staging` — e.g. `git fetch origin`, then `git checkout staging`, or **`git checkout -b staging main`** if the branch does not exist locally; if `origin/staging` exists, align with it (`git checkout staging && git pull` or merge as appropriate).
+3. **Commit and push** to **`origin/staging`** so Cloudflare (or CI) can build the **staging** project / preview. Routine work should **not** end with “only local commits” or “push only to `main`” unless the user opted out.
+
+## When to touch `main` / production
+
+- Merge **`staging` → `main`** (or tell the user to open a PR and merge) **only** when the user **explicitly** asks to **release**, **deploy to production**, **上线**, **合并到 main**, **推到正式**, **go live**, or equivalent.
+- Do **not** merge or push to `main` for normal feature/fix completion without that explicit request.
+
+## Exceptions
+
+- **Hotfix / 热修 / 用户明确要求直接改 main**：work on `main` as requested.
+- **Docs-only or meta-only** changes: follow user instruction; if unclear, prefer `staging` for consistency.
+
+## Build commands
+
+- **Staging** builds: **`npm run build:staging`** (and staging env vars in the hosting dashboard).
+- **Production** builds: **`npm run build`**.
+
+## Coordination with “auto push after changes”
+
+After finishing a task, commit and push the **current branch**. Under this rule, that branch should usually be **`staging`**, not `main`, for non-hotfix work — so the automatic push targets **staging** and triggers the **test environment**, not production.

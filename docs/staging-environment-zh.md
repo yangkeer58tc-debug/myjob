@@ -2,6 +2,8 @@
 
 目标：在不影响正式域名的前提下，先验证功能与数据，再合并到 `main` 上线。
 
+**与 Cursor 的约定（所有会话默认遵守）：** 见仓库根目录 `.cursor/rules/staging-first-workflow.mdc` — 功能与修复默认在 **`staging`** 分支开发并 `git push`；**只有**你明确说 **上线 / 合并到 main / 推到正式** 时，再合并到 `main`。
+
 ## 1. 本地模拟 Staging 构建
 
 1. 复制环境模板：`cp .env.staging.example .env.staging`

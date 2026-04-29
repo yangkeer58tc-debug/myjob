@@ -10,6 +10,8 @@ When this task **finishes** and there are **uncommitted changes** to meaningful 
 1. Stage the relevant files, **`git commit`** with a short, clear message (prefer conventional style, e.g. `fix: …`, `feat: …`).
 2. **`git push`** to **`origin`** on the **current branch** (same as `git push -u origin HEAD` when needed).
 
+**Staging-first:** For feature/fix work, the **current branch should be `staging`** per `.cursor/rules/staging-first-workflow.mdc`, so the push updates the **test environment**, not production. Merging to `main` / **上线** only when the user explicitly asks.
+
 Skip push only if the user explicitly asked not to, or if push would clearly fail (e.g. no remote)—then say so briefly.
 
 Do **not** leave fixes sitting locally when the user relies on the remote for Cloudflare builds.
