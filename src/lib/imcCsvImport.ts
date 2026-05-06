@@ -15,10 +15,14 @@ export function normalizeCsvRecordKeys(row: Record<string, string>): Record<stri
 
 export function isImcExportCsv(fieldNames: string[]): boolean {
   const set = new Set(fieldNames.map(normKey));
+  const hasCategoryCol =
+    set.has('category_full_path') || set.has('category_1') || set.has('category_path');
+  const hasAuthorNameCol = set.has('author_name') || set.has('author_na');
+  const hasAuthorProfileCol = set.has('author_profile') || set.has('author_pro');
   const fixedHeader =
     set.has('id') &&
     set.has('origin_id') &&
-    set.has('category_full_path') &&
+    hasCategoryCol &&
     set.has('title') &&
     set.has('amount') &&
     set.has('company') &&
@@ -26,8 +30,8 @@ export function isImcExportCsv(fieldNames: string[]): boolean {
     set.has('location') &&
     set.has('latitude') &&
     set.has('longitude') &&
-    set.has('author_name') &&
-    set.has('author_profile') &&
+    hasAuthorNameCol &&
+    hasAuthorProfileCol &&
     set.has('create_at') &&
     set.has('ext');
   if (fixedHeader) return true;
@@ -149,7 +153,8 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
   const id = pick(row, 'id', 'origin_id');
   const b_name = pick(row, 'b_name', 'company', 'author_name', 'author_na');
   const category =
-    pick(row, 'category') || categoryIdFromFullPath(pick(row, 'category_full_path'));
+    pick(row, 'category') ||
+    categoryIdFromFullPath(pick(row, 'category_full_path', 'category_path', 'category_1'));
   const industryRaw = pick(row, 'industry') || industryFromExtJson(pick(row, 'ext'));
   const industry = industryRaw ? normalizeIndustryLabelForMexico(industryRaw) : '';
   const salaryFromAmount = salaryHintFromAmountJson(pick(row, 'amount'));
