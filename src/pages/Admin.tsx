@@ -48,7 +48,8 @@ import {
 } from '@/lib/jobLogoUrl';
 
 /** Papa Parse puts delimiter auto-detect notes in `errors` even when parsing succeeds — do not treat those as fatal. */
-const JOB_CSV_PARSE_BASE = { skipEmptyLines: true as const, delimiter: ',' as const };
+const JOB_CSV_PARSE_BASE = { skipEmptyLines: true as const };
+const JOB_CSV_DELIMITERS = [',', '\t', ';', '|'] as const;
 
 function fatalPapaParseErrors(errors: Array<{ message?: string; code?: string }> | undefined) {
   if (!errors?.length) return [];
@@ -59,6 +60,27 @@ function fatalPapaParseErrors(errors: Array<{ message?: string; code?: string }>
     if (msg.includes('Unable to auto-detect delimiting character')) return false;
     return true;
   });
+}
+
+function parseRecordsWithBestDelimiter(text: string): Papa.ParseResult<Record<string, string>> {
+  let best: Papa.ParseResult<Record<string, string>> | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  for (const delimiter of JOB_CSV_DELIMITERS) {
+    const parsed = Papa.parse<Record<string, string>>(text, { ...JOB_CSV_PARSE_BASE, header: true, delimiter });
+    const fatal = fatalPapaParseErrors(parsed.errors);
+    const fields = (parsed.meta?.fields || []).filter((f) => String(f ?? '').trim() !== '');
+    const nonEmptyRows = (parsed.data || []).filter((r) =>
+      Object.values(r || {}).some((v) => String(v ?? '').trim() !== ''),
+    );
+    const score = fields.length * 100 + nonEmptyRows.length - fatal.length * 10000;
+    if (score > bestScore) {
+      best = parsed;
+      bestScore = score;
+    }
+  }
+
+  return best || Papa.parse<Record<string, string>>(text, { ...JOB_CSV_PARSE_BASE, header: true, delimiter: ',' });
 }
 
 interface JobForm {
@@ -411,14 +433,18 @@ const Admin = () => {
       out.push(id);
     };
 
-    const withHeader = Papa.parse<Record<string, string>>(text, { ...JOB_CSV_PARSE_BASE, header: true });
+    const withHeader = parseRecordsWithBestDelimiter(text);
     const fields = (withHeader.meta?.fields || []).map((f) => String(f || '').trim().toLowerCase());
     if (fields.includes('id')) {
       for (const row of withHeader.data || []) push((row as Record<string, string>).id);
       return out;
     }
 
-    const noHeader = Papa.parse<string[]>(text, { ...JOB_CSV_PARSE_BASE, header: false });
+    const noHeader = Papa.parse<string[]>(text, {
+      ...JOB_CSV_PARSE_BASE,
+      header: false,
+      delimiter: withHeader.meta?.delimiter || ',',
+    });
     for (const row of noHeader.data || []) {
       if (!Array.isArray(row) || row.length === 0) continue;
       push(row[0]);
@@ -847,7 +873,7 @@ const Admin = () => {
     (async () => {
       try {
         const text = await decodeCsvFile(file);
-        const results = Papa.parse<Record<string, string>>(text, { ...JOB_CSV_PARSE_BASE, header: true });
+        const results = parseRecordsWithBestDelimiter(text);
         const fatalCand = fatalPapaParseErrors(results.errors);
         if (fatalCand.length) {
           const msg = fatalCand[0]?.message || 'CSV inválido';
@@ -985,7 +1011,7 @@ const Admin = () => {
       let totalInput = 0;
       try {
         const text = await decodeCsvFile(file);
-        const results = Papa.parse<Record<string, string>>(text, { ...JOB_CSV_PARSE_BASE, header: true });
+        const results = parseRecordsWithBestDelimiter(text);
         const fatalJobs = fatalPapaParseErrors(results.errors);
         if (fatalJobs.length) {
           const msg = fatalJobs[0]?.message || 'CSV inválido';
