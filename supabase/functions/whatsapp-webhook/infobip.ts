@@ -1,5 +1,7 @@
 // Thin wrapper around the Infobip WhatsApp API for the MVP bot.
 // Docs: https://www.infobip.com/docs/api/channels/whatsapp
+// Build marker (used to verify Supabase Edge runtime is serving the latest
+// version): WA_BOT_BUILD_2026_05_07_v3
 
 const cleanBaseUrl = (url: string): string => {
   const trimmed = url.trim().replace(/\/+$/, '');
@@ -47,6 +49,8 @@ export async function sendText(
   text: string,
 ): Promise<{ ok: boolean; status: number; body: string }> {
   const url = `${config.baseUrl}/whatsapp/1/message/text`;
+  const normalizedTo = normalizeMsisdnForWhatsApp(to);
+  console.log('[wa-bot v3] sendText raw=%s normalized=%s', to, normalizedTo);
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -56,7 +60,7 @@ export async function sendText(
     },
     body: JSON.stringify({
       from: config.sender,
-      to: normalizeMsisdnForWhatsApp(to),
+      to: normalizedTo,
       content: { text },
     }),
   });
