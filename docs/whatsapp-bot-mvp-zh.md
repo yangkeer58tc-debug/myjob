@@ -187,11 +187,34 @@ const BOT_NUMBER = '5218132689445';
 ## 监控与排错
 
 - **Edge Function 日志**：Supabase Dashboard -> Edge Functions -> `whatsapp-webhook` -> Logs
-- **Infobip 调用日志**：Infobip Portal -> `Logs` -> `Conversation` 或 `Logs` 菜单
-- **常见 4xx/5xx**：
-  - `500 Missing Infobip config`：secrets 没配齐
-  - `400 Invalid JSON body`：webhook URL 接到了非预期 payload，看 Infobip 是否发了状态回执到同一 URL（可在 Infobip 把 status callback 指向单独的 `…/status` 路径或留空）
-  - 没有任何回复：检查 Infobip Inbound configuration 的 forwarding URL 有没有真的保存
+- **Invocations**：若全是 **401**，说明 Edge Function 被错误打开了 JWT 校验。重新部署时必须：
+
+```bash
+npx supabase@latest functions deploy whatsapp-webhook \
+  --project-ref vtxknqmuavgtryadvqdr \
+  --no-verify-jwt
+```
+
+- **Infobip 调用日志**：Infobip Portal -> `Logs` -> `Conversation` 或消息状态报表（可查每条消息的 reject reason）
+
+### Infobip `whatsapp_messages.raw_payload` 常见含义
+
+- **`REJECTED_DESTINATION_NOT_REGISTERED`**  
+  - 收件人号码不符合 WhatsApp 侧的 wa\_id（例如墨西哥：`528132689146` inbound，出站要对 **`5218132689146`**）。本项目已在 Edge Function 里做收件人归一化。
+  - 若日志仍提示 demo/SMS whitelist（trial），则需充值或把收件人加入试用白名单。
+
+- **`REJECTED_SOURCE` / `Invalid Source address`**  
+  - **`INFOBIP_SENDER`（请求里的 `from`）不是 Infobip + Meta 为你的账号登记的出站号码**。常见踩坑：
+    - 误把 **`INFOBIP_SENDER` 写成去掉墨西哥手机号前缀 `1` 的形式（例如 `528132689445`）用作 **`from`**，会直接被判 Invalid Source。**出站发送方必须与本项目在门户登记的 WhatsApp 号一致**，本项目文档示例：**`5218132689445`**（Secrets 里填 **`5218132689445`**，不要自作主张改成 `528…` 用作发送方）。
+    - **`INFOBIP_API_KEY` 与号码不在同一 Infobip 账号**（复制错 key、子账号混用）。
+    - **`INFOBIP_BASE_URL` 不是该账号在 Infobip 控制台显示的 API Base URL**（域名要与生成 API Key 的账号一致；可带或不带 `https://`，Edge Function 会自动补全）。
+  - 处理：Infobip → Channels → WhatsApp → Senders 打开该号，核对界面上的号码标识；Secrets 里 **`INFOBIP_SENDER` 只填数字 MSISDN**，与门户一致；必要时重新生成 API Key 再填 Supabase。
+
+### 其它常见错误
+
+- **`500 Missing Infobip config`**：secrets 没配齐
+- **`400 Invalid JSON body`**：webhook URL 接到了非预期 payload，看 Infobip 是否发了状态回执到同一 URL（可在 Infobip 把 status callback 指向单独的 `…/status` 路径或留空）
+- **没有任何回复**：检查 Infobip Inbound configuration 的 forwarding URL 有没有真的保存；以及 Invocations 是否 401。
 
 ---
 
