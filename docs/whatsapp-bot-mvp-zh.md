@@ -162,15 +162,14 @@ curl https://vtxknqmuavgtryadvqdr.supabase.co/functions/v1/whatsapp-webhook
 
 ## 上线网站时再做的事（**MVP 测试通过后**）
 
-当前网站 `useWhatsAppRedirect.tsx` 的 `BOT_NUMBER = '5218132689146'` 是旧号码。  
-等机器人测试通过后，把它改成 `5218132689445`：
+`vite build`（正式构建，`MODE=production`）里 WhatsApp 联系号码目前是占位 **`5218132689146`**。staging（`npm run build:staging`）会自动使用 Infobip WABA **`5218132689445`**。
 
-```ts
-// src/hooks/useWhatsAppRedirect.tsx
-const BOT_NUMBER = '5218132689445';
-```
+若要手动指定任意环境的号码，在 Cloudflare / `.env` 里设置 **`VITE_WHATSAPP_BOT_NUMBER`**（纯数字 MSISDN，无前缀）。
 
-只改这一行就行，其他逻辑（默认招呼语、QR 码弹窗等）都保留。
+正式切换到生产 WABA 时二选一：
+
+- 改 `src/lib/whatsappBotNumber.ts` 里的 `PRODUCTION_WHATSAPP_BOT_NUMBER`；或
+- 在生产环境注入 **`VITE_WHATSAPP_BOT_NUMBER=5218132689445`**。
 
 ---
 
