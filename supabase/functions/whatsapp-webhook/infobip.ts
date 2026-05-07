@@ -23,6 +23,24 @@ export const buildConfig = (): InfobipConfig => {
 
 const authHeader = (apiKey: string) => `App ${apiKey}`;
 
+// Normalize a destination MSISDN before calling Infobip's WhatsApp API.
+//
+// Mexican mobile numbers are quirky on WhatsApp: every cellular WA account is
+// registered with the legacy "1" mobile prefix (e.g. 5215512345678), but
+// Infobip's inbound webhook delivers `from` WITHOUT the "1" (e.g.
+// 525512345678). If we echo the 12-digit form back as `to`, Meta rejects with
+// REJECTED_DESTINATION_NOT_REGISTERED. We re-insert the legacy "1" so
+// outbound matches the WA-side wa_id.
+//
+// Numbers from any other country are passed through unchanged.
+export const normalizeMsisdnForWhatsApp = (msisdn: string): string => {
+  const digits = msisdn.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('52')) {
+    return `521${digits.slice(2)}`;
+  }
+  return digits;
+};
+
 export async function sendText(
   config: InfobipConfig,
   to: string,
@@ -38,7 +56,7 @@ export async function sendText(
     },
     body: JSON.stringify({
       from: config.sender,
-      to,
+      to: normalizeMsisdnForWhatsApp(to),
       content: { text },
     }),
   });
