@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LogOut, Plus, Pencil, Upload, Download, Pause, Play } from 'lucide-react';
+import WhatsAppBotPanel from '@/components/admin/WhatsAppBotPanel';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
@@ -361,7 +362,7 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [editing, setEditing] = useState<JobForm | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp'>('jobs');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deactivateIdsFileInputRef = useRef<HTMLInputElement>(null);
@@ -1250,6 +1251,17 @@ const Admin = () => {
           >
             Candidatos
           </Button>
+          <Button
+            variant={activeTab === 'whatsapp' ? 'default' : 'outline'}
+            className="rounded-xl"
+            onClick={() => {
+              setActiveTab('whatsapp');
+              setShowForm(false);
+              setEditing(null);
+            }}
+          >
+            WhatsApp Bot
+          </Button>
         </div>
         {activeTab === 'jobs' && jobImportProgress && (
           <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 border border-border">
@@ -1602,6 +1614,8 @@ const Admin = () => {
               ) : null}
             </div>
           </>
+        ) : activeTab === 'whatsapp' ? (
+          <WhatsAppBotPanel />
         ) : (
           <>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">

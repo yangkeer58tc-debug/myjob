@@ -13,10 +13,12 @@ import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { displayCityForJob } from '@/lib/mexicoLocation';
 import { jobPublicPath } from '@/lib/jobSeoPath';
 import { renderSearchHighlight } from '@/lib/searchHighlight';
-import { trackEvent } from '@/lib/analytics';
+import { trackStructuredEvent } from '@/lib/analytics';
 
 interface JobCardProps {
   searchQuery?: string;
+  trackingModule?: string;
+  trackingPosition?: number;
   job: {
     id: string;
     title: string;
@@ -39,7 +41,12 @@ interface JobCardProps {
   };
 }
 
-const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
+const JobCard = ({
+  job,
+  searchQuery = '',
+  trackingModule = 'job_list_results',
+  trackingPosition,
+}: JobCardProps) => {
   const navigate = useNavigate();
   const { lang, t } = useLanguage();
   const [logoFailed, setLogoFailed] = useState(false);
@@ -58,11 +65,12 @@ const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
   const safeCompany = fixJobTextArtifacts(job.b_name);
   const safeLocation = displayCityForJob(job);
   const { handleApply, QRModal } = useWhatsAppRedirect(title, safeCompany, {
-    contact_location: 'job_card_apply_button',
-    source: 'job_card',
-    job_id: job.id,
-    job_title: title,
-    company_name: safeCompany,
+    event_name: 'list_c_btn_click',
+    module: trackingModule,
+    item_id: job.id,
+    item_name: title,
+    position: trackingPosition,
+    cta_name: 'apply_whatsapp',
   });
   const cardPath = jobPublicPath(job);
 
@@ -70,11 +78,12 @@ const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
     <>
       <Card
         onClick={() => {
-          trackEvent('job_card_click', {
-            job_id: job.id,
-            job_title: title,
-            company_name: safeCompany,
-            page_path: typeof window !== 'undefined' ? window.location.pathname : '',
+          trackStructuredEvent('list_c_click', {
+            module: trackingModule,
+            item_id: job.id,
+            item_name: title,
+            position: trackingPosition,
+            cta_name: 'card_open',
           });
           navigate(cardPath);
         }}
@@ -150,15 +159,7 @@ const JobCard = ({ job, searchQuery = '' }: JobCardProps) => {
           <Button
             variant="whatsapp"
             className="w-full font-bold shadow-sm"
-            onClick={(e) => {
-              trackEvent('job_apply_click', {
-                job_id: job.id,
-                job_title: title,
-                company_name: safeCompany,
-                source: 'job_card',
-              });
-              handleApply(e);
-            }}
+            onClick={(e) => handleApply(e)}
           >
             <MessageCircle className="mr-2 h-4 w-4" />
             {t('wa.apply')}

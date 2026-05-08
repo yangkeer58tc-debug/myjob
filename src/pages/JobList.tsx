@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Briefcase, Building2, ChevronDown, Clock, MapPin, Search, SlidersHorizontal, Wallet, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +29,7 @@ import { sortJobsBySearchRelevance } from '@/lib/jobSearchRank';
 import { displayCityForJob, mexicoCities } from '@/lib/mexicoLocation';
 import { getSiteOrigin } from '@/lib/siteUrl';
 import { cn } from '@/lib/utils';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, trackStructuredEvent } from '@/lib/analytics';
 
 const ITEMS_PER_PAGE = 30;
 const CITY_FILTER_MAX = 5000;
@@ -101,6 +101,7 @@ function FilterField({
 const JobList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useLanguage();
+  const hasTrackedListShow = useRef(false);
 
   const city = searchParams.get('ciudad') || '';
   const category = searchParams.get('categoria') || '';
@@ -278,6 +279,14 @@ const JobList = () => {
     }
     return chips;
   }, [qUrl, category, city, jobType, workplace, payment, salarioUrl, t]);
+
+  useEffect(() => {
+    if (hasTrackedListShow.current) return;
+    hasTrackedListShow.current = true;
+    trackStructuredEvent('list_c_show', {
+      module: 'job_list_page',
+    });
+  }, []);
 
   const setParam = (key: string, value: string, clearValue: string) => {
     const next = new URLSearchParams(searchParams);
@@ -588,8 +597,14 @@ const JobList = () => {
         ) : data && data.jobs.length > 0 ? (
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {data.jobs.map((job) => (
-                <JobCard key={job.id} job={job} searchQuery={listHighlightQuery} />
+              {data.jobs.map((job, idx) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  searchQuery={listHighlightQuery}
+                  trackingModule="job_list_results"
+                  trackingPosition={(page - 1) * ITEMS_PER_PAGE + idx + 1}
+                />
               ))}
             </div>
 
