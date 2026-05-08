@@ -60,6 +60,55 @@ function tryParseJson(raw: string): unknown {
   }
 }
 
+function firstHttpUrl(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const s = value.trim();
+  if (!s) return '';
+  const direct = stripCsvCellDecorations(s);
+  if (/^https?:\/\//i.test(direct)) return direct;
+  const m = s.match(/https?:\/\/[^\s"'<>]+/i);
+  return m ? m[0] : '';
+}
+
+function inferIndeedUrlFromOriginId(originIdRaw: string): string {
+  const originId = String(originIdRaw || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{16}$/.test(originId)) return '';
+  return `https://mx.indeed.com/viewjob?jk=${originId}`;
+}
+
+/** Pull best-effort original post URL from IMC row/ext; falls back to Indeed URL from origin_id. */
+export function sourceJobUrlFromImc(row: Record<string, string>): string {
+  const fromColumns = firstHttpUrl(
+    pick(
+      row,
+      'source_url',
+      'job_url',
+      'post_url',
+      'url',
+      'origin_url',
+      'same_as',
+      'b_same_as',
+      'external_url',
+    ),
+  );
+  if (fromColumns) return fromColumns;
+
+  const parsedExt = tryParseJson(pick(row, 'ext'));
+  if (parsedExt && typeof parsedExt === 'object') {
+    const ext = parsedExt as Record<string, unknown>;
+    const fromExt =
+      firstHttpUrl(ext.source_url) ||
+      firstHttpUrl(ext.job_url) ||
+      firstHttpUrl(ext.post_url) ||
+      firstHttpUrl(ext.url) ||
+      firstHttpUrl(ext.origin_url) ||
+      firstHttpUrl(ext.indeed_url);
+    if (fromExt) return fromExt;
+  }
+
+  return inferIndeedUrlFromOriginId(pick(row, 'origin_id'));
+}
+
 /** Map IMC `category_full_path` (e.g. "Jobs > Salud > …") to a site category id when possible. */
 export function categoryIdFromFullPath(fullPath: string): string {
   const path = simplifyPath(fullPath);
@@ -161,7 +210,9 @@ export function mergeImcColumnsIntoClassicRow(row: Record<string, string>): Reco
   const authorPro = pick(row, 'author_profile', 'author_pro');
   const fromCols = collectFirstEmployerLogoRaw(row);
   const b_logo_url = fromCols || (authorPro && looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
+  const sourceJobUrl = sourceJobUrlFromImc(row);
   const b_same_as_hint =
+    sourceJobUrl ||
     pick(row, 'b_same_as', 'company_url', 'website', 'employer_url') ||
     (authorPro && /^https?:\/\//i.test(authorPro) && !looksLikeCompanyLogoUrl(authorPro) ? authorPro : '');
 
