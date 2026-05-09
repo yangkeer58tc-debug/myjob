@@ -41,6 +41,7 @@ const App = () => (
                 <Route path="/buscar-candidatos" element={<CandidateSearch />} />
                 <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/resumes" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -371,8 +372,13 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [editing, setEditing] = useState<JobForm | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp' | 'resumes'>('jobs');
   const resumeAdminEnabled = isResumeAdminEnabled();
+  const location = useLocation();
+  const deriveTabFromPath = (): 'jobs' | 'candidates' | 'whatsapp' | 'resumes' => {
+    if (resumeAdminEnabled && location.pathname.startsWith('/admin/resumes')) return 'resumes';
+    return 'jobs';
+  };
+  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp' | 'resumes'>(deriveTabFromPath);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deactivateIdsFileInputRef = useRef<HTMLInputElement>(null);
@@ -382,6 +388,12 @@ const Admin = () => {
   const [adminJobsPage, setAdminJobsPage] = useState(1);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [jobOpLogs, setJobOpLogs] = useState<JobOperationLog[]>([]);
+
+  useEffect(() => {
+    const nextTab = deriveTabFromPath();
+    setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, resumeAdminEnabled]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
