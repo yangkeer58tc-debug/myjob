@@ -3,20 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { getResumesSource, resumesSupabase } from '@/integrations/resumes/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
-type ResumeRow = Record<string, unknown>;
+import { listResumes } from '@/modules/resumes/service';
+import type { ResumeListItem } from '@/modules/resumes/types';
 
 const PAGE_SIZE = 20;
-
-const asText = (value: unknown): string => String(value ?? '').trim();
-
-const buildDisplayName = (row: ResumeRow): string => {
-  const name = asText(row.name);
-  if (name) return name;
-  const first = asText(row.first_name);
-  const last = asText(row.last_name);
-  return [first, last].filter(Boolean).join(' ') || '-';
-};
 
 const ResumesAdminPanel = () => {
   const [query, setQuery] = useState('');
@@ -24,42 +14,17 @@ const ResumesAdminPanel = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const source = useMemo(() => getResumesSource(), []);
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['adminExternalResumesV2', source.tableOrView, query, page],
-    queryFn: async () => {
-      if (!resumesSupabase) return { rows: [], count: 0 };
-
-      let req = resumesSupabase
-        .from(source.tableOrView)
-        .select('id,name,first_name,last_name,job_direction,profile_summary,updated_at,created_at', {
-          count: 'exact',
-        })
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      const needle = query.trim();
-      if (needle) {
-        const escaped = needle.replaceAll(',', ' ');
-        req = req.or(
-          `name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,job_direction.ilike.%${escaped}%,profile_summary.ilike.%${escaped}%`,
-        );
-      }
-
-      const { data: rows, error: reqErr, count } = await req;
-      if (reqErr) throw reqErr;
-      return { rows: rows || [], count: count || 0 };
-    },
+    queryFn: async () => listResumes({ query, page, pageSize: PAGE_SIZE }),
     enabled: true,
   });
 
   const rows = data?.rows || [];
   const count = data?.count || 0;
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
-  const selected = rows.find((r) => asText(r.id) === selectedId) || null;
+  const selected = rows.find((r) => String(r.id) === selectedId) || null;
 
   return (
     <div className="space-y-4">
@@ -116,9 +81,9 @@ const ResumesAdminPanel = () => {
               )}
               {!isLoading &&
                 !error &&
-                rows.map((r) => {
-                  const id = asText(r.id);
-                  const updated = asText(r.updated_at) || asText(r.created_at);
+                rows.map((r: ResumeListItem) => {
+                  const id = String(r.id);
+                  const updated = String(r.updatedAt || '').trim();
                   return (
                     <tr
                       key={id}
@@ -126,8 +91,8 @@ const ResumesAdminPanel = () => {
                       onClick={() => setSelectedId(id)}
                     >
                       <td className="px-4 py-3 font-mono text-xs">{id}</td>
-                      <td className="px-4 py-3 font-medium">{buildDisplayName(r)}</td>
-                      <td className="px-4 py-3">{asText(r.job_direction) || '-'}</td>
+                      <td className="px-4 py-3 font-medium">{r.name || '-'}</td>
+                      <td className="px-4 py-3">{r.jobDirection || '-'}</td>
                       <td className="px-4 py-3">{updated ? new Date(updated).toLocaleString() : '-'}</td>
                     </tr>
                   );
@@ -172,16 +137,16 @@ const ResumesAdminPanel = () => {
         {selected ? (
           <div className="space-y-2 text-sm">
             <p>
-              <span className="text-muted-foreground">ID:</span> {asText(selected.id)}
+              <span className="text-muted-foreground">ID:</span> {selected.id}
             </p>
             <p>
-              <span className="text-muted-foreground">Nombre:</span> {buildDisplayName(selected)}
+              <span className="text-muted-foreground">Nombre:</span> {selected.name || '-'}
             </p>
             <p>
-              <span className="text-muted-foreground">Job Direction:</span> {asText(selected.job_direction) || '-'}
+              <span className="text-muted-foreground">Job Direction:</span> {selected.jobDirection || '-'}
             </p>
             <p>
-              <span className="text-muted-foreground">Resumen:</span> {asText(selected.profile_summary) || '-'}
+              <span className="text-muted-foreground">Resumen:</span> {selected.profileSummary || '-'}
             </p>
           </div>
         ) : (
