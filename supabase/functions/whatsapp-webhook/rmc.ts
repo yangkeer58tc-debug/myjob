@@ -15,6 +15,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import { toE164ForRmc as _sharedToE164 } from './parsing.ts';
+import { normalizeSupabaseProjectUrl } from './urlNormalize.ts';
 
 export type RmcSyncStatus =
   | 'success'
@@ -43,13 +44,13 @@ const resolveRmcConfig = (): { config: RmcConfig | null; reason: RmcSyncStatus |
   const env = (Deno.env.get('MYJOB_ENV') ?? 'production').trim().toLowerCase();
 
   if (env === 'staging') {
-    const stagingUrl = (Deno.env.get('RMC_STAGING_SUPABASE_URL') ?? '').trim();
+    const stagingUrl = normalizeSupabaseProjectUrl(Deno.env.get('RMC_STAGING_SUPABASE_URL'));
     const stagingKey = (Deno.env.get('RMC_STAGING_SERVICE_ROLE_KEY') ?? '').trim();
     if (stagingUrl && stagingKey) return { config: { url: stagingUrl, serviceRoleKey: stagingKey }, reason: null };
     return { config: null, reason: 'skipped_no_config' };
   }
 
-  const url = (Deno.env.get('RMC_SUPABASE_URL') ?? '').trim();
+  const url = normalizeSupabaseProjectUrl(Deno.env.get('RMC_SUPABASE_URL'));
   const key = (Deno.env.get('RMC_SERVICE_ROLE_KEY') ?? '').trim();
   if (!url || !key) return { config: null, reason: 'skipped_no_config' };
   return { config: { url, serviceRoleKey: key }, reason: null };

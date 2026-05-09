@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 import type { RmcConfig } from './rmc.ts';
 import { extractResumePlainText } from './resumeTextExtract.ts';
+import { forceUrlPath } from './urlNormalize.ts';
 
 /** RMC /ai-extract caps image payload (~6.5M base64 chars); stay under it. */
 const MAX_IMAGE_B64_CHARS = 6_400_000;
@@ -37,11 +38,13 @@ export async function enrichResumeViaRmcAiExtract(opts: {
   candidateName: string;
   whatsappE164: string;
 }): Promise<void> {
-  const url = (Deno.env.get('RMC_AI_EXTRACT_URL') ?? '').trim().replace(/\/+$/, '');
+  // Operators sometimes paste a wrong path (e.g. `/import/ai-extract`); force it.
+  const url = forceUrlPath(Deno.env.get('RMC_AI_EXTRACT_URL'), '/ai-extract');
   if (!url) {
     console.log('[wa-bot enrich] RMC_AI_EXTRACT_URL missing, skip');
     return;
   }
+  console.log('[wa-bot enrich] using ai-extract endpoint:', url);
 
   const filename = opts.originalFilename || 'resume';
   const { text: extractedText, mode } = await extractResumePlainText(

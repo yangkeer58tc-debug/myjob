@@ -23,7 +23,7 @@
 // RLS); RMC sync uses a separate RMC service-role key (see rmc.ts).
 //
 // Build marker (used to confirm Supabase Edge runtime is serving the latest
-// version): WA_BOT_BUILD_2026_05_09_v6
+// version): WA_BOT_BUILD_2026_05_09_v7
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
@@ -740,12 +740,88 @@ async function handleMessage(
 
 // -------- HTTP entrypoint --------
 
+/**
+ * Manual reprocess endpoint:
+ *   POST /functions/v1/whatsapp-webhook?reprocess=1
+ *   Body: { resumeId, waUserId, storagePath?, candidateName? }
+ *
+ * Re-runs the AI enrich step on an already-stored RMC resume. Useful when
+ * the row was synced but enrichment failed earlier (e.g. wrong AI URL).
+ *
+ * Auth: requires header `x-reprocess-token` matching env `WA_REPROCESS_TOKEN`.
+ */
+async function handleReprocess(req: Request): Promise<Response> {
+  const token = (Deno.env.get('WA_REPROCESS_TOKEN') ?? '').trim();
+  const presented = req.headers.get('x-reprocess-token') ?? '';
+  if (!token) return json({ ok: false, error: 'reprocess_disabled_no_token_set' }, 403);
+  if (token !== presented) return json({ ok: false, error: 'forbidden' }, 403);
+
+  let body: { resumeId?: string; waUserId?: string; storagePath?: string; candidateName?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ ok: false, error: 'invalid_json' }, 400);
+  }
+
+  const resumeId = String(body.resumeId ?? '').trim();
+  const waUserId = String(body.waUserId ?? '').trim();
+  if (!resumeId || !waUserId) return json({ ok: false, error: 'resumeId_and_waUserId_required' }, 400);
+
+  const rmcCfg = getRmcServiceConfig();
+  if (!rmcCfg) return json({ ok: false, error: 'rmc_not_configured' }, 500);
+
+  const aiUrl = (Deno.env.get('RMC_AI_EXTRACT_URL') ?? '').trim();
+  if (!aiUrl) return json({ ok: false, error: 'RMC_AI_EXTRACT_URL_missing' }, 500);
+
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
+  const rmc = createClient(rmcCfg.url, rmcCfg.serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: row, error: rowErr } = await rmc
+    .from('resumes')
+    .select('id, storage_bucket, storage_path, original_filename, name, whatsapp')
+    .eq('id', resumeId)
+    .maybeSingle();
+  if (rowErr || !row) return json({ ok: false, error: `lookup_failed:${rowErr?.message ?? 'not_found'}` }, 404);
+
+  const bucket = String((row as Record<string, unknown>).storage_bucket ?? 'resumes');
+  const storagePath = String(body.storagePath ?? (row as Record<string, unknown>).storage_path ?? '');
+  if (!storagePath) return json({ ok: false, error: 'no_storage_path' }, 400);
+
+  const { data: blob, error: dlErr } = await rmc.storage.from(bucket).download(storagePath);
+  if (dlErr || !blob) return json({ ok: false, error: `download_failed:${dlErr?.message ?? 'no_blob'}` }, 500);
+
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const mime = blob.type || 'application/octet-stream';
+  const filename = storagePath.split('/').pop() || 'cv';
+  const candidateName =
+    String(body.candidateName ?? (row as Record<string, unknown>).name ?? '').trim();
+
+  await enrichResumeViaRmcAiExtract({
+    rmcConfig: rmcCfg,
+    resumeId,
+    fileBytes: buf,
+    fileMime: mime,
+    originalFilename: filename,
+    candidateName,
+    whatsappE164: toE164ForRmc(waUserId),
+  });
+
+  return json({ ok: true, resumeId });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true });
   if (req.method === 'GET') {
-    return json({ ok: true, service: 'whatsapp-webhook', build: 'v6' });
+    return json({ ok: true, service: 'whatsapp-webhook', build: 'v7' });
   }
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+
+  const reqUrl = new URL(req.url);
+  if (reqUrl.searchParams.get('reprocess') === '1') {
+    return handleReprocess(req);
+  }
 
   const config = buildConfig();
   if (!config.baseUrl || !config.apiKey || !config.sender) {
