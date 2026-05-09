@@ -23,4 +23,6 @@ interface ImportMetaEnv {
   readonly VITE_CANDIDATE_CONTACT_PRICE_MXN?: string;
   /** Enable candidate paywall regardless of mode when set to true/1. */
   readonly VITE_ENABLE_CANDIDATE_PAYWALL?: string;
+  /** Enable admin resumes module in /admin when true/1. */
+  readonly VITE_ENABLE_RESUME_ADMIN?: string;
 }
