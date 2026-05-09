@@ -101,6 +101,12 @@ const CandidateCard = ({
   query?: string;
   trackingPosition?: number;
 }) => {
+  const paywallEnabled = (() => {
+    const raw = String(import.meta.env.VITE_ENABLE_CANDIDATE_PAYWALL || '').trim().toLowerCase();
+    if (raw) return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+    const siteUrl = String(import.meta.env.VITE_SITE_URL || '').toLowerCase();
+    return import.meta.env.MODE === 'staging' || siteUrl.includes('staging');
+  })();
   const title = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'Profesional');
   const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
   const country = candidate.country ? fixJobTextArtifacts(candidate.country) : '';
@@ -121,7 +127,7 @@ const CandidateCard = ({
   const normalizedPrice = Number.isFinite(contactPriceMxn) && contactPriceMxn > 0 ? Math.round(contactPriceMxn * 100) / 100 : DEFAULT_CONTACT_PRICE_MXN;
 
   const handleWhatsApp = () => {
-    if (!isUnlocked) {
+    if (paywallEnabled && !isUnlocked) {
       setCheckoutError(null);
       setPaywallOpen(true);
       return;
@@ -193,7 +199,7 @@ const CandidateCard = ({
             </p>
           </div>
           <Button variant="whatsapp" className="rounded-2xl font-bold" onClick={handleWhatsApp}>
-            {isUnlocked ? 'Contactar ahora' : 'Desbloquear contacto'}
+            {paywallEnabled && !isUnlocked ? 'Desbloquear contacto' : 'Contactar ahora'}
           </Button>
         </div>
 
@@ -239,38 +245,40 @@ const CandidateCard = ({
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={paywallOpen}
-        onOpenChange={(open) => {
-          setPaywallOpen(open);
-          if (!open) setCheckoutError(null);
-          setIsUnlocked(isCandidateContactUnlocked(candidate.id));
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Desbloquea el contacto del candidato</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Realiza el pago para continuar y abrir WhatsApp con la solicitud de contacto de este perfil.
-            </p>
-            <div className="rounded-xl border border-border/60 p-4 bg-muted/20 flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">Acceso por candidato</span>
-              <span className="text-xl font-extrabold text-foreground">${normalizedPrice.toFixed(2)} MXN</span>
+      {paywallEnabled ? (
+        <Dialog
+          open={paywallOpen}
+          onOpenChange={(open) => {
+            setPaywallOpen(open);
+            if (!open) setCheckoutError(null);
+            setIsUnlocked(isCandidateContactUnlocked(candidate.id));
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Desbloquea el contacto del candidato</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Realiza el pago para continuar y abrir WhatsApp con la solicitud de contacto de este perfil.
+              </p>
+              <div className="rounded-xl border border-border/60 p-4 bg-muted/20 flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Acceso por candidato</span>
+                <span className="text-xl font-extrabold text-foreground">${normalizedPrice.toFixed(2)} MXN</span>
+              </div>
+              {checkoutError ? <p className="text-sm text-destructive break-words">{checkoutError}</p> : null}
+              <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                <Button variant="outline" onClick={() => setPaywallOpen(false)} disabled={creatingCheckout}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreateCheckout} disabled={creatingCheckout}>
+                  {creatingCheckout ? 'Redirigiendo...' : 'Pagar con Airwallex (test)'}
+                </Button>
+              </div>
             </div>
-            {checkoutError ? <p className="text-sm text-destructive break-words">{checkoutError}</p> : null}
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-              <Button variant="outline" onClick={() => setPaywallOpen(false)} disabled={creatingCheckout}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreateCheckout} disabled={creatingCheckout}>
-                {creatingCheckout ? 'Redirigiendo...' : 'Pagar con Airwallex (test)'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </Card>
   );
 };
