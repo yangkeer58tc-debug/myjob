@@ -14,6 +14,8 @@
     "indexing:urls": "node scripts/google-indexing-from-urls.mjs",
     "sync:sample:staging": "node scripts/sync-sample-to-staging.mjs",
     "imc:backtrace:disable-offline": "node scripts/imc-backtrace-disable-offline.mjs",
+    "env:validate:staging": "node scripts/env/validate-env-template.mjs .env.staging.example",
+    "env:validate:prod": "node scripts/env/validate-env-template.mjs env.production.example",
     "build:dev": "vite build --mode development",
     "build:staging": "vite build --mode staging",
     "preview:staging": "npm run build:staging && vite preview",
