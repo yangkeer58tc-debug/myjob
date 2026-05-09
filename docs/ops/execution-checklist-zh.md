@@ -19,6 +19,7 @@
 - [x] 建立资产矩阵模板：`docs/ops/platform-inventory-zh.md`
 - [x] 建立环境模板校验脚本：`scripts/env/validate-env-template.mjs`
 - [x] 增加环境校验命令：`npm run env:validate:staging` / `npm run env:validate:prod`
+- [x] 增加发布前门禁脚本：`npm run predeploy:staging` / `npm run predeploy:prod`
 
 ## 阶段 B：收敛重复项目
 
@@ -32,8 +33,9 @@
 ### 我做（仓库）
 
 - [ ] 输出 RMC 并入 `myjob` 的目录方案与迁移步骤（先不破坏现网）
-- [ ] 增加发布前检查脚本（分支、关键变量、目标 URL）
+- [x] 增加发布前检查脚本（分支、关键变量、目标 URL）
 - [ ] 补全统一发布 Runbook（含回滚）
+- [x] 补充 `myjob-staging` 下线 Runbook：`docs/ops/myjob-staging-decommission-runbook-zh.md`
 
 ## 阶段 C：安全收口
 

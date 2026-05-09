@@ -16,6 +16,8 @@
     "imc:backtrace:disable-offline": "node scripts/imc-backtrace-disable-offline.mjs",
     "env:validate:staging": "node scripts/env/validate-env-template.mjs .env.staging.example",
     "env:validate:prod": "node scripts/env/validate-env-template.mjs env.production.example",
+    "predeploy:staging": "node scripts/env/predeploy-check.mjs staging",
+    "predeploy:prod": "node scripts/env/predeploy-check.mjs prod",
     "build:dev": "vite build --mode development",
     "build:staging": "vite build --mode staging",
     "preview:staging": "npm run build:staging && vite preview",

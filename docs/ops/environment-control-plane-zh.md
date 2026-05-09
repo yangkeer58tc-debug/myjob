@@ -74,6 +74,7 @@
 - 仓库中的模板文件：`.env.staging.example`、`env.production.example`
 - 运维矩阵文档：`docs/ops/platform-inventory-zh.md`
 - 检查脚本：`npm run env:validate:staging`
+- 发布门禁：`npm run predeploy:staging`、`npm run predeploy:prod`
 
 ## 4. 标准运行手册（Runbook）
 
