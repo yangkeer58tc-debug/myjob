@@ -4,6 +4,7 @@ import { getResumesSource, resumesSupabase } from '@/integrations/resumes/client
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { listResumes } from '@/modules/resumes/service';
+import { buildResumeImportDraft } from '@/modules/resumes/importer';
 import type { ResumeListItem } from '@/modules/resumes/types';
 
 const PAGE_SIZE = 20;
@@ -12,6 +13,8 @@ const ResumesAdminPanel = () => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [parserInput, setParserInput] = useState('');
+  const [parserResult, setParserResult] = useState<string>('');
 
   const source = useMemo(() => getResumesSource(), []);
 
@@ -25,6 +28,16 @@ const ResumesAdminPanel = () => {
   const count = data?.count || 0;
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const selected = rows.find((r) => String(r.id) === selectedId) || null;
+
+  const handleParsePreview = () => {
+    const source = parserInput.trim();
+    if (!source) {
+      setParserResult('请先输入或粘贴简历文本。');
+      return;
+    }
+    const draft = buildResumeImportDraft(source);
+    setParserResult(JSON.stringify(draft, null, 2));
+  };
 
   return (
     <div className="space-y-4">
@@ -152,6 +165,39 @@ const ResumesAdminPanel = () => {
         ) : (
           <p className="text-sm text-muted-foreground">点击上面的某一行查看详情。</p>
         )}
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-sm p-4 space-y-3">
+        <h3 className="font-semibold">解析预览（只读，不写库）</h3>
+        <p className="text-sm text-muted-foreground">
+          用于预览 RMC 解析逻辑在 `myjob` 下的输出，确保后续切流前格式稳定。
+        </p>
+        <textarea
+          className="w-full min-h-40 rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          placeholder="粘贴一段简历文本（英文/中文/结构化行）..."
+          value={parserInput}
+          onChange={(e) => setParserInput(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <Button type="button" size="sm" className="rounded-xl" onClick={handleParsePreview}>
+            解析预览
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-xl"
+            onClick={() => {
+              setParserInput('');
+              setParserResult('');
+            }}
+          >
+            清空
+          </Button>
+        </div>
+        <pre className="text-xs whitespace-pre-wrap break-words bg-secondary/40 rounded-xl p-3 border border-border">
+          {parserResult || '解析结果会显示在这里。'}
+        </pre>
       </div>
     </div>
   );
