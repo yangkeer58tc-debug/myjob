@@ -39,6 +39,7 @@
 - [x] 补充 RMC 并入方案：`docs/ops/rmc-merge-into-myjob-plan-zh.md`
 - [x] 落地 RMC 并入 Phase 1 骨架：`/admin` 新增 `Resumes` 页签（feature flag 控制）
 - [x] 落地 Phase 1.5：`Resumes` 页签支持搜索、分页、详情，并提供 `/admin/resumes` 独立入口
+- [x] 增加 Resume Admin 就绪检查：`npm run env:check:resume-admin`
 
 ## 阶段 C：安全收口
 
