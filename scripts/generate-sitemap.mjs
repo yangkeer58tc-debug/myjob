@@ -56,23 +56,30 @@ const jobPath = (job) => {
   return `/empleo/${head}-${job.id}/`;
 };
 
+/**
+ * Paginate like @supabase/supabase-js .range(from, to): PostgREST uses the Range header.
+ * Query-string limit/offset is easy to misconfigure across gateways; Range matches the live app.
+ */
 const fetchJobs = async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) return [];
   const jobs = [];
   const pageSize = 1000;
+  let reportedTotal = null;
 
   for (let offset = 0; ; offset += pageSize) {
     const url = new URL(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/jobs`);
     url.searchParams.set('select', 'id,created_at,title,slug');
     url.searchParams.set('is_active', 'eq.true');
-    url.searchParams.set('order', 'created_at.desc');
-    url.searchParams.set('limit', String(pageSize));
-    url.searchParams.set('offset', String(offset));
+    /** Tie-breaker id keeps order stable across pages (required for correct offset paging). */
+    url.searchParams.set('order', 'created_at.desc,id.desc');
 
+    const rangeEnd = offset + pageSize - 1;
     const res = await fetch(url, {
       headers: {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${SUPABASE_KEY}`,
+        Range: `${offset}-${rangeEnd}`,
+        Prefer: 'count=exact',
       },
     });
 
@@ -81,10 +88,22 @@ const fetchJobs = async () => {
       throw new Error(`Sitemap job fetch failed: ${res.status} ${res.statusText} ${body}`.trim());
     }
 
+    const cr = res.headers.get('content-range');
+    if (cr) {
+      const m = cr.match(/\/(\d+|\*)\s*$/);
+      if (m && m[1] !== '*') reportedTotal = Number(m[1]);
+    }
+
     const page = await res.json();
     if (!Array.isArray(page) || page.length === 0) break;
     jobs.push(...page);
     if (page.length < pageSize) break;
+  }
+
+  if (reportedTotal != null && jobs.length !== reportedTotal) {
+    console.warn(
+      `Sitemap: jobs fetched (${jobs.length}) != PostgREST Content-Range total (${reportedTotal}). Check Range paging or build env (same Supabase as production).`,
+    );
   }
 
   return jobs;

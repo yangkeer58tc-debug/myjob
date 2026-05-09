@@ -1,30 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="MyJob">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#07142D" />
-      <stop offset="1" stop-color="#0E2D1E" />
+      <stop offset="0" stop-color="#0B1220" />
+      <stop offset="1" stop-color="#052E1A" />
     </linearGradient>
-    <linearGradient id="accent-c" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#6DDD3E" />
-      <stop offset="1" stop-color="#36B555" />
-    </linearGradient>
-    <linearGradient id="accent-b" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#2B66FF" />
-      <stop offset="1" stop-color="#1B4FE8" />
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#16A34A" />
+      <stop offset="1" stop-color="#22C55E" />
     </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)" />
   <rect x="86" y="86" width="1028" height="458" rx="48" fill="rgba(255,255,255,0.06)" />
-  <circle cx="180" cy="182" r="28" fill="url(#accent-b)" />
-  <circle cx="318" cy="182" r="28" fill="url(#accent-c)" />
-  <path d="M120 320 150 202a18 18 0 0 1 30-9l55 51a18 18 0 0 0 24 0l56-51a18 18 0 0 1 30 9l30 118" fill="none" stroke="#0F172A" stroke-linecap="round" stroke-linejoin="round" stroke-width="34" />
-  <path d="M120 320 150 202a18 18 0 0 1 30-9l55 51a18 18 0 0 0 24 0" fill="none" stroke="url(#accent-b)" stroke-linecap="round" stroke-linejoin="round" stroke-width="34" />
-  <path d="M259 244 315 193a18 18 0 0 1 30 9l30 118" fill="none" stroke="url(#accent-c)" stroke-linecap="round" stroke-linejoin="round" stroke-width="34" />
+  <rect x="120" y="120" width="160" height="160" rx="40" fill="url(#accent)" />
+  <path
+    d="M160 236V164h14.4l23.1 39.6L220.6 164H235v72h-14.1v-44.4l-17.6 29.6h-10l-17.5-29.6V236H160Z"
+    fill="#FFFFFF"
+  />
+  <path
+    d="M254 164h14.1v42.6c0 7.2-1.8 13.2-5.4 18-3.6 4.8-8.6 8.3-14.9 10.5-6 2.1-13.1 2.7-21.4 1.9v-12.3c6.5.4 11.7-.3 15.7-2.1 3.7-1.7 6.4-4.3 8.3-7.7 2-3.4 3-7.6 3-12.2V164Z"
+    fill="#FFFFFF"
+    opacity="0.95"
+  />
   <text x="120" y="360" fill="#FFFFFF" font-size="86" font-weight="800" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial">
     MyJob
   </text>
   <text x="120" y="435" fill="rgba(255,255,255,0.78)" font-size="34" font-weight="600" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial">
     Encuentra empleo rápido por WhatsApp
   </text>
-  <rect x="120" y="476" width="320" height="10" rx="5" fill="url(#accent-c)" />
+  <rect x="120" y="476" width="320" height="10" rx="5" fill="url(#accent)" />
 </svg>

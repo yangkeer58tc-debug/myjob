@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
 import { Briefcase, MapPin, Clock, Building2, MessageCircle, ChevronRight, AlertTriangle } from 'lucide-react';
@@ -30,7 +30,7 @@ import {
   normalizeEmployerSameAs,
   schemaBaseSalaryFromJob,
 } from '@/lib/jobPostingSchema';
-import { trackEvent } from '@/lib/analytics';
+import { trackStructuredEvent } from '@/lib/analytics';
 
 // Keep postings indexable longer; manual deactivation still uses is_active.
 const DAYS_TO_EXPIRE = 180;
@@ -190,6 +190,7 @@ const JobDetail = () => {
 
   const parsed = useMemo(() => (routeSegment ? parseEmpleoParam(routeSegment) : null), [routeSegment]);
   const [detailLogoFailed, setDetailLogoFailed] = useState(false);
+  const hasTrackedDetailShow = useRef(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ['job', 'detail', parsed?.kind, parsed?.kind === 'id' ? parsed?.id : parsed?.slug],
@@ -244,12 +245,22 @@ const JobDetail = () => {
   const orgLogoUrl = job ? toAbsoluteUrl(job.b_logo_url, siteOrigin) : undefined;
 
   const { handleApply, QRModal } = useWhatsAppRedirect(safeTitle, safeCompany, {
-    contact_location: 'job_detail_apply_button',
-    source: 'job_detail',
-    job_id: job?.id,
-    job_title: safeTitle,
-    company_name: displayCompanyName,
+    event_name: 'detail_c_btn_click',
+    module: 'job_detail_page',
+    item_id: job?.id,
+    item_name: safeTitle,
+    cta_name: 'apply_whatsapp',
   });
+
+  useEffect(() => {
+    if (!job?.id || hasTrackedDetailShow.current) return;
+    hasTrackedDetailShow.current = true;
+    trackStructuredEvent('detail_c_show', {
+      module: 'job_detail_page',
+      item_id: job.id,
+      item_name: safeTitle,
+    });
+  }, [job?.id, job?.title, safeTitle]);
 
   // Related jobs (same city, active, excluding current)
   const { data: relatedJobs } = useQuery({
@@ -515,15 +526,7 @@ const JobDetail = () => {
           className="w-full rounded-2xl h-14 text-lg mb-10"
           onClick={
             job.is_active
-              ? (e) => {
-                  trackEvent('job_apply_click', {
-                    job_id: job.id,
-                    job_title: safeTitle,
-                    company_name: displayCompanyName,
-                    source: 'job_detail',
-                  });
-                  handleApply(e);
-                }
+              ? (e) => handleApply(e)
               : undefined
           }
           disabled={!job.is_active}
@@ -584,7 +587,11 @@ const JobDetail = () => {
             <h2 className="text-2xl font-bold text-foreground mb-6">{t('detail.related')}</h2>
             <div className="grid sm:grid-cols-3 gap-6">
               {relatedJobs.map((rj) => (
-                <JobCard key={rj.id} job={rj} />
+                <JobCard
+                  key={rj.id}
+                  job={rj}
+                  trackingModule="job_detail_related_jobs"
+                />
               ))}
             </div>
           </div>

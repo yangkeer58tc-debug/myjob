@@ -2,21 +2,23 @@ import { useCallback, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { trackContactClick } from '@/lib/analytics';
+import { trackStructuredEvent, type IndependentEventName } from '@/lib/analytics';
+import { getWhatsAppBotNumberForJob } from '@/lib/whatsappBotNumber';
 
-const BOT_NUMBER = '5218132689146';
 type ContactTrackingContext = {
-  contact_location: string;
-  source?: string;
-  job_id?: string;
-  job_title?: string;
-  company_name?: string;
+  event_name: IndependentEventName;
+  module: string;
+  item_id?: string;
+  item_name?: string;
+  position?: number;
+  cta_name?: string;
 };
 
 export const useWhatsAppRedirect = (
   jobTitle: string,
   bName: string,
   trackingContext?: ContactTrackingContext,
+  jobId?: string | null,
 ) => {
   const { t } = useLanguage();
   const [qrOpen, setQrOpen] = useState(false);
@@ -25,29 +27,32 @@ export const useWhatsAppRedirect = (
   const msg = t('wa.defaultMessage') 
     ? t('wa.defaultMessage').replace('{jobTitle}', jobTitle || '').replace('{bName}', bName || '')
     : `¡Hola! Me interesa la vacante de ${jobTitle} en ${bName} que vi en MyJob.`;
-  
+
+  const resolvedJobId = jobId ?? trackingContext?.item_id;
+  const botNumber = getWhatsAppBotNumberForJob(resolvedJobId);
   const encodedMsg = encodeURIComponent(msg);
-  const waUrl = `https://wa.me/${BOT_NUMBER}?text=${encodedMsg}`;
+  const waUrl = `https://wa.me/${botNumber}?text=${encodedMsg}`;
 
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   const handleApply = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
-    trackContactClick({
-      contact_channel: 'whatsapp',
-      contact_location: trackingContext?.contact_location || 'unknown',
-      source: trackingContext?.source,
-      job_id: trackingContext?.job_id,
-      job_title: trackingContext?.job_title || jobTitle,
-      company_name: trackingContext?.company_name || bName,
-    });
+    if (trackingContext) {
+      trackStructuredEvent(trackingContext.event_name, {
+        module: trackingContext.module,
+        item_id: trackingContext.item_id,
+        item_name: trackingContext.item_name || jobTitle,
+        position: trackingContext.position,
+        cta_name: trackingContext.cta_name,
+      });
+    }
     if (isMobile) {
-      window.location.href = `whatsapp://send?phone=${BOT_NUMBER}&text=${encodedMsg}`;
+      window.location.href = `whatsapp://send?phone=${botNumber}&text=${encodedMsg}`;
     } else {
       setQrUrl(waUrl);
       setQrOpen(true);
     }
-  }, [bName, encodedMsg, isMobile, jobTitle, trackingContext, waUrl]);
+  }, [botNumber, encodedMsg, isMobile, jobTitle, trackingContext, waUrl]);
 
   const QRModal = () => (
     <Dialog open={qrOpen} onOpenChange={setQrOpen}>

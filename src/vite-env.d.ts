@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_SITE_URL?: string;
+  /** WhatsApp Business MSISDN for apply/contact links (digits only). Overrides staging/production defaults when set. */
+  readonly VITE_WHATSAPP_BOT_NUMBER?: string;
   /** POST endpoint for job summary/highlights JSON `{ description, jd }` → `{ summary, highlights[] }`. */
   readonly VITE_JOB_AI_URL?: string;
   /** Optional Bearer token for `VITE_JOB_AI_URL`. */

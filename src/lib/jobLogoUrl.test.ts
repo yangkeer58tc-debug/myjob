@@ -30,7 +30,7 @@ describe('jobLogoUrl', () => {
   });
 
   it('rejects MyJob brand asset', () => {
-    expect(normalizeImportedEmployerLogoUrl('/brand-logo.png')).toBe(null);
+    expect(normalizeImportedEmployerLogoUrl('/brand-logo.jpg')).toBe(null);
   });
 
   it('accepts https logo', () => {

@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Briefcase, Building2, MessageCircle, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { CATEGORY_OPTIONS } from '@/lib/jobOptions';
 import { getSiteOrigin, safeJsonLdStringify } from '@/lib/siteUrl';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, trackStructuredEvent } from '@/lib/analytics';
 import { SEO_CITIES, SEO_ROLES, seoCityPath, seoCityRolePath } from '@/lib/seoLanding';
 
 const CATEGORIES = CATEGORY_OPTIONS.map((c) => ({ value: c.id, name: c.label }));
@@ -56,6 +56,7 @@ const PhoneMockup = () => {
 const Home = () => {
   const navigate = useNavigate();
   const siteOrigin = useMemo(() => getSiteOrigin(), []);
+  const hasTrackedHomeShow = useRef(false);
   const websiteLd = useMemo(
     () => ({
       '@context': 'https://schema.org',
@@ -104,6 +105,14 @@ const Home = () => {
       return counts;
     },
   });
+
+  useEffect(() => {
+    if (hasTrackedHomeShow.current) return;
+    hasTrackedHomeShow.current = true;
+    trackStructuredEvent('home_show', {
+      module: 'home_page',
+    });
+  }, []);
 
   return (
     <PublicLayout>
@@ -396,7 +405,11 @@ const Home = () => {
               <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {recentJobs.map((job, idx) => (
                   <Reveal key={job.id} delayMs={Math.min(idx * 60, 240)}>
-                    <JobCard job={job} />
+                    <JobCard
+                      job={job}
+                      trackingModule="home_featured_jobs"
+                      trackingPosition={idx + 1}
+                    />
                   </Reveal>
                 ))}
               </div>

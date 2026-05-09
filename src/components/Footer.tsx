@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { trackContactClick, trackEvent } from '@/lib/analytics';
+import { getWhatsAppBotNumber } from '@/lib/whatsappBotNumber';
 
 const Footer = () => {
   const { t } = useLanguage();
@@ -37,7 +38,7 @@ const Footer = () => {
             {t('footer.jobs')}
           </Link>
           <a
-            href="https://wa.me/5218132689146"
+            href={`https://wa.me/${getWhatsAppBotNumber()}`}
             target="_blank"
             rel="noopener noreferrer"
             className={cn('transition-colors', isHome ? 'hover:text-white' : 'hover:text-primary')}

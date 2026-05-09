@@ -10,6 +10,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { trackStructuredEvent } from '@/lib/analytics';
 import { supabase } from '@/integrations/supabase/client';
 import { isCandidateContactUnlocked } from '@/lib/candidateContactUnlock';
+import { getWhatsAppBotNumber } from '@/lib/whatsappBotNumber';
 
 type Candidate = {
   id: string;
@@ -26,9 +27,6 @@ type Candidate = {
   education_years: number | null;
   created_at: string;
 };
-
-const BOT_NUMBER = '5218132689146';
-const DEFAULT_CONTACT_PRICE_MXN = 49;
 
 const maskName = (firstName: string | null, lastName: string | null, fallback: string | null) => {
   const cap = (v: string) => (v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : v);
@@ -87,9 +85,11 @@ const buildWaMessage = (candidate: Candidate) => {
   return `Hola! Estoy interesado en este perfil de candidato en MyJob.\n\nID: ${candidate.id}\nPuesto: ${role}\nUbicación: ${loc}\nNombre (oculto): ${name}\n\n¿Me puedes compartir el contacto?`;
 };
 
-const buildWaUrl = (candidate: Candidate) => {
+const DEFAULT_CONTACT_PRICE_MXN = 49;
+
+const buildWaUrl = (candidate: Candidate, botNumber: string) => {
   const msg = buildWaMessage(candidate);
-  return `https://wa.me/${BOT_NUMBER}?text=${encodeURIComponent(msg)}`;
+  return `https://wa.me/${botNumber}?text=${encodeURIComponent(msg)}`;
 };
 
 const CandidateCard = ({
@@ -121,7 +121,8 @@ const CandidateCard = ({
   const [creatingCheckout, setCreatingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isCandidateContactUnlocked(candidate.id));
-  const waUrl = useMemo(() => buildWaUrl(candidate), [candidate]);
+  const botNumber = useMemo(() => getWhatsAppBotNumber(), []);
+  const waUrl = useMemo(() => buildWaUrl(candidate, botNumber), [candidate, botNumber]);
   const waText = useMemo(() => encodeURIComponent(buildWaMessage(candidate)), [candidate]);
   const contactPriceMxn = Number(import.meta.env.VITE_CANDIDATE_CONTACT_PRICE_MXN || DEFAULT_CONTACT_PRICE_MXN);
   const normalizedPrice = Number.isFinite(contactPriceMxn) && contactPriceMxn > 0 ? Math.round(contactPriceMxn * 100) / 100 : DEFAULT_CONTACT_PRICE_MXN;
@@ -139,7 +140,7 @@ const CandidateCard = ({
       position: trackingPosition,
       cta_name: 'hire_whatsapp',
     });
-    if (isMobileDevice()) window.location.href = `whatsapp://send?phone=${BOT_NUMBER}&text=${waText}`;
+    if (isMobileDevice()) window.location.href = `whatsapp://send?phone=${botNumber}&text=${waText}`;
     else setQrOpen(true);
   };
 

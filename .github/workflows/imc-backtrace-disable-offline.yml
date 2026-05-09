@@ -1,0 +1,37 @@
+name: IMC Backtrace Disable Offline Jobs
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Daily 03:05 UTC (Mexico night / Beijing morning)
+    - cron: '5 3 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  backtrace-disable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Branch-aware secrets:
+      # - main  -> production secrets (SUPABASE_*)
+      # - others -> staging secrets (STAGING_SUPABASE_*)
+      SUPABASE_URL: ${{ github.ref_name == 'main' && secrets.SUPABASE_URL || secrets.STAGING_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ github.ref_name == 'main' && secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      IMC_BACKTRACE_LIMIT: ${{ secrets.IMC_BACKTRACE_LIMIT || '400' }}
+      IMC_BACKTRACE_TIMEOUT_MS: ${{ secrets.IMC_BACKTRACE_TIMEOUT_MS || '12000' }}
+      IMC_BACKTRACE_CONCURRENCY: ${{ secrets.IMC_BACKTRACE_CONCURRENCY || '6' }}
+      IMC_BACKTRACE_DRY_RUN: ${{ github.ref_name == 'main' && (secrets.IMC_BACKTRACE_DRY_RUN || '0') || (secrets.STAGING_IMC_BACKTRACE_DRY_RUN || '1') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm ci
+
+      - name: Disable local jobs if source is offline
+        run: npm run imc:backtrace:disable-offline
