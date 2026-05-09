@@ -81,6 +81,7 @@ export function sourceJobUrlFromImc(row: Record<string, string>): string {
   const fromColumns = firstHttpUrl(
     pick(
       row,
+      'src_url',
       'source_url',
       'job_url',
       'post_url',

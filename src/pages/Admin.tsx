@@ -238,6 +238,8 @@ type JobCsvPayloadRow = {
   id: string;
   b_name: string;
   b_logo_url: string | null;
+  b_same_as: string | null;
+  street_address: string | null;
   title: string;
   category: string | null;
   location: string;
@@ -285,6 +287,9 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
     }
     if (!b_name || isPlaceholderEmployerName(b_name)) b_name = 'MyJob';
 
+    const b_same_as_raw = stripCsvCellDecorations(row.b_same_as || '').trim();
+    const street_raw = stripCsvCellDecorations(row.street_address || '').trim();
+
     let salary_amount = row.salary_amount ? normalizeSalaryInput(row.salary_amount) : '';
     let payment_frequency = row.payment_frequency
       ? normalizeOptionId(row.payment_frequency, PAYMENT_FREQUENCY_OPTIONS)
@@ -306,6 +311,8 @@ function buildJobsPayloadFromCsvRows(rowsForImport: Record<string, string>[]): J
       id: row.id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       b_name,
       b_logo_url,
+      b_same_as: b_same_as_raw ? b_same_as_raw : null,
+      street_address: street_raw ? street_raw : null,
       title: titleNorm,
       category: categoryNorm,
       location,
