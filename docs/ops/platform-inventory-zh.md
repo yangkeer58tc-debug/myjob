@@ -12,7 +12,7 @@
 | 平台 | 类型 | 名称 | 环境 | 状态 | 备注 |
 |---|---|---|---|---|---|
 | GitHub | Repository | myjob | all | 保留 | 主仓库 |
-| GitHub | Repository | RMC | all | 待收敛 | 后续并入 myjob |
+| GitHub | Repository | RMC | all | 待归档 | 代码并入 myjob 后转只读/归档 |
 | Supabase | Project | myjob-staging | staging | 保留 | 测试数据库 |
 | Supabase | Project | myjob-prod（待重命名） | prod | 保留 | 当前显示为默认项目名 |
 | Cloudflare | Pages | myjob | staging/prod | 保留 | 推荐承接双环境发布 |

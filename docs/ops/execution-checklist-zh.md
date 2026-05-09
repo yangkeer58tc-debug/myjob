@@ -32,10 +32,11 @@
 
 ### 我做（仓库）
 
-- [ ] 输出 RMC 并入 `myjob` 的目录方案与迁移步骤（先不破坏现网）
+- [x] 输出 RMC 并入 `myjob` 的目录方案与迁移步骤（先不破坏现网）
 - [x] 增加发布前检查脚本（分支、关键变量、目标 URL）
 - [ ] 补全统一发布 Runbook（含回滚）
 - [x] 补充 `myjob-staging` 下线 Runbook：`docs/ops/myjob-staging-decommission-runbook-zh.md`
+- [x] 补充 RMC 并入方案：`docs/ops/rmc-merge-into-myjob-plan-zh.md`
 
 ## 阶段 C：安全收口
 
