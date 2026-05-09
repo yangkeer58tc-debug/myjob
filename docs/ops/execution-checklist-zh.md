@@ -41,6 +41,7 @@
 - [x] 落地 Phase 1.5：`Resumes` 页签支持搜索、分页、详情，并提供 `/admin/resumes` 独立入口
 - [x] 增加 Resume Admin 就绪检查：`npm run env:check:resume-admin`
 - [x] 输出最终一次性操作清单：`docs/ops/final-operator-actions-zh.md`
+- [x] 迁入 RMC 文本解析核心与测试：`src/modules/resumes/parser.ts`、`src/modules/resumes/parser.test.ts`
 
 ## 阶段 C：安全收口
 
