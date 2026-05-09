@@ -2,6 +2,8 @@
 
 你说要“最后一次性统一配置”，这里是最终执行顺序。按顺序做，风险最低。
 
+详细点击手册：`docs/ops/final-operator-clickbook-zh.md`
+
 ## A. Cloudflare（先测试，再生产）
 
 ## A1 `myjob` 项目（staging）

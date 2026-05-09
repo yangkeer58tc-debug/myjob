@@ -45,6 +45,7 @@
 - [x] 预埋导入服务骨架与管理端解析预览：`src/modules/resumes/importer.ts`、`ResumesAdminPanel`
 - [x] 增加批处理 dry-run 服务与统计预览：`src/modules/resumes/dryRun.ts`
 - [x] 增加切流前一键检查：`npm run precutover:resumes`
+- [x] 输出超详细人工点击手册：`docs/ops/final-operator-clickbook-zh.md`
 
 ## 阶段 C：安全收口
 
