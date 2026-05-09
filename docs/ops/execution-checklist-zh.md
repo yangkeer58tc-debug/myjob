@@ -43,6 +43,7 @@
 - [x] 输出最终一次性操作清单：`docs/ops/final-operator-actions-zh.md`
 - [x] 迁入 RMC 文本解析核心与测试：`src/modules/resumes/parser.ts`、`src/modules/resumes/parser.test.ts`
 - [x] 预埋导入服务骨架与管理端解析预览：`src/modules/resumes/importer.ts`、`ResumesAdminPanel`
+- [x] 增加批处理 dry-run 服务与统计预览：`src/modules/resumes/dryRun.ts`
 
 ## 阶段 C：安全收口
 

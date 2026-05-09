@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { listResumes } from '@/modules/resumes/service';
 import { buildResumeImportDraft } from '@/modules/resumes/importer';
+import { runResumeDryRun } from '@/modules/resumes/dryRun';
 import type { ResumeListItem } from '@/modules/resumes/types';
 
 const PAGE_SIZE = 20;
@@ -15,6 +16,8 @@ const ResumesAdminPanel = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [parserInput, setParserInput] = useState('');
   const [parserResult, setParserResult] = useState<string>('');
+  const [dryRunInput, setDryRunInput] = useState('');
+  const [dryRunResult, setDryRunResult] = useState<string>('');
 
   const source = useMemo(() => getResumesSource(), []);
 
@@ -37,6 +40,16 @@ const ResumesAdminPanel = () => {
     }
     const draft = buildResumeImportDraft(source);
     setParserResult(JSON.stringify(draft, null, 2));
+  };
+
+  const handleBatchDryRun = () => {
+    const source = dryRunInput.trim();
+    if (!source) {
+      setDryRunResult('请先输入批量文本（可用 --- 分隔多份简历）。');
+      return;
+    }
+    const result = runResumeDryRun(source);
+    setDryRunResult(JSON.stringify(result, null, 2));
   };
 
   return (
@@ -197,6 +210,41 @@ const ResumesAdminPanel = () => {
         </div>
         <pre className="text-xs whitespace-pre-wrap break-words bg-secondary/40 rounded-xl p-3 border border-border">
           {parserResult || '解析结果会显示在这里。'}
+        </pre>
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-sm p-4 space-y-3">
+        <h3 className="font-semibold">批量 Dry-Run（只读，不写库）</h3>
+        <p className="text-sm text-muted-foreground">
+          粘贴多份简历文本并用 `---`（或 `===` / `###`）分隔，快速检查可提取率与缺失字段。
+        </p>
+        <textarea
+          className="w-full min-h-40 rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          placeholder="Resume A...
+---
+Resume B..."
+          value={dryRunInput}
+          onChange={(e) => setDryRunInput(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <Button type="button" size="sm" className="rounded-xl" onClick={handleBatchDryRun}>
+            执行 Dry-Run
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-xl"
+            onClick={() => {
+              setDryRunInput('');
+              setDryRunResult('');
+            }}
+          >
+            清空
+          </Button>
+        </div>
+        <pre className="text-xs whitespace-pre-wrap break-words bg-secondary/40 rounded-xl p-3 border border-border">
+          {dryRunResult || 'Dry-Run 结果会显示在这里。'}
         </pre>
       </div>
     </div>
