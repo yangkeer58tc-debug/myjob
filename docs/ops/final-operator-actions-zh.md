@@ -35,6 +35,7 @@
 - `npm run env:validate:staging`
 - `npm run env:validate:prod`
 - `npm run env:check:resume-admin`（仅在开启 `VITE_ENABLE_RESUME_ADMIN` 时强制检查）
+- `npm run precutover:resumes`（一键串行执行 Resume Admin 就绪校验 + resumes 模块测试 + build）
 - `GIT_BRANCH=staging npm run predeploy:staging`
 - `GIT_BRANCH=main npm run predeploy:prod`
 
