@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { QRCodeSVG } from 'qrcode.react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { trackStructuredEvent, type IndependentEventName } from '@/lib/analytics';
-import { getWhatsAppBotNumber } from '@/lib/whatsappBotNumber';
+import { getWhatsAppBotNumberForJob } from '@/lib/whatsappBotNumber';
 
 type ContactTrackingContext = {
   event_name: IndependentEventName;
@@ -18,6 +18,7 @@ export const useWhatsAppRedirect = (
   jobTitle: string,
   bName: string,
   trackingContext?: ContactTrackingContext,
+  jobId?: string | null,
 ) => {
   const { t } = useLanguage();
   const [qrOpen, setQrOpen] = useState(false);
@@ -26,8 +27,9 @@ export const useWhatsAppRedirect = (
   const msg = t('wa.defaultMessage') 
     ? t('wa.defaultMessage').replace('{jobTitle}', jobTitle || '').replace('{bName}', bName || '')
     : `¡Hola! Me interesa la vacante de ${jobTitle} en ${bName} que vi en MyJob.`;
-  
-  const botNumber = getWhatsAppBotNumber();
+
+  const resolvedJobId = jobId ?? trackingContext?.item_id;
+  const botNumber = getWhatsAppBotNumberForJob(resolvedJobId);
   const encodedMsg = encodeURIComponent(msg);
   const waUrl = `https://wa.me/${botNumber}?text=${encodedMsg}`;
 
