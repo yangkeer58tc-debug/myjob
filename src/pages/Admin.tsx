@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LogOut, Plus, Pencil, Upload, Download, Pause, Play } from 'lucide-react';
 import WhatsAppBotPanel from '@/components/admin/WhatsAppBotPanel';
-import { resumesSupabase, getResumesSource } from '@/integrations/resumes/client';
+import ResumesAdminPanel from '@/components/admin/ResumesAdminPanel';
 import { isResumeAdminEnabled } from '@/lib/featureFlags';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
@@ -519,23 +519,6 @@ const Admin = () => {
       return data;
     },
     enabled: !!session,
-  });
-
-  const { data: externalResumes, isLoading: resumesLoading, error: resumesError } = useQuery({
-    queryKey: ['adminExternalResumes'],
-    queryFn: async () => {
-      if (!resumesSupabase) return [];
-      const { tableOrView } = getResumesSource();
-      const { data, error } = await resumesSupabase
-        .from(tableOrView)
-        .select('id,name,first_name,last_name,job_direction,updated_at,created_at')
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!session && resumeAdminEnabled,
   });
 
   const saveMutation = useMutation({
@@ -1269,11 +1252,6 @@ const Admin = () => {
             {(candidatesError as Error).message}
           </div>
         )}
-        {activeTab === 'resumes' && resumesError && (
-          <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm text-destructive">
-            {(resumesError as Error).message}
-          </div>
-        )}
         <div className="flex flex-wrap gap-2 mb-4">
           <Button
             variant={activeTab === 'jobs' ? 'default' : 'outline'}
@@ -1674,62 +1652,7 @@ const Admin = () => {
         ) : activeTab === 'whatsapp' ? (
           <WhatsAppBotPanel />
         ) : activeTab === 'resumes' ? (
-          <>
-            <div className="bg-card rounded-2xl shadow-sm p-4 mb-4 text-sm text-muted-foreground space-y-1">
-              <p>RMC 并入阶段 1：这里展示外部简历库最近 50 条数据（只读）。</p>
-              <p>
-                数据来源：{resumesSupabase ? `外部 Supabase 视图 ${getResumesSource().tableOrView}` : '未配置 VITE_RESUMES_*'}
-              </p>
-              {!resumesSupabase ? (
-                <p className="text-destructive">
-                  请先配置 `VITE_RESUMES_SUPABASE_URL` 与 `VITE_RESUMES_SUPABASE_ANON_KEY`，再刷新页面。
-                </p>
-              ) : null}
-            </div>
-            <div className="bg-card rounded-2xl shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary text-muted-foreground">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium">ID</th>
-                    <th className="text-left px-4 py-3 font-medium">Nombre</th>
-                    <th className="text-left px-4 py-3 font-medium">Job Direction</th>
-                    <th className="text-left px-4 py-3 font-medium">Updated</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resumesLoading && (
-                    <tr>
-                      <td colSpan={4} className="text-center py-8 text-muted-foreground">
-                        Cargando...
-                      </td>
-                    </tr>
-                  )}
-                  {(externalResumes || []).map((r: Record<string, unknown>) => {
-                    const fullName =
-                      String(r.name || '').trim() ||
-                      [String(r.first_name || '').trim(), String(r.last_name || '').trim()].filter(Boolean).join(' ') ||
-                      '-';
-                    const updated = String(r.updated_at || r.created_at || '').trim();
-                    return (
-                      <tr key={String(r.id)} className="border-t border-border">
-                        <td className="px-4 py-3 font-mono text-xs">{String(r.id || '')}</td>
-                        <td className="px-4 py-3 font-medium">{fullName}</td>
-                        <td className="px-4 py-3">{String(r.job_direction || '-')}</td>
-                        <td className="px-4 py-3">{updated ? new Date(updated).toLocaleString() : '-'}</td>
-                      </tr>
-                    );
-                  })}
-                  {(!externalResumes || externalResumes.length === 0) && !resumesLoading && (
-                    <tr>
-                      <td colSpan={4} className="text-center py-8 text-muted-foreground">
-                        No hay resumes para mostrar
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <ResumesAdminPanel />
         ) : (
           <>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
