@@ -116,7 +116,7 @@ export async function syncResumeToRmc(input: RmcSyncInput): Promise<RmcSyncResul
     // 1. Look up an existing RMC row for this phone (idempotency key).
     const { data: existing, error: selErr } = await rmc
       .from(RMC_RESUMES_TABLE)
-      .select('id, storage_path')
+      .select('id, storage_path, job_direction')
       .eq('whatsapp', phone)
       .maybeSingle();
 
@@ -139,15 +139,26 @@ export async function syncResumeToRmc(input: RmcSyncInput): Promise<RmcSyncResul
     }
 
     // 3. Insert or update the row. is_public=true marks it for the candidate
-    //    panel (RMC `public_candidates` view is filtered on this).
+    //    panel (RMC `public_candidates` view requires parse_status='success').
+    //    MyJob /buscar-candidatos also filters with isCandidateEligible: needs
+    //    both a display name and job_direction — WhatsApp flow has no parsed JD,
+    //    so we set a neutral default direction (do not overwrite a non-empty
+    //    job_direction on re-sync).
+    const defaultJobDirection = 'Búsqueda de empleo';
+    const existingJobDir = String(
+      (existing as { job_direction?: string | null } | null)?.job_direction ?? '',
+    ).trim();
+    const jobDirection = existingJobDir || defaultJobDirection;
+
     const baseFields = {
       source_type: 'upload' as const,
       storage_bucket: RMC_RESUMES_BUCKET,
       storage_path: storagePath,
       original_filename: filename,
       name: input.candidateName || null,
+      job_direction: jobDirection,
       whatsapp: phone,
-      parse_status: 'processing' as const,
+      parse_status: 'success' as const,
       is_public: true,
       updated_at: new Date().toISOString(),
     };
