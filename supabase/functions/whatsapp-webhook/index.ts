@@ -23,14 +23,15 @@
 // RLS); RMC sync uses a separate RMC service-role key (see rmc.ts).
 //
 // Build marker (used to confirm Supabase Edge runtime is serving the latest
-// version): WA_BOT_BUILD_2026_05_07_v5
+// version): WA_BOT_BUILD_2026_05_09_v6
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 import { buildConfig, downloadMedia, InfobipConfig, sendText } from './infobip.ts';
 import { COPY } from './copy.ts';
-import { syncResumeToRmc } from './rmc.ts';
+import { enrichResumeViaRmcAiExtract } from './resumeAiEnrich.ts';
+import { getRmcServiceConfig, syncResumeToRmc, toE164ForRmc } from './rmc.ts';
 import {
   extFromMime,
   isExplicitNo,
@@ -90,6 +91,14 @@ const RESUME_MAX_BYTES = 10 * 1024 * 1024; // 10 MB hard cap
 const OPT_IN_TIMEOUT_HOURS = 24;
 const COMPLETED_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 const MULTI_IMAGE_HINT_WINDOW_MS = 30 * 1000; // 30s
+
+/** Supabase Edge: keep Infobip webhook fast while AI runs. */
+function scheduleBackground(promise: Promise<void>): void {
+  const w = (globalThis as unknown as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } })
+    .EdgeRuntime?.waitUntil;
+  if (typeof w === 'function') w(promise);
+  else promise.catch((e) => console.error('[wa-bot enrich]', e));
+}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -588,6 +597,9 @@ async function handleMessage(
       let syncStatus: RmcSyncStatusValue = 'failed';
       let syncError: string | null = null;
       let syncedResumeId: string | null = null;
+      let enrichBuf: Uint8Array | null = null;
+      let enrichMime = '';
+      let enrichFilename = '';
 
       if (!path) {
         syncStatus = 'failed';
@@ -600,13 +612,15 @@ async function handleMessage(
           syncStatus = 'failed';
           syncError = `myjob_download_failed:${dlErr?.message ?? 'no_blob'}`;
         } else {
-          const buf = new Uint8Array(await blob.arrayBuffer());
+          enrichMime = blob.type || 'application/octet-stream';
+          enrichBuf = new Uint8Array(await blob.arrayBuffer());
+          enrichFilename = path.split('/').pop() || 'cv';
           const result = await syncResumeToRmc({
             waUserId: msg.from,
             candidateName,
-            fileBytes: buf,
-            fileMime: blob.type || 'application/octet-stream',
-            originalFilename: path.split('/').pop(),
+            fileBytes: enrichBuf,
+            fileMime: enrichMime,
+            originalFilename: enrichFilename,
           });
           syncStatus = result.status;
           syncError = result.error ?? null;
@@ -631,6 +645,28 @@ async function handleMessage(
             last_message_at: completedAt,
           })
           .eq('id', conversation.id);
+
+        const aiUrl = (Deno.env.get('RMC_AI_EXTRACT_URL') ?? '').trim();
+        const rmcCfg = getRmcServiceConfig();
+        if (
+          syncStatus === 'success' &&
+          syncedResumeId &&
+          enrichBuf &&
+          rmcCfg &&
+          aiUrl
+        ) {
+          scheduleBackground(
+            enrichResumeViaRmcAiExtract({
+              rmcConfig: rmcCfg,
+              resumeId: syncedResumeId,
+              fileBytes: enrichBuf,
+              fileMime: enrichMime,
+              originalFilename: enrichFilename,
+              candidateName,
+              whatsappE164: toE164ForRmc(msg.from),
+            }),
+          );
+        }
       } else {
         // Hard failure: keep the user in awaiting_opt_in so they can retry by
         // resending "Si" (or we can retry from the admin UI later).
@@ -707,7 +743,7 @@ async function handleMessage(
 serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true });
   if (req.method === 'GET') {
-    return json({ ok: true, service: 'whatsapp-webhook', build: 'v5' });
+    return json({ ok: true, service: 'whatsapp-webhook', build: 'v6' });
   }
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 

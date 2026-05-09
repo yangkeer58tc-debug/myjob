@@ -29,7 +29,7 @@ export type RmcSyncResult = {
   error?: string;
 };
 
-type RmcConfig = {
+export type RmcConfig = {
   url: string;
   serviceRoleKey: string;
 };
@@ -54,6 +54,9 @@ const resolveRmcConfig = (): { config: RmcConfig | null; reason: RmcSyncStatus |
   if (!url || !key) return { config: null, reason: 'skipped_no_config' };
   return { config: { url, serviceRoleKey: key }, reason: null };
 };
+
+/** Service-role target for the current MYJOB_ENV (null → skip RMC entirely). */
+export const getRmcServiceConfig = (): RmcConfig | null => resolveRmcConfig().config;
 
 const buildRmcClient = (config: RmcConfig): SupabaseClient =>
   createClient(config.url, config.serviceRoleKey, {
