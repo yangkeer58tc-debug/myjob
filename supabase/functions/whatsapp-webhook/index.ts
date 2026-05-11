@@ -5,7 +5,7 @@
 // State machine implementation lives in dispatch.ts (dispatchBotMessage).
 //
 // Build marker (used to confirm Supabase Edge runtime is serving the latest
-// version): WA_BOT_BUILD_2026_05_11_v9
+// version): WA_BOT_BUILD_2026_05_11_v10
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
@@ -48,6 +48,17 @@ const parseInbound = (payload: any): InboundMessage[] => {
     const m = r?.message ?? {};
     const rawType = String(m?.type ?? '').toUpperCase();
 
+    // WhatsApp display name as reported by Infobip. The field lives on the
+    // outer `r.contact.name` in most variants but some payloads put it on
+    // r.contact.profile.name or r.contactInfo.name — try all of them.
+    const senderName = String(
+      r?.contact?.name ??
+        r?.contact?.profile?.name ??
+        r?.contactInfo?.name ??
+        r?.pushName ??
+        '',
+    ).trim() || undefined;
+
     // Try to extract a button reply payload regardless of declared type:
     // Infobip variants use BUTTON / INTERACTIVE / INTERACTIVE_BUTTON_REPLY /
     // sometimes plain TEXT with a parallel payload field. If any of those
@@ -80,6 +91,7 @@ const parseInbound = (payload: any): InboundMessage[] => {
         messageId,
         type: 'button',
         text: buttonPayload || title || undefined,
+        senderName,
       });
       continue;
     }
@@ -90,6 +102,7 @@ const parseInbound = (payload: any): InboundMessage[] => {
         messageId,
         type: 'text',
         text: String(m?.text ?? '').trim(),
+        senderName,
       });
       continue;
     }
@@ -103,6 +116,7 @@ const parseInbound = (payload: any): InboundMessage[] => {
         mediaMime: String(m?.mimeType ?? m?.contentType ?? '').trim() || undefined,
         filename: String(m?.caption ?? m?.fileName ?? m?.filename ?? '').trim() || undefined,
         text: String(m?.caption ?? '').trim() || undefined,
+        senderName,
       });
       continue;
     }
@@ -112,6 +126,7 @@ const parseInbound = (payload: any): InboundMessage[] => {
       messageId,
       type: rawType.toLowerCase() || 'unknown',
       text: typeof m?.text === 'string' ? m.text : undefined,
+      senderName,
     });
   }
   return messages;
@@ -249,7 +264,7 @@ async function handleReprocess(req: Request): Promise<Response> {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true });
   if (req.method === 'GET') {
-    return json({ ok: true, service: 'whatsapp-webhook', build: 'v9' });
+    return json({ ok: true, service: 'whatsapp-webhook', build: 'v10' });
   }
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 

@@ -81,7 +81,28 @@ export type InboundMessage = {
   mediaUrl?: string;
   mediaMime?: string;
   filename?: string;
+  /** WhatsApp display name reported by Infobip (best-effort). */
+  senderName?: string;
 };
+
+/**
+ * Pick the best candidate name we currently know for this WhatsApp user.
+ * Priority:
+ *   1. conversation.candidate_name (already stored, possibly from earlier flow)
+ *   2. WhatsApp display name supplied by Infobip
+ *   3. Fallback `Candidato <last4>` so /buscar-candidatos can still render it
+ */
+export function resolveCandidateName(
+  conversation: ConversationRow,
+  msg: { from: string; senderName?: string | null },
+): string {
+  const stored = String(conversation.candidate_name ?? '').trim();
+  if (stored) return stored;
+  const sender = String(msg.senderName ?? '').trim();
+  if (sender) return sender;
+  const last4 = String(msg.from ?? '').replace(/\D/g, '').slice(-4) || '0000';
+  return `Candidato ${last4}`;
+}
 
 const RESUME_BUCKET = 'whatsapp-resumes';
 const RESUME_MAX_BYTES = 10 * 1024 * 1024;
@@ -416,7 +437,7 @@ async function handleCompletedInbound(
     const enrichBuf = new Uint8Array(await blob.arrayBuffer());
     const enrichMime = blob.type || 'application/octet-stream';
     const enrichFilename = path.split('/').pop() || 'cv';
-    const candidateName = conversation.candidate_name ?? '';
+    const candidateName = resolveCandidateName(conversation, msg);
     const result = await syncResumeToRmc({
       waUserId: msg.from,
       candidateName,
@@ -684,11 +705,13 @@ export async function dispatchBotMessage(
         { id: BTN_OPT_IN_YES, title: 'Sí, súmame' },
         { id: BTN_OPT_IN_NO, title: 'Ahora no' },
       ]);
+      const derivedName = resolveCandidateName(convFresh, msg);
       await supabase
         .from('whatsapp_conversations')
         .update({
           ...bump,
           state: 'awaiting_opt_in',
+          candidate_name: convFresh.candidate_name ?? derivedName,
           last_resume_storage_path: stored.path,
           resume_storage_path: stored.path,
           last_resume_received_at: new Date().toISOString(),
@@ -845,11 +868,13 @@ export async function dispatchBotMessage(
       { id: BTN_OPT_IN_YES, title: 'Sí, súmame' },
       { id: BTN_OPT_IN_NO, title: 'Ahora no' },
     ]);
+    const derivedName = resolveCandidateName(conversation, msg);
     await supabase
       .from('whatsapp_conversations')
       .update({
         ...bump,
         state: 'awaiting_opt_in',
+        candidate_name: conversation.candidate_name ?? derivedName,
         last_resume_storage_path: stored.path,
         resume_storage_path: stored.path,
         last_resume_received_at: new Date().toISOString(),
@@ -864,7 +889,7 @@ export async function dispatchBotMessage(
     const positive = isStrictSi(text);
     const negative = isExplicitNo(text);
     if (positive) {
-      const candidateName = conversation.candidate_name ?? '';
+      const candidateName = resolveCandidateName(conversation, msg);
       const pipe = await runOptInSyncPipeline(supabase, config, conversation, msg, candidateName);
       if (!pipe.userOk) {
         await reply(supabase, config, conversation, COPY.errorGeneric);

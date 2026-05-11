@@ -142,6 +142,19 @@ export type RmcSyncInput = {
   originalFilename?: string; // original filename if WhatsApp provided one
 };
 
+/**
+ * Final safety net for the candidate name. /buscar-candidatos filters out
+ * rows without a name, so we must never write `name = null`. If the caller
+ * still has no name (rare: WhatsApp profile is private and dispatch fallback
+ * was skipped), derive `Candidato <last4>` from the phone number.
+ */
+const ensureCandidateName = (waUserId: string, candidateName: string | undefined): string => {
+  const trimmed = String(candidateName ?? '').trim();
+  if (trimmed) return trimmed;
+  const last4 = String(waUserId ?? '').replace(/\D/g, '').slice(-4) || '0000';
+  return `Candidato ${last4}`;
+};
+
 // Push a resume into RMC. Idempotent on `whatsapp` column: re-runs upsert and
 // overwrites the storage object so RMC always has the latest CV per user.
 export async function syncResumeToRmc(input: RmcSyncInput): Promise<RmcSyncResult> {
@@ -155,6 +168,7 @@ export async function syncResumeToRmc(input: RmcSyncInput): Promise<RmcSyncResul
   try {
     const rmc = buildRmcClient(config);
     const phone = toE164ForRmc(input.waUserId);
+    const safeName = ensureCandidateName(input.waUserId, input.candidateName);
 
     const ext = extFromMime(input.fileMime);
     const filename = safeFilename(input.originalFilename, ext, `whatsapp-${input.waUserId}`);
@@ -202,7 +216,7 @@ export async function syncResumeToRmc(input: RmcSyncInput): Promise<RmcSyncResul
       storage_bucket: RMC_RESUMES_BUCKET,
       storage_path: storagePath,
       original_filename: filename,
-      name: input.candidateName || null,
+      name: safeName,
       job_direction: jobDirection,
       whatsapp: phone,
       parse_status: 'success' as const,
