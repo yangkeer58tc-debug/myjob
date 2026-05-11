@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,6 +23,12 @@ import StagingBanner from "./components/StagingBanner";
 
 const queryClient = new QueryClient();
 
+/** 单数 /admin/resume → /admin/resumes，避免手误或旧链接 404 */
+const AdminResumeSingularToPlural = () => {
+  const { id } = useParams();
+  return <Navigate to={`/admin/resumes/${id ?? ""}`} replace />;
+};
+
 const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
@@ -45,6 +51,9 @@ const App = () => (
                 <Route path="/buscar-candidatos" element={<CandidateSearch />} />
                 <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/resume/import" element={<Navigate to="/admin/resumes/import" replace />} />
+                <Route path="/admin/resume/:id" element={<AdminResumeSingularToPlural />} />
+                <Route path="/admin/resume" element={<Navigate to="/admin/resumes" replace />} />
                 <Route path="/admin/resumes" element={<ResumeAdminLayout />}>
                   <Route index element={<ResumesPage />} />
                   <Route path="import" element={<ResumeImportPage />} />
