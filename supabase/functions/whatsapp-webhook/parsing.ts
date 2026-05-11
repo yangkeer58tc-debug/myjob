@@ -102,23 +102,48 @@ export function normalizeOptInText(raw: string): string {
   return raw.normalize('NFC').trim().toLowerCase().replace(/[.!?\s]+$/u, '');
 }
 
-// Strict positive: PRD v3 §5 spec. After normalization, the message must be
-// EXACTLY "si" or "sí". Anything else is a non-positive — including "claro",
+// Strip leading/trailing comma+punctuation and collapse internal whitespace.
+// Used to compare against button titles like "Sí, súmame" / "Más vacantes".
+function squashForButtonCompare(raw: string): string {
+  return normalizeOptInText(stripJobRefTag(String(raw ?? '')))
+    .replace(/[,;:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Match the inbound text/button payload against an interactive-button id and
+ * any of its localized titles. Some Infobip variants deliver the button reply
+ * as plain text containing the button title instead of the configured id, so
+ * we accept both forms.
+ */
+export function matchesButton(raw: string, id: string, ...titles: string[]): boolean {
+  if (!raw) return false;
+  const trimmed = raw.trim();
+  if (trimmed === id) return true;
+  const cleaned = squashForButtonCompare(trimmed);
+  return titles.some((t) => squashForButtonCompare(t) === cleaned);
+}
+
+// Positive opt-in: button id, button title ("Sí, súmame"), or strict text
+// ("si" / "sí"). Anything else is a non-positive — including "claro",
 // "si claro", emojis, etc. We tolerate trailing punctuation and casing.
 export function isStrictSi(raw: string): boolean {
   if (!raw) return false;
-  const trimmed = raw.trim();
-  if (trimmed === BTN_OPT_IN_YES) return true;
-  const cleaned = normalizeOptInText(trimmed);
+  if (matchesButton(raw, BTN_OPT_IN_YES, 'Sí, súmame', 'Si, sumame', 'Sí súmame')) {
+    return true;
+  }
+  const cleaned = normalizeOptInText(stripJobRefTag(raw));
   return cleaned === 'si' || cleaned === 'sí';
 }
 
-/** Returning-user branch: same CV as RMC (button id or short text; not plain "sí"). */
+/** Returning-user branch: same CV as RMC (button id, title, or short text; not plain "sí"). */
 export function isReturningSameCvChoice(raw: string): boolean {
   if (!raw) return false;
-  const trimmed = raw.trim();
-  if (trimmed === BTN_RET_SAME) return true;
-  const cleaned = normalizeOptInText(stripJobRefTag(trimmed));
+  if (matchesButton(raw, BTN_RET_SAME, 'Mismo CV', 'El mismo CV', 'El mismo')) {
+    return true;
+  }
+  const cleaned = normalizeOptInText(stripJobRefTag(raw));
   return (
     cleaned === 'mismo' ||
     cleaned === 'mismo cv' ||
@@ -146,9 +171,10 @@ const NEGATIVE_PHRASES = [
 // gracefully without further clarifications.
 export function isExplicitNo(raw: string): boolean {
   if (!raw) return false;
-  const trimmed = raw.trim();
-  if (trimmed === BTN_OPT_IN_NO) return true;
-  const cleaned = normalizeOptInText(trimmed);
+  if (matchesButton(raw, BTN_OPT_IN_NO, 'Ahora no', 'No por ahora')) {
+    return true;
+  }
+  const cleaned = normalizeOptInText(stripJobRefTag(raw));
   if (!cleaned) return false;
   return NEGATIVE_PHRASES.some(
     (p) => cleaned === p || cleaned.startsWith(`${p} `) || cleaned.startsWith(`${p},`),

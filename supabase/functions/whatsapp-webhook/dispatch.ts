@@ -26,6 +26,7 @@ import {
   isExplicitNo,
   isReturningSameCvChoice,
   isStrictSi,
+  matchesButton,
   stripJobRefTag,
 } from './parsing.ts';
 import type { InfobipConfig } from './infobip.ts';
@@ -379,20 +380,23 @@ async function handleCompletedInbound(
     );
     return;
   }
-  if (t === BTN_MORE_JOBS) {
+  if (matchesButton(t, BTN_MORE_JOBS, 'Más vacantes', 'Mas vacantes', 'Ver vacantes')) {
     await reply(supabase, config, conversation, COPY.postFlowMoreJobs());
     return;
   }
-  if (t === BTN_REC_JOBS) {
+  if (matchesButton(t, BTN_REC_JOBS, 'Recomiéndame', 'Recomiendame')) {
     const q = await recommendQueryForUser(supabase, conversation);
     await reply(supabase, config, conversation, COPY.postFlowRecommend(q));
     return;
   }
-  if (t === BTN_HELP) {
+  if (matchesButton(t, BTN_HELP, 'Ayuda')) {
     await reply(supabase, config, conversation, COPY.postFlowHelp());
     return;
   }
-  if (t === BTN_JOIN_PANEL && conversation.state === 'completed_declined') {
+  if (
+    matchesButton(t, BTN_JOIN_PANEL, 'Súmame al panel', 'Sumame al panel') &&
+    conversation.state === 'completed_declined'
+  ) {
     const path = conversation.last_resume_storage_path ?? conversation.resume_storage_path;
     if (!path) {
       await reply(supabase, config, conversation, COPY.pleaseSendDocument);
@@ -717,7 +721,7 @@ export async function dispatchBotMessage(
   // ---- awaiting_returning_cv_choice ----
   if (effectiveState === 'awaiting_returning_cv_choice') {
     const t = inboundText.trim();
-    if (t === BTN_RET_NEW || isExplicitNo(t)) {
+    if (matchesButton(t, BTN_RET_NEW, 'Nuevo CV', 'Subir nuevo CV') || isExplicitNo(t)) {
       await reply(supabase, config, conversation, COPY.welcomeNoJob);
       await supabase.from('whatsapp_conversations').update({ ...bump, state: 'awaiting_resume' } as any).eq(
         'id',

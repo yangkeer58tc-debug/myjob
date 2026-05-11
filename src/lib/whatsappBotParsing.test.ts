@@ -144,6 +144,24 @@ describe('isReturningSameCvChoice', () => {
   it('strips job ref tag before matching', () => {
     expect(isReturningSameCvChoice('[REF:abc-123] mismo')).toBe(true);
   });
+
+  it('accepts the localized button title delivered as plain text', () => {
+    expect(isReturningSameCvChoice('Mismo CV')).toBe(true);
+    expect(isReturningSameCvChoice('El mismo CV')).toBe(true);
+  });
+});
+
+describe('button titles as fallback inbound payload', () => {
+  it('isStrictSi accepts "Sí, súmame" (button title in plain text)', () => {
+    expect(isStrictSi('Sí, súmame')).toBe(true);
+    expect(isStrictSi('sí, súmame')).toBe(true);
+    expect(isStrictSi('Si, sumame')).toBe(true);
+  });
+
+  it('isExplicitNo accepts "Ahora no" (button title in plain text)', () => {
+    expect(isExplicitNo('Ahora no')).toBe(true);
+    expect(isExplicitNo('ahora no')).toBe(true);
+  });
 });
 
 describe('extractJobRefFromText', () => {
