@@ -11,9 +11,64 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://myjob.com/empleos?q=chofer</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?q=ayudante%20general</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?q=seguridad</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?q=cajero</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?q=atencion%20al%20cliente</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?q=almacenista</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?ciudad=Ciudad%20de%20M%C3%A9xico</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?ciudad=Guadalajara</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?ciudad=Monterrey</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?ciudad=Puebla</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos?ciudad=Tijuana</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://myjob.com/empleos-en/ciudad-de-mexico</loc>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://myjob.com/empleos-en/ciudad-de-mexico/chofer</loc>
@@ -26,23 +81,163 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://myjob.com/empleos-en/ciudad-de-mexico/seguridad</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/ciudad-de-mexico/cajero</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/ciudad-de-mexico/atencion-al-cliente</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/ciudad-de-mexico/almacenista</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://myjob.com/empleos-en/guadalajara</loc>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/guadalajara/chofer</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/guadalajara/ayudante-general</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/guadalajara/seguridad</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/guadalajara/cajero</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/guadalajara/atencion-al-cliente</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/guadalajara/almacenista</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://myjob.com/empleos-en/monterrey</loc>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/monterrey/chofer</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/monterrey/ayudante-general</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/monterrey/seguridad</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/monterrey/cajero</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/monterrey/atencion-al-cliente</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/monterrey/almacenista</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://myjob.com/empleos-en/puebla</loc>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/puebla/chofer</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/puebla/ayudante-general</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/puebla/seguridad</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/puebla/cajero</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/puebla/atencion-al-cliente</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/puebla/almacenista</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://myjob.com/empleos-en/tijuana</loc>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/tijuana/chofer</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/tijuana/ayudante-general</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/tijuana/seguridad</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/tijuana/cajero</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/tijuana/atencion-al-cliente</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://myjob.com/empleos-en/tijuana/almacenista</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

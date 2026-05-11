@@ -12,6 +12,10 @@ import JobList from "./pages/JobList";
 import JobDetail from "./pages/JobDetail";
 import SeoJobLanding from "./pages/SeoJobLanding";
 import Admin from "./pages/Admin";
+import ResumeAdminLayout from "./pages/resume-admin/ResumeAdminLayout";
+import ResumesPage from "./pages/resume-admin/ResumesPage";
+import ResumeImportPage from "./pages/resume-admin/ImportPage";
+import ResumeDetailPage from "./pages/resume-admin/ResumeDetailPage";
 import NotFound from "./pages/NotFound";
 import CandidateSearch from "./pages/CandidateSearch";
 import { EmpleosPrefixJobRedirect, EmployToEmpleoRedirect } from "./components/SeoCanonicalRedirects";
@@ -41,7 +45,11 @@ const App = () => (
                 <Route path="/buscar-candidatos" element={<CandidateSearch />} />
                 <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />
                 <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/resumes" element={<Admin />} />
+                <Route path="/admin/resumes" element={<ResumeAdminLayout />}>
+                  <Route index element={<ResumesPage />} />
+                  <Route path="import" element={<ResumeImportPage />} />
+                  <Route path=":id" element={<ResumeDetailPage />} />
+                </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

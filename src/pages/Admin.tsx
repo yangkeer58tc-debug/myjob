@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LogOut, Plus, Pencil, Upload, Download, Pause, Play } from 'lucide-react';
 import WhatsAppBotPanel from '@/components/admin/WhatsAppBotPanel';
-import ResumesAdminPanel from '@/components/admin/ResumesAdminPanel';
 import { isResumeAdminEnabled } from '@/lib/featureFlags';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
@@ -374,11 +373,8 @@ const Admin = () => {
   const [showForm, setShowForm] = useState(false);
   const resumeAdminEnabled = isResumeAdminEnabled();
   const location = useLocation();
-  const deriveTabFromPath = (): 'jobs' | 'candidates' | 'whatsapp' | 'resumes' => {
-    if (resumeAdminEnabled && location.pathname.startsWith('/admin/resumes')) return 'resumes';
-    return 'jobs';
-  };
-  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp' | 'resumes'>(deriveTabFromPath);
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp'>('jobs');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deactivateIdsFileInputRef = useRef<HTMLInputElement>(null);
@@ -388,12 +384,6 @@ const Admin = () => {
   const [adminJobsPage, setAdminJobsPage] = useState(1);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [jobOpLogs, setJobOpLogs] = useState<JobOperationLog[]>([]);
-
-  useEffect(() => {
-    const nextTab = deriveTabFromPath();
-    setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, resumeAdminEnabled]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -1286,12 +1276,12 @@ const Admin = () => {
           </Button>
           {resumeAdminEnabled ? (
             <Button
-              variant={activeTab === 'resumes' ? 'default' : 'outline'}
+              variant={location.pathname.startsWith('/admin/resumes') ? 'default' : 'outline'}
               className="rounded-xl"
               onClick={() => {
-                setActiveTab('resumes');
                 setShowForm(false);
                 setEditing(null);
+                navigate('/admin/resumes');
               }}
             >
               Resumes
@@ -1651,8 +1641,6 @@ const Admin = () => {
           </>
         ) : activeTab === 'whatsapp' ? (
           <WhatsAppBotPanel />
-        ) : activeTab === 'resumes' ? (
-          <ResumesAdminPanel />
         ) : (
           <>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
