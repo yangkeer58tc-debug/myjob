@@ -88,10 +88,16 @@ const RESUME_MAX_BYTES = 10 * 1024 * 1024;
 const MULTI_IMAGE_HINT_WINDOW_MS = 30 * 1000;
 
 function scheduleBackground(promise: Promise<void>): void {
+  // ALWAYS wrap the promise in a catch so a background failure (e.g. enrich
+  // DNS error) can never reach the isolate / EdgeRuntime as an unhandled
+  // rejection. This guarantees the foreground request finishes regardless.
+  const safe = promise.catch((e: unknown) => {
+    const msg = (e as { message?: unknown })?.message ?? e;
+    console.error('[wa-bot background]', msg);
+  });
   const w = (globalThis as unknown as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } })
     .EdgeRuntime?.waitUntil;
-  if (typeof w === 'function') w(promise);
-  else promise.catch((e) => console.error('[wa-bot enrich]', e));
+  if (typeof w === 'function') w(safe);
 }
 
 const safeFilename = (raw: string | undefined, ext: string, fallback: string): string => {

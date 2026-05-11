@@ -1,7 +1,7 @@
 // Thin wrapper around the Infobip WhatsApp API for the MVP bot.
 // Docs: https://www.infobip.com/docs/api/channels/whatsapp
 // Build marker (used to verify Supabase Edge runtime is serving the latest
-// version): WA_BOT_BUILD_2026_05_07_v4
+// version): WA_BOT_BUILD_2026_05_11_v9
 
 const cleanBaseUrl = (url: string): string => {
   const trimmed = url.trim().replace(/\/+$/, '');
@@ -56,7 +56,7 @@ export async function sendText(
 ): Promise<{ ok: boolean; status: number; body: string }> {
   const url = `${config.baseUrl}/whatsapp/1/message/text`;
   const normalizedTo = normalizeMsisdnForWhatsApp(to);
-  console.log('[wa-bot v8] sendText fromSuffix=%s toRaw=%s toNorm=%s', config.sender.slice(-4), to, normalizedTo);
+  console.log('[wa-bot v9] sendText fromSuffix=%s toRaw=%s toNorm=%s', config.sender.slice(-4), to, normalizedTo);
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -71,6 +71,7 @@ export async function sendText(
     }),
   });
   const body = await res.text();
+  console.log('[wa-bot v9] sendText result ok=%s status=%s body=%s', String(res.ok), String(res.status), body.slice(0, 400));
   return { ok: res.ok, status: res.status, body };
 }
 
@@ -88,6 +89,7 @@ export async function sendInteractiveButtons(
     id: b.id.slice(0, 256),
     title: b.title.slice(0, 20),
   }));
+  console.log('[wa-bot v9] sendInteractiveButtons fromSuffix=%s toNorm=%s buttons=%s', config.sender.slice(-4), normalizedTo, trimmed.map((b) => b.id).join(','));
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -105,6 +107,7 @@ export async function sendInteractiveButtons(
     }),
   });
   const body = await res.text();
+  console.log('[wa-bot v9] sendInteractiveButtons result ok=%s status=%s body=%s', String(res.ok), String(res.status), body.slice(0, 400));
   return { ok: res.ok, status: res.status, body };
 }
 
