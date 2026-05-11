@@ -53,7 +53,15 @@ export async function enrichResumeViaRmcAiExtract(opts: {
     filename,
   );
 
+  // Decide which mode to send upstream:
+  //   - native image MIME → image multimodal (OpenAI Vision via Pages /ai-extract)
+  //   - PDF with empty text-layer → PDF multimodal (Gemini Native via Pages /ai-extract)
+  //   - PDF with usable text → plain text (cheapest, most accurate)
   let body: Record<string, unknown>;
+  const trimmedText = extractedText.trim();
+  const isPdf = opts.fileMime.toLowerCase().includes('pdf') ||
+    filename.toLowerCase().endsWith('.pdf');
+
   if (mode === 'image') {
     const b64 = encodeBase64(opts.fileBytes);
     if (b64.length > MAX_IMAGE_B64_CHARS) {
@@ -66,6 +74,7 @@ export async function enrichResumeViaRmcAiExtract(opts: {
       };
     } else {
       const imageMime = opts.fileMime.startsWith('image/') ? opts.fileMime : 'image/jpeg';
+      console.log('[wa-bot enrich] route=image mime=%s b64_chars=%d', imageMime, b64.length);
       body = {
         text: 'Resume image attached. Extract structured candidate fields from the image.',
         filename,
@@ -73,10 +82,30 @@ export async function enrichResumeViaRmcAiExtract(opts: {
         image_mime: imageMime,
       };
     }
+  } else if (!trimmedText.length && isPdf) {
+    // Scanned / image-only PDF: pdf-parse returned empty. Send the raw PDF to
+    // the Pages /ai-extract endpoint, which routes PDFs through Gemini Native.
+    const b64 = encodeBase64(opts.fileBytes);
+    if (b64.length > MAX_IMAGE_B64_CHARS) {
+      console.warn('[wa-bot enrich] pdf too large for multimodal; falling back to filename-only');
+      body = {
+        text: `Resume PDF attached but too large for vision. Filename: ${filename}.`,
+        filename,
+      };
+    } else {
+      console.log('[wa-bot enrich] route=pdf_multimodal b64_chars=%d', b64.length);
+      body = {
+        text: 'Resume PDF attached (scanned or image-only — no text layer). Extract structured candidate fields from the document.',
+        filename,
+        image_base64: b64,
+        image_mime: 'application/pdf',
+      };
+    }
   } else {
-    const t = extractedText.trim().length
+    const t = trimmedText.length
       ? extractedText
       : '(No text could be extracted from this file; infer only from filename.)';
+    console.log('[wa-bot enrich] route=text chars=%d', t.length);
     body = { text: t.slice(0, 29_999), filename };
   }
 
