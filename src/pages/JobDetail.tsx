@@ -32,8 +32,8 @@ import {
 } from '@/lib/jobPostingSchema';
 import { trackStructuredEvent } from '@/lib/analytics';
 
-// Keep postings indexable longer; manual deactivation still uses is_active.
-const DAYS_TO_EXPIRE = 180;
+// Indexable window from created_at; manual deactivation still uses is_active.
+const DAYS_TO_EXPIRE = 90;
 
 const maybeFixMojibake = (value: string) => {
   const s = value || '';

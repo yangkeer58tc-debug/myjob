@@ -3,7 +3,7 @@
  * Logic mirrors src/pages/JobDetail.tsx + jobPostingSchema / mxPostalAddress / jobOptions (subset).
  */
 
-const DAYS_TO_EXPIRE = 180;
+const DAYS_TO_EXPIRE = 90;
 
 const escapeHtmlForJsonLd = (value) =>
   String(value || '')
