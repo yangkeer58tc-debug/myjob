@@ -6,6 +6,77 @@
 export const NAME_MAX_LEN = 80;
 export const NAME_MIN_LEN = 2;
 
+/** Quick-reply button ids (must match outbound interactive payloads). */
+export const BTN_OPT_IN_YES = 'WA_OPT_YES';
+export const BTN_OPT_IN_NO = 'WA_OPT_NO';
+export const BTN_RET_SAME = 'WA_RET_SAME';
+export const BTN_RET_NEW = 'WA_RET_NEW';
+export const BTN_MORE_JOBS = 'WA_MORE_JOBS';
+export const BTN_REC_JOBS = 'WA_REC_JOBS';
+export const BTN_HELP = 'WA_HELP';
+export const BTN_JOIN_PANEL = 'WA_JOIN_PANEL';
+
+/** First inbound from wa.me may carry `[REF:<jobId>]` (digits) for job context. */
+export function extractJobRefFromText(raw: string | undefined | null): string | null {
+  const m = String(raw ?? '').match(/\[REF:([\w-]+)\]/i);
+  const id = m?.[1]?.trim();
+  return id || null;
+}
+
+export function stripJobRefTag(raw: string): string {
+  return String(raw ?? '').replace(/\s*\[REF:[\w-]+\]\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+const NO_CV_PHRASES = [
+  'no tengo cv',
+  'no tengo curriculum',
+  'no tengo currículum',
+  'no tengo curriculo',
+  'no traigo cv',
+  'no traigo curriculum',
+  'no lo tengo',
+  'no cuento con cv',
+  'no dispongo',
+  'no dispongo de cv',
+  'luego lo paso',
+  'luego te lo paso',
+  'mas tarde',
+  'más tarde',
+  'despues',
+  'después',
+  'manana',
+  'mañana',
+  'todavia no',
+  'todavía no',
+  'aun no',
+  'aún no',
+  'todavia no tengo',
+  'todavía no tengo',
+  'se me olvido',
+  'se me olvidó',
+  'primero quiero',
+  'una pregunta',
+  'no puedo enviar',
+  'no puedo mandar',
+  'no tengo archivo',
+  'no tengo documento',
+  'no tengo el cv',
+  'no tengo mi cv',
+  'aun no tengo cv',
+  'aún no tengo cv',
+  'todavia no tengo el cv',
+  'todavía no tengo el cv',
+  'no tengo todavia',
+  'no tengo todavía',
+];
+
+/** Heuristic: user says they cannot send a CV right now. */
+export function expressesNoCv(raw: string | undefined | null): boolean {
+  const n = normalizeOptInText(String(raw ?? '')).replace(/[,;]+/g, ' ');
+  if (!n) return false;
+  return NO_CV_PHRASES.some((p) => n === p || n.includes(p));
+}
+
 // Best-effort cleanup of a free-text "name" reply. Returns the canonical form
 // to store, or `null` if the text doesn't look like a name at all.
 //
@@ -36,8 +107,25 @@ export function normalizeOptInText(raw: string): string {
 // "si claro", emojis, etc. We tolerate trailing punctuation and casing.
 export function isStrictSi(raw: string): boolean {
   if (!raw) return false;
-  const cleaned = normalizeOptInText(raw);
+  const trimmed = raw.trim();
+  if (trimmed === BTN_OPT_IN_YES) return true;
+  const cleaned = normalizeOptInText(trimmed);
   return cleaned === 'si' || cleaned === 'sí';
+}
+
+/** Returning-user branch: same CV as RMC (button id or short text; not plain "sí"). */
+export function isReturningSameCvChoice(raw: string): boolean {
+  if (!raw) return false;
+  const trimmed = raw.trim();
+  if (trimmed === BTN_RET_SAME) return true;
+  const cleaned = normalizeOptInText(stripJobRefTag(trimmed));
+  return (
+    cleaned === 'mismo' ||
+    cleaned === 'mismo cv' ||
+    cleaned === 'el mismo' ||
+    cleaned === 'el mismo cv' ||
+    cleaned.startsWith('mismo cv ')
+  );
 }
 
 const NEGATIVE_PHRASES = [
@@ -58,7 +146,9 @@ const NEGATIVE_PHRASES = [
 // gracefully without further clarifications.
 export function isExplicitNo(raw: string): boolean {
   if (!raw) return false;
-  const cleaned = normalizeOptInText(raw);
+  const trimmed = raw.trim();
+  if (trimmed === BTN_OPT_IN_NO) return true;
+  const cleaned = normalizeOptInText(trimmed);
   if (!cleaned) return false;
   return NEGATIVE_PHRASES.some(
     (p) => cleaned === p || cleaned.startsWith(`${p} `) || cleaned.startsWith(`${p},`),

@@ -56,7 +56,7 @@ export async function sendText(
 ): Promise<{ ok: boolean; status: number; body: string }> {
   const url = `${config.baseUrl}/whatsapp/1/message/text`;
   const normalizedTo = normalizeMsisdnForWhatsApp(to);
-  console.log('[wa-bot v4] sendText fromSuffix=%s toRaw=%s toNorm=%s', config.sender.slice(-4), to, normalizedTo);
+  console.log('[wa-bot v8] sendText fromSuffix=%s toRaw=%s toNorm=%s', config.sender.slice(-4), to, normalizedTo);
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -68,6 +68,40 @@ export async function sendText(
       from: config.sender,
       to: normalizedTo,
       content: { text },
+    }),
+  });
+  const body = await res.text();
+  return { ok: res.ok, status: res.status, body };
+}
+
+/** Up to 3 quick-reply buttons (title ≤ 20 chars each). */
+export async function sendInteractiveButtons(
+  config: InfobipConfig,
+  to: string,
+  bodyText: string,
+  buttons: Array<{ id: string; title: string }>,
+): Promise<{ ok: boolean; status: number; body: string }> {
+  const url = `${config.baseUrl}/whatsapp/1/message/interactive/buttons`;
+  const normalizedTo = normalizeMsisdnForWhatsApp(to);
+  const trimmed = buttons.slice(0, 3).map((b) => ({
+    type: 'REPLY' as const,
+    id: b.id.slice(0, 256),
+    title: b.title.slice(0, 20),
+  }));
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader(config.apiKey),
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      from: config.sender,
+      to: normalizedTo,
+      content: {
+        body: { text: bodyText },
+        action: { buttons: trimmed },
+      },
     }),
   });
   const body = await res.text();

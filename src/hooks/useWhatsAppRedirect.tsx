@@ -24,11 +24,14 @@ export const useWhatsAppRedirect = (
   const [qrOpen, setQrOpen] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
 
-  const msg = t('wa.defaultMessage') 
+  const baseMsg = t('wa.defaultMessage')
     ? t('wa.defaultMessage').replace('{jobTitle}', jobTitle || '').replace('{bName}', bName || '')
     : `¡Hola! Me interesa la vacante de ${jobTitle} en ${bName} que vi en MyJob.`;
 
   const resolvedJobId = jobId ?? trackingContext?.item_id;
+  const refTag = resolvedJobId ? ` [REF:${resolvedJobId}]` : '';
+  const msg = `${baseMsg}${refTag}`;
+
   const botNumber = getWhatsAppBotNumberForJob(resolvedJobId);
   const encodedMsg = encodeURIComponent(msg);
   const waUrl = `https://wa.me/${botNumber}?text=${encodedMsg}`;
@@ -52,7 +55,7 @@ export const useWhatsAppRedirect = (
       setQrUrl(waUrl);
       setQrOpen(true);
     }
-  }, [botNumber, encodedMsg, isMobile, jobTitle, trackingContext, waUrl]);
+  }, [botNumber, encodedMsg, isMobile, jobTitle, trackingContext, waUrl, resolvedJobId]);
 
   const QRModal = () => (
     <Dialog open={qrOpen} onOpenChange={setQrOpen}>

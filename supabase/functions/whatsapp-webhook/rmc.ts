@@ -59,6 +59,49 @@ const resolveRmcConfig = (): { config: RmcConfig | null; reason: RmcSyncStatus |
 /** Service-role target for the current MYJOB_ENV (null → skip RMC entirely). */
 export const getRmcServiceConfig = (): RmcConfig | null => resolveRmcConfig().config;
 
+export type RmcExistingResumeSnapshot = {
+  id: string;
+  name: string | null;
+  job_direction: string | null;
+  storage_path: string | null;
+  storage_bucket: string | null;
+};
+
+/** Latest RMC resume row for this WhatsApp user, if any. */
+export async function findRmcResumeByWhatsApp(
+  waUserId: string,
+): Promise<RmcExistingResumeSnapshot | null> {
+  const { config } = resolveRmcConfig();
+  if (!config) return null;
+  const phone = toE164ForRmc(waUserId);
+  const rmc = buildRmcClient(config);
+  const { data, error } = await rmc
+    .from(RMC_RESUMES_TABLE)
+    .select('id,name,job_direction,storage_path,storage_bucket')
+    .eq('whatsapp', phone)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as RmcExistingResumeSnapshot;
+}
+
+/** Download bytes from the user's current RMC storage object (for "reuse same CV"). */
+export async function downloadRmcResumeForSync(
+  waUserId: string,
+): Promise<{ bytes: Uint8Array; mime: string; filename: string; snapshot: RmcExistingResumeSnapshot } | null> {
+  const snap = await findRmcResumeByWhatsApp(waUserId);
+  if (!snap?.storage_path) return null;
+  const { config } = resolveRmcConfig();
+  if (!config) return null;
+  const rmc = buildRmcClient(config);
+  const bucket = snap.storage_bucket || RMC_RESUMES_BUCKET;
+  const { data: blob, error } = await rmc.storage.from(bucket).download(snap.storage_path);
+  if (error || !blob) return null;
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const mime = blob.type || 'application/octet-stream';
+  const filename = snap.storage_path.split('/').pop() || 'resume';
+  return { bytes: buf, mime, filename, snapshot: snap };
+}
+
 const buildRmcClient = (config: RmcConfig): SupabaseClient =>
   createClient(config.url, config.serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },

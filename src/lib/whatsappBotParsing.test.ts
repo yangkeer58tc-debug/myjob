@@ -5,11 +5,17 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  BTN_OPT_IN_YES,
+  BTN_RET_SAME,
+  expressesNoCv,
+  extractJobRefFromText,
   extFromMime,
   isExplicitNo,
+  isReturningSameCvChoice,
   isStrictSi,
   normalizeOptInText,
   sanitizeName,
+  stripJobRefTag,
   toE164ForRmc,
 } from '../../supabase/functions/whatsapp-webhook/parsing';
 
@@ -49,6 +55,10 @@ describe('sanitizeName', () => {
 });
 
 describe('isStrictSi', () => {
+  it('matches interactive opt-in button id', () => {
+    expect(isStrictSi(BTN_OPT_IN_YES)).toBe(true);
+  });
+
   it('matches plain "si" and "sí"', () => {
     expect(isStrictSi('si')).toBe(true);
     expect(isStrictSi('Si')).toBe(true);
@@ -119,6 +129,40 @@ describe('toE164ForRmc', () => {
 
   it('returns empty string for empty input', () => {
     expect(toE164ForRmc('')).toBe('');
+  });
+});
+
+describe('isReturningSameCvChoice', () => {
+  it('matches button id and short text (not plain sí)', () => {
+    expect(isReturningSameCvChoice(BTN_RET_SAME)).toBe(true);
+    expect(isReturningSameCvChoice('mismo cv')).toBe(true);
+    expect(isReturningSameCvChoice('El mismo')).toBe(true);
+    expect(isReturningSameCvChoice('sí')).toBe(false);
+    expect(isReturningSameCvChoice('si')).toBe(false);
+  });
+
+  it('strips job ref tag before matching', () => {
+    expect(isReturningSameCvChoice('[REF:abc-123] mismo')).toBe(true);
+  });
+});
+
+describe('extractJobRefFromText', () => {
+  it('parses bracket tag', () => {
+    expect(extractJobRefFromText('Hola [REF:job-uuid-1] fin')).toBe('job-uuid-1');
+    expect(extractJobRefFromText('no tag')).toBeNull();
+  });
+});
+
+describe('expressesNoCv', () => {
+  it('detects common Spanish phrases', () => {
+    expect(expressesNoCv('No tengo cv aún')).toBe(true);
+    expect(expressesNoCv('Aquí está mi pdf')).toBe(false);
+  });
+});
+
+describe('stripJobRefTag', () => {
+  it('removes ref tag', () => {
+    expect(stripJobRefTag('Hola [REF:x] mundo')).toBe('Hola mundo');
   });
 });
 

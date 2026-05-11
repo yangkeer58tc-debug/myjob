@@ -21,6 +21,22 @@ type ConversationRow = {
   archived_at: string | null;
   created_at: string;
   last_message_at: string;
+  applying_job_id: string | null;
+  applying_job_title: string | null;
+  applying_job_company: string | null;
+};
+
+type ApplicationRow = {
+  id: string;
+  conversation_id: string | null;
+  wa_user_id: string;
+  rmc_resume_id: string | null;
+  job_id: string | null;
+  job_title: string | null;
+  job_company: string | null;
+  reused_existing_cv: boolean;
+  opt_in_status: string;
+  created_at: string;
 };
 
 type MessageRow = {
@@ -36,9 +52,10 @@ type MessageRow = {
 
 type FunnelStats = {
   total: number;
-  awaitingName: number;
   awaitingResume: number;
+  awaitingReturningCv: number;
   awaitingOptIn: number;
+  completedNoCv: number;
   resumeReceived: number;
   optedIn: number;
   declined: number;
@@ -49,11 +66,19 @@ type FunnelStats = {
 
 const STATE_LABEL: Record<string, string> = {
   new: 'Nueva',
-  awaiting_name: 'Esperando nombre',
+  awaiting_name: 'Esperando nombre (legacy)',
   awaiting_resume: 'Esperando CV',
+  awaiting_returning_cv_choice: 'Mismo CV / nuevo',
   awaiting_opt_in: 'Esperando Si/No',
   completed_opt_in: 'Aceptado destacados',
   completed_declined: 'Rechazado / sin Si',
+  completed_no_cv: 'Sin CV (cerrada)',
+};
+
+const OPT_IN_LABEL: Record<string, string> = {
+  opted_in: 'Aceptó',
+  declined: 'Rechazó',
+  pending: 'Pendiente',
 };
 
 const RMC_LABEL: Record<string, string> = {
@@ -86,6 +111,9 @@ const downloadCsv = (rows: ConversationRow[]) => {
     'wa_user_id',
     'candidate_name',
     'state',
+    'applying_job_id',
+    'applying_job_title',
+    'applying_job_company',
     'rmc_sync_status',
     'rmc_sync_error',
     'opt_in_clarify_count',
@@ -108,6 +136,9 @@ const downloadCsv = (rows: ConversationRow[]) => {
         r.wa_user_id,
         r.candidate_name ?? '',
         r.state,
+        r.applying_job_id ?? '',
+        r.applying_job_title ?? '',
+        r.applying_job_company ?? '',
         r.rmc_sync_status ?? '',
         r.rmc_sync_error ?? '',
         r.opt_in_clarify_count ?? 0,
@@ -131,6 +162,50 @@ const downloadCsv = (rows: ConversationRow[]) => {
   URL.revokeObjectURL(url);
 };
 
+const downloadApplicationsCsv = (rows: ApplicationRow[]) => {
+  const header = [
+    'wa_user_id',
+    'job_id',
+    'job_title',
+    'job_company',
+    'opt_in_status',
+    'reused_existing_cv',
+    'rmc_resume_id',
+    'conversation_id',
+    'created_at',
+  ];
+  const escape = (v: unknown) => {
+    const s = v == null ? '' : String(v);
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const lines = [header.join(',')];
+  for (const r of rows) {
+    lines.push(
+      [
+        r.wa_user_id,
+        r.job_id ?? '',
+        r.job_title ?? '',
+        r.job_company ?? '',
+        r.opt_in_status,
+        r.reused_existing_cv ? 'true' : 'false',
+        r.rmc_resume_id ?? '',
+        r.conversation_id ?? '',
+        r.created_at,
+      ]
+        .map(escape)
+        .join(','),
+    );
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `whatsapp-applications-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 export default function WhatsAppBotPanel() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<ConversationRow | null>(null);
@@ -141,12 +216,28 @@ export default function WhatsAppBotPanel() {
       const { data, error } = await supabase
         .from('whatsapp_conversations')
         .select(
-          'id, wa_user_id, state, candidate_name, rmc_sync_status, rmc_sync_error, opt_in_clarify_count, last_resume_storage_path, resume_storage_path, last_resume_received_at, completed_at, archived_at, created_at, last_message_at',
+          'id, wa_user_id, state, candidate_name, rmc_sync_status, rmc_sync_error, opt_in_clarify_count, last_resume_storage_path, resume_storage_path, last_resume_received_at, completed_at, archived_at, created_at, last_message_at, applying_job_id, applying_job_title, applying_job_company',
         )
         .order('last_message_at', { ascending: false })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as ConversationRow[];
+    },
+    refetchInterval: 30_000,
+  });
+
+  const applicationsQuery = useQuery<ApplicationRow[]>({
+    queryKey: ['waApplications'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('whatsapp_applications')
+        .select(
+          'id, conversation_id, wa_user_id, rmc_resume_id, job_id, job_title, job_company, reused_existing_cv, opt_in_status, created_at',
+        )
+        .order('created_at', { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return (data ?? []) as ApplicationRow[];
     },
     refetchInterval: 30_000,
   });
@@ -171,9 +262,10 @@ export default function WhatsAppBotPanel() {
     const rows = conversationsQuery.data ?? [];
     const stats: FunnelStats = {
       total: rows.length,
-      awaitingName: 0,
       awaitingResume: 0,
+      awaitingReturningCv: 0,
       awaitingOptIn: 0,
+      completedNoCv: 0,
       resumeReceived: 0,
       optedIn: 0,
       declined: 0,
@@ -182,9 +274,10 @@ export default function WhatsAppBotPanel() {
       rmcSkipped: 0,
     };
     for (const r of rows) {
-      if (r.state === 'awaiting_name') stats.awaitingName += 1;
-      if (r.state === 'awaiting_resume') stats.awaitingResume += 1;
+      if (r.state === 'awaiting_resume' || r.state === 'awaiting_name') stats.awaitingResume += 1;
+      if (r.state === 'awaiting_returning_cv_choice') stats.awaitingReturningCv += 1;
       if (r.state === 'awaiting_opt_in') stats.awaitingOptIn += 1;
+      if (r.state === 'completed_no_cv') stats.completedNoCv += 1;
       if (r.last_resume_storage_path || r.resume_storage_path) stats.resumeReceived += 1;
       if (r.state === 'completed_opt_in') stats.optedIn += 1;
       if (r.state === 'completed_declined') stats.declined += 1;
@@ -202,7 +295,15 @@ export default function WhatsAppBotPanel() {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) => {
-      const fields = [r.wa_user_id, r.candidate_name ?? '', r.state, r.rmc_sync_status ?? '']
+      const fields = [
+        r.wa_user_id,
+        r.candidate_name ?? '',
+        r.state,
+        r.rmc_sync_status ?? '',
+        r.applying_job_id ?? '',
+        r.applying_job_title ?? '',
+        r.applying_job_company ?? '',
+      ]
         .map((s) => String(s).toLowerCase());
       return fields.some((f) => f.includes(q));
     });
@@ -221,8 +322,11 @@ export default function WhatsAppBotPanel() {
             variant="outline"
             size="sm"
             className="rounded-xl"
-            onClick={() => conversationsQuery.refetch()}
-            disabled={conversationsQuery.isFetching}
+            onClick={() => {
+              void conversationsQuery.refetch();
+              void applicationsQuery.refetch();
+            }}
+            disabled={conversationsQuery.isFetching || applicationsQuery.isFetching}
           >
             <RefreshCw className="h-4 w-4 mr-1" /> Refrescar
           </Button>
@@ -233,7 +337,16 @@ export default function WhatsAppBotPanel() {
             onClick={() => downloadCsv(filteredRows)}
             disabled={filteredRows.length === 0}
           >
-            <Download className="h-4 w-4 mr-1" /> CSV
+            <Download className="h-4 w-4 mr-1" /> CSV conv.
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => downloadApplicationsCsv(applicationsQuery.data ?? [])}
+            disabled={(applicationsQuery.data?.length ?? 0) === 0}
+          >
+            <Download className="h-4 w-4 mr-1" /> CSV solicitudes
           </Button>
         </div>
       </div>
@@ -244,16 +357,18 @@ export default function WhatsAppBotPanel() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <StatCard label="Conversaciones" value={stats.total} subtitle="últimas 500" />
-        <StatCard label="Esperando nombre" value={stats.awaitingName} />
         <StatCard label="Esperando CV" value={stats.awaitingResume} />
+        <StatCard label="Mismo / nuevo CV" value={stats.awaitingReturningCv} />
+        <StatCard label="Esperando destacados" value={stats.awaitingOptIn} />
         <StatCard label="CV recibido" value={stats.resumeReceived} subtitle="acumulado" />
         <StatCard label="Aceptaron destacados" value={stats.optedIn} />
         <StatCard label="Rechazaron" value={stats.declined} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Sin CV (cerrada)" value={stats.completedNoCv} />
         <StatCard label="RMC OK" value={stats.rmcSuccess} />
         <StatCard label="RMC Error" value={stats.rmcFailed} />
         <StatCard label="RMC Saltado" value={stats.rmcSkipped} subtitle="sin config / staging" />
@@ -281,6 +396,7 @@ export default function WhatsAppBotPanel() {
                 <tr className="text-left text-xs uppercase text-muted-foreground border-b">
                   <th className="py-2 pr-3">Número</th>
                   <th className="py-2 pr-3">Nombre</th>
+                  <th className="py-2 pr-3">Vacante</th>
                   <th className="py-2 pr-3">Estado</th>
                   <th className="py-2 pr-3">RMC</th>
                   <th className="py-2 pr-3">Último mensaje</th>
@@ -289,9 +405,9 @@ export default function WhatsAppBotPanel() {
               </thead>
               <tbody>
                 {conversationsQuery.isLoading ? (
-                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Cargando…</td></tr>
+                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Cargando…</td></tr>
                 ) : filteredRows.length === 0 ? (
-                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Sin conversaciones todavía.</td></tr>
+                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Sin conversaciones todavía.</td></tr>
                 ) : (
                   filteredRows.map((r) => (
                     <tr
@@ -303,10 +419,59 @@ export default function WhatsAppBotPanel() {
                     >
                       <td className="py-2 pr-3 font-mono text-xs">{r.wa_user_id}</td>
                       <td className="py-2 pr-3">{r.candidate_name ?? '—'}</td>
+                      <td className="py-2 pr-3 max-w-[140px] truncate" title={r.applying_job_title ?? ''}>
+                        {r.applying_job_title
+                          ? `${r.applying_job_title}${r.applying_job_company ? ` · ${r.applying_job_company}` : ''}`
+                          : '—'}
+                      </td>
                       <td className="py-2 pr-3">{STATE_LABEL[r.state] ?? r.state}</td>
                       <td className="py-2 pr-3">{RMC_LABEL[r.rmc_sync_status ?? 'none'] ?? r.rmc_sync_status}</td>
                       <td className="py-2 pr-3">{formatDate(r.last_message_at)}</td>
                       <td className="py-2 pr-3">{r.archived_at ? 'Sí' : 'No'}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Solicitudes (whatsapp_applications)</CardTitle>
+          <CardDescription>Últimas 300 postulaciones registradas por el bot.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase text-muted-foreground border-b">
+                  <th className="py-2 pr-3">Fecha</th>
+                  <th className="py-2 pr-3">Número</th>
+                  <th className="py-2 pr-3">Vacante</th>
+                  <th className="py-2 pr-3">Opt-in</th>
+                  <th className="py-2 pr-3">CV existente</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applicationsQuery.isLoading ? (
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Cargando…</td></tr>
+                ) : (applicationsQuery.data?.length ?? 0) === 0 ? (
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Sin solicitudes todavía.</td></tr>
+                ) : (
+                  applicationsQuery.data!.map((a) => (
+                    <tr key={a.id} className="border-b">
+                      <td className="py-2 pr-3 whitespace-nowrap">{formatDate(a.created_at)}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">{a.wa_user_id}</td>
+                      <td className="py-2 pr-3 max-w-[200px]">
+                        {a.job_title || a.job_id || '—'}
+                        {a.job_company ? (
+                          <span className="text-muted-foreground"> · {a.job_company}</span>
+                        ) : null}
+                      </td>
+                      <td className="py-2 pr-3">{OPT_IN_LABEL[a.opt_in_status] ?? a.opt_in_status}</td>
+                      <td className="py-2 pr-3">{a.reused_existing_cv ? 'Sí' : 'No'}</td>
                     </tr>
                   ))
                 )}
@@ -322,9 +487,15 @@ export default function WhatsAppBotPanel() {
             <CardTitle className="text-base">
               Mensajes — {selected.candidate_name ?? selected.wa_user_id}
             </CardTitle>
-            <CardDescription className="space-x-3">
+            <CardDescription className="flex flex-wrap gap-x-3 gap-y-1">
               <span>Estado: {STATE_LABEL[selected.state] ?? selected.state}</span>
               <span>RMC: {RMC_LABEL[selected.rmc_sync_status ?? 'none']}</span>
+              {selected.applying_job_id && (
+                <span>
+                  Vacante: {selected.applying_job_title ?? selected.applying_job_id}
+                  {selected.applying_job_company ? ` (${selected.applying_job_company})` : ''}
+                </span>
+              )}
               {selected.rmc_sync_error && (
                 <span className="text-destructive">Error: {selected.rmc_sync_error}</span>
               )}
