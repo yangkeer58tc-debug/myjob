@@ -235,6 +235,8 @@ const emptyForm: JobForm = {
 };
 
 const ADMIN_JOBS_PAGE_SIZE = 25;
+const ADMIN_JOB_SELECT =
+  'id,b_name,b_logo_url,title,category,salary_amount,payment_frequency,location,job_type,workplace_type,summary,description,requirements,highlights,education_level,industry,language_req,experience,is_active';
 
 type JobCsvPayloadRow = {
   id: string;
@@ -465,26 +467,31 @@ const Admin = () => {
     return out;
   };
 
-  const { data: jobs, isLoading, error: jobsError } = useQuery({
-    queryKey: ['adminJobs'],
+  const { data: adminJobsData, isLoading, error: jobsError } = useQuery({
+    queryKey: ['adminJobs', adminJobsPage],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (adminJobsPage - 1) * ADMIN_JOBS_PAGE_SIZE;
+      const to = from + ADMIN_JOBS_PAGE_SIZE - 1;
+      const { data, error, count } = await supabase
         .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select(ADMIN_JOB_SELECT, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
       if (error) throw error;
-      return data;
+      return {
+        rows: data || [],
+        count: count || 0,
+      };
     },
     enabled: !!session,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
-  const adminJobsMaxPage = Math.max(1, Math.ceil((jobs?.length ?? 0) / ADMIN_JOBS_PAGE_SIZE));
-
-  const jobsPageItems = useMemo(() => {
-    if (!jobs?.length) return [];
-    const start = (adminJobsPage - 1) * ADMIN_JOBS_PAGE_SIZE;
-    return jobs.slice(start, start + ADMIN_JOBS_PAGE_SIZE);
-  }, [jobs, adminJobsPage]);
+  const jobs = adminJobsData?.rows || [];
+  const adminJobsTotalCount = adminJobsData?.count || 0;
+  const adminJobsMaxPage = Math.max(1, Math.ceil(adminJobsTotalCount / ADMIN_JOBS_PAGE_SIZE));
+  const jobsPageItems = jobs;
 
   const adminPageJobIds = useMemo(() => jobsPageItems.map((j) => j.id), [jobsPageItems]);
   const selectedOnPageCount = useMemo(
@@ -602,108 +609,6 @@ const Admin = () => {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminCandidates'] }),
   });
-
-  const activateAllMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('jobs').update({ is_active: true }).neq('is_active', true);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-      toast.success('Todas las vacantes fueron activadas');
-    },
-    onError: (err: unknown) => toast.error(String((err as { message?: unknown })?.message || err)),
-  });
-
-  useEffect(() => {
-    if (!session) return;
-    const key = 'myjob_auto_activated_v1';
-    if (localStorage.getItem(key) === '1') return;
-    activateAllMutation.mutate();
-    localStorage.setItem(key, '1');
-  }, [session, activateAllMutation]);
-
-  useEffect(() => {
-    if (!session) return;
-    const key = 'myjob_fixed_locations_v2';
-    if (localStorage.getItem(key) === '1') return;
-
-    (async () => {
-      try {
-        const { data, error } = await supabase.from('jobs').select('id, location');
-        if (error) throw error;
-        const changed = (data || [])
-          .map((row) => ({
-            id: row.id,
-            before: row.location || '',
-            after: normalizeCity(row.location || ''),
-          }))
-          .filter((row) => row.after && row.after !== row.before)
-          .map((row) => ({ id: row.id, location: row.after }));
-        if (changed.length > 0) {
-          const { error: upsertError } = await supabase.from('jobs').upsert(changed);
-          if (upsertError) throw upsertError;
-          queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-        }
-      } catch (err) {
-        void err;
-      }
-      localStorage.setItem(key, '1');
-    })();
-  }, [session, queryClient]);
-
-  useEffect(() => {
-    if (!session) return;
-    const key = 'myjob_fixed_text_fields_v6';
-    if (localStorage.getItem(key) === '1') return;
-
-    (async () => {
-      try {
-        const { data, error } = await supabase.from('jobs').select('id, title, b_name, summary, description, requirements');
-        if (error) throw error;
-        const changed = (data || [])
-          .map((row) => {
-            const normalized = normalizeJobTextFields({
-              summary: row.summary,
-              description: row.description,
-              requirements: row.requirements,
-            });
-            return {
-              id: row.id,
-              before: {
-                title: row.title || null,
-                b_name: row.b_name || null,
-                summary: row.summary || null,
-                description: row.description || null,
-                requirements: row.requirements || null,
-              },
-              after: normalized,
-              titleAfter: normalizeJobTitle(row.title || ''),
-              bNameAfter: normalizeCompanyName(row.b_name || ''),
-            };
-          })
-          .filter(
-            (row) =>
-              row.titleAfter !== (row.before.title || '') ||
-              row.bNameAfter !== (row.before.b_name || '') ||
-              row.after.summary !== row.before.summary ||
-              row.after.description !== row.before.description ||
-              row.after.requirements !== row.before.requirements,
-          )
-          .map((row) => ({ id: row.id, title: row.titleAfter, b_name: row.bNameAfter, ...row.after }));
-
-        if (changed.length > 0) {
-          const { error: upsertError } = await supabase.from('jobs').upsert(changed);
-          if (upsertError) throw upsertError;
-          queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-        }
-      } catch (err) {
-        void err;
-      }
-
-      localStorage.setItem(key, '1');
-    })();
-  }, [session, queryClient]);
 
   const deleteAllJobsMutation = useMutation({
     mutationFn: async () => {
@@ -1598,7 +1503,7 @@ const Admin = () => {
                       </td>
                     </tr>
                   ))}
-                  {(!jobs || jobs.length === 0) && !isLoading && (
+                  {jobs.length === 0 && !isLoading && (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
                         No hay vacantes
@@ -1607,10 +1512,10 @@ const Admin = () => {
                   )}
                 </tbody>
               </table>
-              {jobs && jobs.length > 0 ? (
+              {adminJobsTotalCount > 0 ? (
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border text-sm text-muted-foreground">
                   <span>
-                    Página {adminJobsPage} de {adminJobsMaxPage} · {jobs.length} vacante(s) ·{' '}
+                    Página {adminJobsPage} de {adminJobsMaxPage} · {adminJobsTotalCount} vacante(s) ·{' '}
                     {ADMIN_JOBS_PAGE_SIZE} por página
                   </span>
                   <div className="flex gap-2">

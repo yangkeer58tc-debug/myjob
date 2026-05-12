@@ -61,6 +61,8 @@ const SeoJobLanding = () => {
       return rows.slice(0, 60);
     },
     enabled: Boolean(city),
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   if (!city) {

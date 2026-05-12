@@ -207,6 +207,8 @@ const JobDetail = () => {
     },
     enabled:
       !!parsed && (parsed.kind === 'id' ? !!parsed.id : !!parsed.slug),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
@@ -277,6 +279,8 @@ const JobDetail = () => {
       return data;
     },
     enabled: !!job,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) {

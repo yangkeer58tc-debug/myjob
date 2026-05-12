@@ -210,6 +210,8 @@ const JobList = () => {
         searchRankingCapped: false,
       };
     },
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const totalPages = data ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;

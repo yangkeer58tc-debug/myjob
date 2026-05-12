@@ -87,6 +87,8 @@ const Home = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: categoryCounts } = useQuery({
@@ -104,6 +106,8 @@ const Home = () => {
       }
       return counts;
     },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
