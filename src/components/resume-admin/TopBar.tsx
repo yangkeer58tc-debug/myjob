@@ -36,7 +36,7 @@ function ListNavItem() {
           : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900',
       )}
     >
-      简历列表
+      Resume List
     </Link>
   )
 }
@@ -46,10 +46,10 @@ export default function TopBar() {
     <header className="border-b border-zinc-200 bg-white">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link to="/admin/resumes" className="text-sm font-semibold text-zinc-900">
-          简历库
+          Resume Admin
         </Link>
         <nav className="flex items-center gap-1">
-          <NavItem to="/admin/resumes/import" label="导入" />
+          <NavItem to="/admin/resumes/import" label="Import" />
           <ListNavItem />
         </nav>
       </div>

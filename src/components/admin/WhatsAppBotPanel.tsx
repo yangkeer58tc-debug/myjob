@@ -65,36 +65,36 @@ type FunnelStats = {
 };
 
 const STATE_LABEL: Record<string, string> = {
-  new: 'Nueva',
-  awaiting_name: 'Esperando nombre (legacy)',
-  awaiting_resume: 'Esperando CV',
-  awaiting_returning_cv_choice: 'Mismo CV / nuevo',
-  awaiting_opt_in: 'Esperando Si/No',
-  completed_opt_in: 'Aceptado destacados',
-  completed_declined: 'Rechazado / sin Si',
-  completed_no_cv: 'Sin CV (cerrada)',
+  new: 'New',
+  awaiting_name: 'Awaiting name (legacy)',
+  awaiting_resume: 'Awaiting resume',
+  awaiting_returning_cv_choice: 'Existing CV / new CV',
+  awaiting_opt_in: 'Awaiting Yes/No',
+  completed_opt_in: 'Accepted highlights',
+  completed_declined: 'Declined / no opt-in',
+  completed_no_cv: 'No resume (closed)',
 };
 
 const OPT_IN_LABEL: Record<string, string> = {
-  opted_in: 'Aceptó',
-  declined: 'Rechazó',
-  pending: 'Pendiente',
+  opted_in: 'Opted in',
+  declined: 'Declined',
+  pending: 'Pending',
 };
 
 const RMC_LABEL: Record<string, string> = {
   none: '—',
-  pending: 'Pendiente',
+  pending: 'Pending',
   success: 'OK',
   failed: 'Error',
-  skipped_no_config: 'Saltado (sin RMC)',
-  skipped_staging: 'Saltado (staging)',
+  skipped_no_config: 'Skipped (no RMC)',
+  skipped_staging: 'Skipped (staging)',
 };
 
 const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return '—';
   try {
     const d = new Date(iso);
-    return d.toLocaleString('es-MX', {
+    return d.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -316,7 +316,7 @@ export default function WhatsAppBotPanel() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Bot de WhatsApp</h2>
+        <h2 className="text-lg font-semibold">WhatsApp Bot</h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -328,7 +328,7 @@ export default function WhatsAppBotPanel() {
             }}
             disabled={conversationsQuery.isFetching || applicationsQuery.isFetching}
           >
-            <RefreshCw className="h-4 w-4 mr-1" /> Refrescar
+            <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
           <Button
             variant="outline"
@@ -346,7 +346,7 @@ export default function WhatsAppBotPanel() {
             onClick={() => downloadApplicationsCsv(applicationsQuery.data ?? [])}
             disabled={(applicationsQuery.data?.length ?? 0) === 0}
           >
-            <Download className="h-4 w-4 mr-1" /> CSV solicitudes
+            <Download className="h-4 w-4 mr-1" /> Applications CSV
           </Button>
         </div>
       </div>
@@ -358,33 +358,33 @@ export default function WhatsAppBotPanel() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        <StatCard label="Conversaciones" value={stats.total} subtitle="últimas 500" />
-        <StatCard label="Esperando CV" value={stats.awaitingResume} />
-        <StatCard label="Mismo / nuevo CV" value={stats.awaitingReturningCv} />
-        <StatCard label="Esperando destacados" value={stats.awaitingOptIn} />
-        <StatCard label="CV recibido" value={stats.resumeReceived} subtitle="acumulado" />
-        <StatCard label="Aceptaron destacados" value={stats.optedIn} />
-        <StatCard label="Rechazaron" value={stats.declined} />
+        <StatCard label="Conversations" value={stats.total} subtitle="latest 500" />
+        <StatCard label="Awaiting Resume" value={stats.awaitingResume} />
+        <StatCard label="Existing / New Resume" value={stats.awaitingReturningCv} />
+        <StatCard label="Awaiting Highlights Opt-In" value={stats.awaitingOptIn} />
+        <StatCard label="Resume Received" value={stats.resumeReceived} subtitle="cumulative" />
+        <StatCard label="Accepted Highlights" value={stats.optedIn} />
+        <StatCard label="Declined" value={stats.declined} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Sin CV (cerrada)" value={stats.completedNoCv} />
+        <StatCard label="No Resume (Closed)" value={stats.completedNoCv} />
         <StatCard label="RMC OK" value={stats.rmcSuccess} />
         <StatCard label="RMC Error" value={stats.rmcFailed} />
-        <StatCard label="RMC Saltado" value={stats.rmcSkipped} subtitle="sin config / staging" />
+        <StatCard label="RMC Skipped" value={stats.rmcSkipped} subtitle="no config / staging" />
       </div>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Conversaciones</CardTitle>
+          <CardTitle className="text-base">Conversations</CardTitle>
           <CardDescription>
-            Las más recientes primero. Toca una fila para ver los mensajes.
+            Most recent first. Click a row to view messages.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-3">
             <Input
-              placeholder="Buscar por número, nombre, estado…"
+              placeholder="Search by number, name, or status..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
@@ -394,20 +394,20 @@ export default function WhatsAppBotPanel() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase text-muted-foreground border-b">
-                  <th className="py-2 pr-3">Número</th>
-                  <th className="py-2 pr-3">Nombre</th>
-                  <th className="py-2 pr-3">Vacante</th>
-                  <th className="py-2 pr-3">Estado</th>
+                  <th className="py-2 pr-3">Number</th>
+                  <th className="py-2 pr-3">Name</th>
+                  <th className="py-2 pr-3">Job</th>
+                  <th className="py-2 pr-3">Status</th>
                   <th className="py-2 pr-3">RMC</th>
-                  <th className="py-2 pr-3">Último mensaje</th>
-                  <th className="py-2 pr-3">Archivada</th>
+                  <th className="py-2 pr-3">Last Message</th>
+                  <th className="py-2 pr-3">Archived</th>
                 </tr>
               </thead>
               <tbody>
                 {conversationsQuery.isLoading ? (
-                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Cargando…</td></tr>
+                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
                 ) : filteredRows.length === 0 ? (
-                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Sin conversaciones todavía.</td></tr>
+                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">No conversations yet.</td></tr>
                 ) : (
                   filteredRows.map((r) => (
                     <tr
@@ -427,7 +427,7 @@ export default function WhatsAppBotPanel() {
                       <td className="py-2 pr-3">{STATE_LABEL[r.state] ?? r.state}</td>
                       <td className="py-2 pr-3">{RMC_LABEL[r.rmc_sync_status ?? 'none'] ?? r.rmc_sync_status}</td>
                       <td className="py-2 pr-3">{formatDate(r.last_message_at)}</td>
-                      <td className="py-2 pr-3">{r.archived_at ? 'Sí' : 'No'}</td>
+                      <td className="py-2 pr-3">{r.archived_at ? 'Yes' : 'No'}</td>
                     </tr>
                   ))
                 )}
@@ -439,26 +439,26 @@ export default function WhatsAppBotPanel() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Solicitudes (whatsapp_applications)</CardTitle>
-          <CardDescription>Últimas 300 postulaciones registradas por el bot.</CardDescription>
+          <CardTitle className="text-base">Applications (whatsapp_applications)</CardTitle>
+          <CardDescription>Latest 300 applications recorded by the bot.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase text-muted-foreground border-b">
-                  <th className="py-2 pr-3">Fecha</th>
-                  <th className="py-2 pr-3">Número</th>
-                  <th className="py-2 pr-3">Vacante</th>
+                  <th className="py-2 pr-3">Date</th>
+                  <th className="py-2 pr-3">Number</th>
+                  <th className="py-2 pr-3">Job</th>
                   <th className="py-2 pr-3">Opt-in</th>
-                  <th className="py-2 pr-3">CV existente</th>
+                  <th className="py-2 pr-3">Existing Resume</th>
                 </tr>
               </thead>
               <tbody>
                 {applicationsQuery.isLoading ? (
-                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Cargando…</td></tr>
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
                 ) : (applicationsQuery.data?.length ?? 0) === 0 ? (
-                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Sin solicitudes todavía.</td></tr>
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No applications yet.</td></tr>
                 ) : (
                   applicationsQuery.data!.map((a) => (
                     <tr key={a.id} className="border-b">
@@ -471,7 +471,7 @@ export default function WhatsAppBotPanel() {
                         ) : null}
                       </td>
                       <td className="py-2 pr-3">{OPT_IN_LABEL[a.opt_in_status] ?? a.opt_in_status}</td>
-                      <td className="py-2 pr-3">{a.reused_existing_cv ? 'Sí' : 'No'}</td>
+                      <td className="py-2 pr-3">{a.reused_existing_cv ? 'Yes' : 'No'}</td>
                     </tr>
                   ))
                 )}
@@ -485,14 +485,14 @@ export default function WhatsAppBotPanel() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              Mensajes — {selected.candidate_name ?? selected.wa_user_id}
+              Messages — {selected.candidate_name ?? selected.wa_user_id}
             </CardTitle>
             <CardDescription className="flex flex-wrap gap-x-3 gap-y-1">
-              <span>Estado: {STATE_LABEL[selected.state] ?? selected.state}</span>
+              <span>Status: {STATE_LABEL[selected.state] ?? selected.state}</span>
               <span>RMC: {RMC_LABEL[selected.rmc_sync_status ?? 'none']}</span>
               {selected.applying_job_id && (
                 <span>
-                  Vacante: {selected.applying_job_title ?? selected.applying_job_id}
+                  Job: {selected.applying_job_title ?? selected.applying_job_id}
                   {selected.applying_job_company ? ` (${selected.applying_job_company})` : ''}
                 </span>
               )}
@@ -503,9 +503,9 @@ export default function WhatsAppBotPanel() {
           </CardHeader>
           <CardContent>
             {messagesQuery.isLoading ? (
-              <div className="text-sm text-muted-foreground">Cargando mensajes…</div>
+              <div className="text-sm text-muted-foreground">Loading messages...</div>
             ) : (messagesQuery.data?.length ?? 0) === 0 ? (
-              <div className="text-sm text-muted-foreground">Sin mensajes.</div>
+              <div className="text-sm text-muted-foreground">No messages.</div>
             ) : (
               <div className="space-y-2">
                 {messagesQuery.data!.map((m) => (
@@ -519,7 +519,7 @@ export default function WhatsAppBotPanel() {
                   >
                     <div className="text-xs text-muted-foreground mb-1">
                       <span className="font-medium">
-                        {m.direction === 'inbound' ? 'Usuario' : 'Bot'}
+                        {m.direction === 'inbound' ? 'User' : 'Bot'}
                       </span>
                       {' · '}
                       <span>{m.message_type}</span>
@@ -529,7 +529,7 @@ export default function WhatsAppBotPanel() {
                     {m.body && <div className="whitespace-pre-wrap">{m.body}</div>}
                     {!m.body && m.media_mime && (
                       <div className="text-muted-foreground italic">
-                        [adjunto: {m.media_mime}]
+                        [attachment: {m.media_mime}]
                       </div>
                     )}
                   </div>
@@ -555,7 +555,7 @@ function StatCard({
   return (
     <div className="bg-card rounded-2xl shadow-sm p-4 border border-border">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold mt-1">{value.toLocaleString('es-MX')}</div>
+      <div className="text-2xl font-semibold mt-1">{value.toLocaleString('en-US')}</div>
       {subtitle && <div className="text-xs text-muted-foreground mt-1">{subtitle}</div>}
     </div>
   );

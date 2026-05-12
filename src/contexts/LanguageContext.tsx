@@ -111,21 +111,21 @@ const translations: Translations = {
   'time.daysAgo': { es: 'hace {n} d' },
 
   // Admin
-  'admin.title': { es: 'Panel de administración' },
-  'admin.addJob': { es: 'Agregar vacante' },
-  'admin.editJob': { es: 'Editar vacante' },
-  'admin.login': { es: 'Iniciar sesión' },
-  'admin.logout': { es: 'Cerrar sesión' },
-  'admin.email': { es: 'Correo electrónico' },
-  'admin.password': { es: 'Contraseña' },
-  'admin.save': { es: 'Guardar' },
-  'admin.cancel': { es: 'Cancelar' },
-  'admin.archive': { es: 'Archivar' },
-  'admin.activate': { es: 'Activar' },
+  'admin.title': { es: 'Admin Panel' },
+  'admin.addJob': { es: 'Add Job' },
+  'admin.editJob': { es: 'Edit Job' },
+  'admin.login': { es: 'Sign In' },
+  'admin.logout': { es: 'Sign Out' },
+  'admin.email': { es: 'Email' },
+  'admin.password': { es: 'Password' },
+  'admin.save': { es: 'Save' },
+  'admin.cancel': { es: 'Cancel' },
+  'admin.archive': { es: 'Archive' },
+  'admin.activate': { es: 'Activate' },
 
   // Pagination
-  'pagination.prev': { es: 'Anterior' },
-  'pagination.next': { es: 'Siguiente' },
+  'pagination.prev': { es: 'Previous' },
+  'pagination.next': { es: 'Next' },
 
   // Phone mockup (if wired to t() later)
   'phone.bot1': { es: '¡Hola! Soy el asistente de MyJob. ¿Qué estás buscando?' },

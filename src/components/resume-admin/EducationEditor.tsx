@@ -11,13 +11,13 @@ export default function EducationEditor({
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-900">教育经历</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">Education</h2>
         <button
           type="button"
           onClick={() => setEducation([...education, { degree: '', startDate: '', endDate: '' }])}
           className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200"
         >
-          添加
+          Add
         </button>
       </div>
       <div className="mt-3 space-y-3">
@@ -25,7 +25,7 @@ export default function EducationEditor({
           education.map((e, idx) => (
             <div key={idx} className="rounded-md border border-zinc-200 p-3">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <Field label="学位">
+                <Field label="Degree">
                   <input
                     value={e.degree || ''}
                     onChange={(ev) =>
@@ -36,7 +36,7 @@ export default function EducationEditor({
                     className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
                   />
                 </Field>
-                <Field label="起始年份">
+                <Field label="Start Year">
                   <input
                     value={e.startDate || ''}
                     onChange={(ev) =>
@@ -48,7 +48,7 @@ export default function EducationEditor({
                     className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
                   />
                 </Field>
-                <Field label="结束年份">
+                <Field label="End Year">
                   <input
                     value={e.endDate || ''}
                     onChange={(ev) =>
@@ -68,13 +68,13 @@ export default function EducationEditor({
                   }}
                   className="rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
                 >
-                  删除
+                  Delete
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-sm text-zinc-600">暂无教育经历</div>
+          <div className="text-sm text-zinc-600">No education entries yet.</div>
         )}
       </div>
     </div>

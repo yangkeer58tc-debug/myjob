@@ -50,7 +50,7 @@ export default function ResumesPage() {
         return next
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败')
+      setError(e instanceof Error ? e.message : 'Failed to load resumes')
     } finally {
       setBusy(false)
     }
@@ -63,7 +63,7 @@ export default function ResumesPage() {
         const res = await updateResume(id, patch as any)
         setItems((items) => items.map((it) => (it.id === id ? (res.item as any) : it)))
       } catch (e) {
-        setError(e instanceof Error ? e.message : '保存失败')
+        setError(e instanceof Error ? e.message : 'Failed to save changes')
       } finally {
         setSaving((s) => ({ ...s, [id]: false }))
       }
@@ -89,7 +89,7 @@ export default function ResumesPage() {
       .filter(([, v]) => v)
       .map(([k]) => k)
     if (!ids.length) return
-    const ok = window.confirm(`确认删除选中的 ${ids.length} 份简历？此操作不可恢复。`)
+    const ok = window.confirm(`Delete ${ids.length} selected resume(s)? This action cannot be undone.`)
     if (!ok) return
     setError(null)
     setBusy(true)
@@ -97,7 +97,7 @@ export default function ResumesPage() {
       await deleteResumes(ids)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '删除失败')
+      setError(e instanceof Error ? e.message : 'Failed to delete resumes')
     } finally {
       setBusy(false)
     }
@@ -112,7 +112,7 @@ export default function ResumesPage() {
               .filter(([, v]) => v)
               .map(([k]) => k)
       if (!ids.length) return
-      const ok = window.confirm(`确认重解析 ${ids.length} 份简历？耗时较长，请保持页面打开。`)
+      const ok = window.confirm(`Re-parse ${ids.length} resume(s)? This may take a while, so keep the page open.`)
       if (!ok) return
       setError(null)
       setReparsing(true)
@@ -125,7 +125,7 @@ export default function ResumesPage() {
         }
         await load()
       } catch (e) {
-        setError(e instanceof Error ? e.message : '重解析失败')
+        setError(e instanceof Error ? e.message : 'Failed to re-parse resumes')
       } finally {
         setReparsing(false)
       }
@@ -143,8 +143,8 @@ export default function ResumesPage() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900">简历列表</h1>
-            <p className="mt-1 text-sm text-zinc-600">支持按姓名、国家与状态筛选。</p>
+            <h1 className="text-lg font-semibold text-zinc-900">Resume List</h1>
+            <p className="mt-1 text-sm text-zinc-600">Filter by name, country, and status.</p>
           </div>
           <button
             type="button"
@@ -155,7 +155,7 @@ export default function ResumesPage() {
             )}
             disabled={busy}
           >
-            {busy ? '刷新中…' : '刷新'}
+            {busy ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
 
@@ -164,13 +164,13 @@ export default function ResumesPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="姓名/邮箱/电话/WhatsApp"
+              placeholder="Name / Email / Phone / WhatsApp"
               className="md:col-span-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
             />
             <input
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="国家"
+              placeholder="Country"
               className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
             />
           </div>
@@ -181,10 +181,10 @@ export default function ResumesPage() {
                 onChange={(e) => setStatus(e.target.value)}
                 className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
               >
-                <option value="">全部状态</option>
-                <option value="processing">解析中</option>
-                <option value="success">已入库</option>
-                <option value="failed">失败</option>
+                <option value="">All statuses</option>
+                <option value="processing">Processing</option>
+                <option value="success">Imported</option>
+                <option value="failed">Failed</option>
               </select>
               <button
                 type="button"
@@ -192,7 +192,7 @@ export default function ResumesPage() {
                 className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
                 disabled={busy}
               >
-                应用筛选
+                Apply Filters
               </button>
               <button
                 type="button"
@@ -203,10 +203,10 @@ export default function ResumesPage() {
                 }}
                 className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200"
               >
-                重置
+                Reset
               </button>
             </div>
-            <div className="text-xs text-zinc-500">最多显示 200 条</div>
+            <div className="text-xs text-zinc-500">Showing up to 200 rows</div>
           </div>
         </div>
 
@@ -217,7 +217,7 @@ export default function ResumesPage() {
         ) : null}
 
         <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-zinc-600">已选 {selectedCount} 条</div>
+          <div className="text-sm text-zinc-600">{selectedCount} selected</div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -230,7 +230,7 @@ export default function ResumesPage() {
                   : 'bg-blue-600 text-white hover:bg-blue-700',
               )}
             >
-              重解析选中
+              Re-parse Selected
             </button>
             <button
               type="button"
@@ -243,7 +243,7 @@ export default function ResumesPage() {
                   : 'bg-zinc-900 text-white hover:bg-zinc-800',
               )}
             >
-              重解析全部
+              Re-parse All
             </button>
             <button
               type="button"
@@ -256,14 +256,14 @@ export default function ResumesPage() {
                   : 'bg-red-600 text-white hover:bg-red-700',
               )}
             >
-              删除选中
+              Delete Selected
             </button>
           </div>
         </div>
 
         {reparsing ? (
           <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
-            重解析中… {reparseDone}/{reparseTotal}
+            Re-parsing... {reparseDone}/{reparseTotal}
           </div>
         ) : null}
 
@@ -276,13 +276,13 @@ export default function ResumesPage() {
                 onChange={(e) => toggleAll(e.target.checked)}
               />
             </div>
-            <div className="col-span-2">姓名</div>
-            <div className="col-span-1">国家</div>
-            <div className="col-span-2">联系方式</div>
-            <div className="col-span-2">方向</div>
-            <div className="col-span-2">备注</div>
-            <div className="col-span-1">状态</div>
-            <div className="col-span-1 text-right">操作</div>
+            <div className="col-span-2">Name</div>
+            <div className="col-span-1">Country</div>
+            <div className="col-span-2">Contact</div>
+            <div className="col-span-2">Direction</div>
+            <div className="col-span-2">Note</div>
+            <div className="col-span-1">Status</div>
+            <div className="col-span-1 text-right">Actions</div>
           </div>
           {items.length ? (
             items.map((it) => (
@@ -298,7 +298,7 @@ export default function ResumesPage() {
                   />
                 </div>
                 <div className="col-span-2 truncate font-medium text-zinc-900">
-                  {it.name || [it.first_name, it.last_name].filter(Boolean).join(' ') || '未命名'}
+                  {it.name || [it.first_name, it.last_name].filter(Boolean).join(' ') || 'Untitled'}
                 </div>
                 <div className="col-span-1 truncate text-zinc-700">{it.country || '-'}</div>
                 <div className="col-span-2">
@@ -355,14 +355,14 @@ export default function ResumesPage() {
                     to={`/admin/resumes/${it.id}`}
                     className="rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-800"
                   >
-                    查看
+                    View
                   </Link>
                 </div>
               </div>
             ))
           ) : (
             <div className="px-4 py-10 text-center text-sm text-zinc-600">
-              暂无简历记录，去「导入」页添加。
+              No resumes yet. Add one from the Import page.
             </div>
           )}
         </div>

@@ -39,9 +39,9 @@ export default function ImportPage() {
         }
         nav('/admin/resumes')
       } else if (tab === 'batch') {
-        if (!batchFile) throw new Error('请先选择 Excel/CSV 文件')
+        if (!batchFile) throw new Error('Please choose an Excel/CSV file first.')
         const result = await importResumeBatch(batchFile, { onProgress: setProgress })
-        setBatchResult(`批量导入完成：成功 ${result.success}/${result.total}，失败 ${result.failed}`)
+        setBatchResult(`Batch import complete: ${result.success}/${result.total} succeeded, ${result.failed} failed.`)
         if (result.errors.length) setError(result.errors.slice(0, 5).join('\n'))
         nav('/admin/resumes')
       } else {
@@ -49,7 +49,7 @@ export default function ImportPage() {
         nav(`/admin/resumes/${data.resumeId}`)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : '导入失败')
+      setError(e instanceof Error ? e.message : 'Import failed')
     } finally {
       setBusy(false)
     }
@@ -60,8 +60,8 @@ export default function ImportPage() {
       <TopBar />
       <main className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-lg font-semibold text-zinc-900">导入简历</h1>
-          <p className="mt-1 text-sm text-zinc-600">支持上传文件或输入文件链接导入，自动解析并入库。</p>
+          <h1 className="text-lg font-semibold text-zinc-900">Import Resumes</h1>
+          <p className="mt-1 text-sm text-zinc-600">Upload files or provide a file URL to import, parse, and store resumes automatically.</p>
         </div>
 
         <div className="rounded-lg border border-zinc-200 bg-white p-4">
@@ -76,7 +76,7 @@ export default function ImportPage() {
                   : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200',
               )}
             >
-              手动上传
+              Upload Files
             </button>
             <button
               type="button"
@@ -88,7 +88,7 @@ export default function ImportPage() {
                   : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200',
               )}
             >
-              Excel/CSV 批量
+              Excel/CSV Batch
             </button>
             <button
               type="button"
@@ -100,14 +100,14 @@ export default function ImportPage() {
                   : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200',
               )}
             >
-              文件链接
+              File URL
             </button>
           </div>
 
           <div className="mt-4">
             {tab === 'upload' ? (
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-zinc-800">选择文件（PDF / DOCX / TXT，可多选）</label>
+                <label className="block text-sm font-medium text-zinc-800">Choose files (PDF / DOCX / TXT, multiple allowed)</label>
                 <input
                   type="file"
                   multiple
@@ -116,12 +116,12 @@ export default function ImportPage() {
                   className="block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
                 />
                 {files.length ? (
-                  <div className="text-xs text-zinc-600">已选择 {files.length} 个文件</div>
+                  <div className="text-xs text-zinc-600">{files.length} file(s) selected</div>
                 ) : null}
               </div>
             ) : tab === 'batch' ? (
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-zinc-800">选择批量文件（CSV / TSV / TXT）</label>
+                <label className="block text-sm font-medium text-zinc-800">Choose a batch file (CSV / TSV / TXT)</label>
                 <input
                   type="file"
                   accept=".csv,.tsv,.txt,.xls,.xlsx"
@@ -129,20 +129,20 @@ export default function ImportPage() {
                   className="block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
                 />
                 <div className="text-xs text-zinc-600">
-                  支持 MyJob 标准化表格字段（含 JSON 列）。Excel 请优先“另存为 CSV（UTF-8）”后上传。
+                  Supports MyJob-standardized table fields, including JSON columns. For Excel, prefer “Save As CSV (UTF-8)” before uploading.
                 </div>
-                {batchFile ? <div className="text-xs text-zinc-600">已选择：{batchFile.name}</div> : null}
+                {batchFile ? <div className="text-xs text-zinc-600">Selected: {batchFile.name}</div> : null}
               </div>
             ) : (
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-zinc-800">文件链接（可公开访问的直链）</label>
+                <label className="block text-sm font-medium text-zinc-800">File URL (public direct link)</label>
                 <input
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com/resume.pdf"
                   className="block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
                 />
-                <div className="text-xs text-zinc-600">仅支持 http/https，文件最大 15MB。部署到 Cloudflare Pages 后会使用站点自带的代理下载以绕过 CORS。</div>
+                <div className="text-xs text-zinc-600">Only http/https is supported. Max file size is 15MB. On Cloudflare Pages, the site proxy will be used to bypass CORS when downloading.</div>
               </div>
             )}
           </div>
@@ -164,7 +164,7 @@ export default function ImportPage() {
           ) : null}
 
           <div className="mt-4 flex items-center justify-between">
-            <div className="text-xs text-zinc-500">导入后会进入详情页，可手动校正字段。</div>
+            <div className="text-xs text-zinc-500">After import, you will be taken to the detail page where fields can be corrected manually.</div>
             <button
               type="button"
               onClick={onSubmit}
@@ -174,19 +174,19 @@ export default function ImportPage() {
                 canSubmit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-zinc-300',
               )}
             >
-              {busy ? '导入中…' : '开始导入'}
+              {busy ? 'Importing...' : 'Start Import'}
             </button>
           </div>
         </div>
 
         <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-zinc-900">解析说明</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">Parsing Notes</h2>
           <ul className="mt-2 space-y-1 text-sm text-zinc-600">
-            <li>字段抽取基于本地解析与规则匹配，不使用任何付费 API。</li>
-            <li>自我介绍摘要为抽取式摘要，保持原语言，不做翻译。</li>
-            <li>解析不准的字段可在详情页手动修改并保存。</li>
-            <li>如果你配置了 Poe/OpenAI 兼容网关，系统会额外用 AI 做字段纠错与补全（详情页会显示 AI 是否生效）。</li>
-            <li>批量导入支持标准化表格字段，显示逐行处理进度与失败提示。</li>
+            <li>Field extraction relies on local parsing and rule matching without paid APIs.</li>
+            <li>The profile summary is extractive and stays in the original language without translation.</li>
+            <li>If parsing is inaccurate, fields can be edited and saved on the detail page.</li>
+            <li>If you configure a Poe/OpenAI-compatible gateway, the system can additionally use AI to correct and enrich fields.</li>
+            <li>Batch import supports standardized table fields and shows row-by-row progress and failure feedback.</li>
           </ul>
         </div>
       </main>

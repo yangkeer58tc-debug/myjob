@@ -14,25 +14,25 @@ export default function BasicInfoCard({
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-900">基本信息</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">Basic Info</h2>
         <StatusBadge status={item.parse_status} />
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <Field label="名字">
+        <Field label="First Name">
           <input
             value={effective.first_name || ''}
             onChange={(e) => setField('first_name', e.target.value || null)}
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="姓氏">
+        <Field label="Last Name">
           <input
             value={effective.last_name || ''}
             onChange={(e) => setField('last_name', e.target.value || null)}
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="工作年限">
+        <Field label="Years of Experience">
           <input
             value={String(effective.work_years ?? 0)}
             onChange={(e) => {
@@ -44,14 +44,14 @@ export default function BasicInfoCard({
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="方向">
+        <Field label="Job Direction">
           <input
             value={effective.job_direction || ''}
             onChange={(e) => setField('job_direction', e.target.value || null)}
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="备注">
+        <Field label="Admin Note">
           <input
             value={effective.admin_note || ''}
             onChange={(e) => {
@@ -62,14 +62,14 @@ export default function BasicInfoCard({
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="国家">
+        <Field label="Country">
           <input
             value={effective.country || ''}
             onChange={(e) => setField('country', e.target.value || null)}
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="城市">
+        <Field label="City">
           <input
             value={effective.city || ''}
             onChange={(e) => setField('city', e.target.value || null)}

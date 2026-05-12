@@ -26,15 +26,16 @@ const ResumeAdminLayout = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted px-4">
         <div className="max-w-lg rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
-          <h1 className="text-xl font-semibold text-foreground">简历库未开启</h1>
+          <h1 className="text-xl font-semibold text-foreground">Resume Admin Is Disabled</h1>
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-            当前部署未设置 <code className="rounded bg-muted px-1 py-0.5 text-xs">VITE_ENABLE_RESUME_ADMIN</code>
-            ，因此无法打开简历管理。请在 Cloudflare Pages（或对应构建环境）的 Environment variables 中设为{' '}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">true</code> 或 <code className="rounded bg-muted px-1 py-0.5 text-xs">1</code>
-            ，并重新部署；同时按需配置 <code className="rounded bg-muted px-1 py-0.5 text-xs">VITE_RESUMES_*</code>。
+            This deployment does not have <code className="rounded bg-muted px-1 py-0.5 text-xs">VITE_ENABLE_RESUME_ADMIN</code>
+            enabled, so resume management is unavailable. Set it to{' '}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">true</code> or <code className="rounded bg-muted px-1 py-0.5 text-xs">1</code>
+            in Cloudflare Pages (or your current build environment), redeploy, and configure{' '}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">VITE_RESUMES_*</code> as needed.
           </p>
           <Button asChild className="mt-6 rounded-xl">
-            <Link to="/admin">返回后台</Link>
+            <Link to="/admin">Back to Admin</Link>
           </Button>
         </div>
       </div>
@@ -43,7 +44,7 @@ const ResumeAdminLayout = () => {
   if (session === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 text-sm text-zinc-600">
-        加载中…
+        Loading...
       </div>
     );
   }

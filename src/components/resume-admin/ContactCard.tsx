@@ -10,16 +10,16 @@ export default function ContactCard({
 }) {
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-zinc-900">联系方式</h2>
+      <h2 className="text-sm font-semibold text-zinc-900">Contact Info</h2>
       <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Field label="邮箱">
+        <Field label="Email">
           <input
             value={effective.email || ''}
             onChange={(e) => setField('email', e.target.value || null)}
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="电话">
+        <Field label="Phone">
           <input
             value={effective.phone || ''}
             onChange={(e) => setField('phone', e.target.value || null)}

@@ -554,7 +554,7 @@ const Admin = () => {
       queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
       setShowForm(false);
       setEditing(null);
-      toast.success('Guardado');
+      toast.success('Saved');
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -587,8 +587,8 @@ const Admin = () => {
       setSelectedJobIds([]);
       toast.success(
         vars.is_active
-          ? `Se activaron ${vars.ids.length} vacante(s).`
-          : `Se desactivaron ${vars.ids.length} vacante(s).`,
+          ? `Activated ${vars.ids.length} job(s).`
+          : `Deactivated ${vars.ids.length} job(s).`,
       );
     },
     onError: (err: Error) => toast.error(err.message),
@@ -617,13 +617,13 @@ const Admin = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-      toast.success('Todas las vacantes fueron eliminadas');
+      toast.success('All jobs were deleted');
     },
     onError: (err: unknown) => {
       const msg = String(err?.message || err || '');
       if (msg.toLowerCase().includes('row level security') || msg.toLowerCase().includes('row-level security')) {
         toast.error(
-          'Permisos insuficientes: en Supabase agrega una política DELETE de jobs para el rol authenticated.',
+          'Insufficient permissions: add a DELETE policy for jobs in Supabase for the authenticated role.',
         );
         return;
       }
@@ -823,10 +823,10 @@ const Admin = () => {
         const { error } = await supabase.from('candidates').upsert(payload);
         if (error) throw error;
 
-        toast.success(`Se importaron ${payload.length} candidatos correctamente.`);
+        toast.success(`Imported ${payload.length} candidates successfully.`);
         queryClient.invalidateQueries({ queryKey: ['adminCandidates'] });
       } catch (err: unknown) {
-        toast.error(`Error al importar: ${String((err as { message?: unknown })?.message || err)}`);
+        toast.error(`Import error: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (candidateFileInputRef.current) candidateFileInputRef.current.value = '';
       }
@@ -852,7 +852,7 @@ const Admin = () => {
         const ids = extractIdsForDeactivate(text);
         totalInput = ids.length;
         if (ids.length === 0) {
-          toast.message('No se encontraron IDs en el archivo.');
+          toast.message('No IDs were found in the file.');
           return;
         }
 
@@ -883,14 +883,14 @@ const Admin = () => {
         onlineAfter = await fetchOnlineJobsCount();
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
-        const summary = `下架完成：成功 ${success}，失败 ${failed}，跳过 ${skipped}`;
+        const summary = `Bulk disable complete: ${success} succeeded, ${failed} failed, ${skipped} skipped.`;
         if (failed > 0) toast.error(summary);
         else toast.success(summary);
       } catch (err: unknown) {
         const msg = String((err as { message?: unknown })?.message || err);
         failed += 1;
         failedRecords.push({ id: 'batch', error: msg });
-        toast.error(`批量下架失败：${msg}`);
+        toast.error(`Bulk disable failed: ${msg}`);
       } finally {
         if (deactivateIdsFileInputRef.current) deactivateIdsFileInputRef.current.value = '';
         appendJobOpLog({
@@ -968,14 +968,14 @@ const Admin = () => {
             payload = payload.filter((row) => !existingIds.has(String(row.id)));
             skipped = sourceTotal - payload.length;
             if (skipped > 0) {
-              toast.message(`Se omitieron ${skipped} fila(s) porque el id ya existe en jobs.`);
+              toast.message(`Skipped ${skipped} row(s) because the ID already exists in jobs.`);
             }
           }
         }
 
         const total = payload.length;
         if (total === 0) {
-          toast.message('No hay filas nuevas para importar (ids ya existentes fueron omitidos).');
+          toast.message('No new rows to import (existing IDs were skipped).');
           return;
         }
 
@@ -1013,7 +1013,7 @@ const Admin = () => {
 
         if (imcShape && !useAi) {
           toast.message(
-            'Import IMC sin IA: destaques por fila desde el JD. Puedes subir VITE_JOB_AI_URL o LLM_* para resúmenes con IA.',
+            'Importing IMC without AI: highlights will be generated from the JD text. Add VITE_JOB_AI_URL or LLM_* for AI summaries.',
             { duration: 6000 },
           );
         }
@@ -1091,12 +1091,12 @@ const Admin = () => {
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
         if (failed === 0) {
-          toast.success(`Se importaron ${saved} vacantes (guardado progresivo).`);
+          toast.success(`Imported ${saved} jobs with progressive saving.`);
         } else {
-          toast.error(`Importación terminada: ${saved} OK, ${failed} fallidas. Revisa datos o políticas RLS.`);
+          toast.error(`Import finished: ${saved} succeeded, ${failed} failed. Check your data or RLS policies.`);
         }
         if (aiFallbackUsed) {
-          toast.message('Algunas vacantes usaron destacados automáticos en el texto porque falló la API de IA.');
+          toast.message('Some jobs used fallback highlights from the text because the AI API failed.');
         }
 
         window.setTimeout(() => {
@@ -1109,7 +1109,7 @@ const Admin = () => {
         if (failedRecords.length === 0) {
           failedRecords.push({ id: 'batch', error: String((err as { message?: unknown })?.message || err) });
         }
-        toast.error(`Error al importar: ${String((err as { message?: unknown })?.message || err)}`);
+        toast.error(`Import error: ${String((err as { message?: unknown })?.message || err)}`);
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';
         appendJobOpLog({
@@ -1155,7 +1155,7 @@ const Admin = () => {
               setActiveTab('jobs');
             }}
           >
-            Vacantes
+            Jobs
           </Button>
           <Button
             variant={activeTab === 'candidates' ? 'default' : 'outline'}
@@ -1166,7 +1166,7 @@ const Admin = () => {
               setEditing(null);
             }}
           >
-            Candidatos
+            Candidates
           </Button>
           <Button
             variant={activeTab === 'whatsapp' ? 'default' : 'outline'}
@@ -1206,11 +1206,11 @@ const Admin = () => {
                 >
                   {jobImportProgress.paused ? (
                     <>
-                      <Play className="h-4 w-4 mr-1" /> Continuar
+                      <Play className="h-4 w-4 mr-1" /> Resume
                     </>
                   ) : (
                     <>
-                      <Pause className="h-4 w-4 mr-1" /> Pausar
+                      <Pause className="h-4 w-4 mr-1" /> Pause
                     </>
                   )}
                 </Button>
@@ -1218,22 +1218,21 @@ const Admin = () => {
             ) : null}
             {jobImportProgress.isRunning && jobImportProgress.paused ? (
               <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">
-                En pausa: no se inician filas nuevas hasta continuar. Las peticiones de IA o guardado ya en curso pueden
-                terminar antes de detenerse del todo.
+                Paused: no new rows will start until you resume. In-flight AI or save requests may still finish first.
               </p>
             ) : null}
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium mb-2">
               <span>
                 {jobImportProgress.isRunning
                   ? jobImportProgress.paused
-                    ? 'Importación en pausa'
-                    : 'Importando vacantes (IA + guardado)…'
-                  : 'Importación terminada'}
+                    ? 'Import paused'
+                    : 'Importing jobs (AI + save)...'
+                  : 'Import finished'}
               </span>
               <span className="text-muted-foreground">
                 {jobImportProgress.saved + jobImportProgress.failed} / {jobImportProgress.total}
                 {jobImportProgress.failed > 0 ? (
-                  <span className="text-destructive ml-2">({jobImportProgress.failed} errores)</span>
+                  <span className="text-destructive ml-2">({jobImportProgress.failed} errors)</span>
                 ) : null}
               </span>
             </div>
@@ -1251,15 +1250,15 @@ const Admin = () => {
             />
             {jobImportProgress.lastTitle ? (
               <p className="text-xs text-muted-foreground mt-2 truncate">
-                Último: {jobImportProgress.lastTitle}
+                Latest: {jobImportProgress.lastTitle}
               </p>
             ) : null}
             {jobImportProgress.lastError ? (
               <p className="text-xs text-destructive mt-1 truncate">{jobImportProgress.lastError}</p>
             ) : null}
             <p className="text-xs text-muted-foreground mt-2">
-              Concurrencia: {hasJobAiConfig() ? jobImportAiConcurrency() : jobImportUpsertOnlyConcurrency()} filas en
-              paralelo (ajuste con VITE_JOB_IMPORT_AI_CONCURRENCY / VITE_JOB_IMPORT_UPSERT_CONCURRENCY).
+              Concurrency: {hasJobAiConfig() ? jobImportAiConcurrency() : jobImportUpsertOnlyConcurrency()} rows in
+              parallel (adjust with VITE_JOB_IMPORT_AI_CONCURRENCY / VITE_JOB_IMPORT_UPSERT_CONCURRENCY).
             </p>
           </div>
         )}
@@ -1268,11 +1267,11 @@ const Admin = () => {
             <h2 className="text-lg font-bold">{editing.id.startsWith('job-') ? t('admin.addJob') : t('admin.editJob')}</h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <div><Label>ID</Label><Input value={editing.id} onChange={(e) => setEditing({ ...editing, id: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Título</Label><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Empresa</Label><Input value={editing.b_name} onChange={(e) => setEditing({ ...editing, b_name: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>URL del logo</Label><Input value={editing.b_logo_url} onChange={(e) => setEditing({ ...editing, b_logo_url: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Title</Label><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Company</Label><Input value={editing.b_name} onChange={(e) => setEditing({ ...editing, b_name: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Logo URL</Label><Input value={editing.b_logo_url} onChange={(e) => setEditing({ ...editing, b_logo_url: e.target.value })} className="rounded-xl mt-1" /></div>
               <div>
-                <Label>Categoría</Label>
+                <Label>Category</Label>
                 <Input list="category-options" value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="rounded-xl mt-1" />
                 <datalist id="category-options">
                   {CATEGORY_OPTIONS.map((c) => (
@@ -1280,10 +1279,10 @@ const Admin = () => {
                   ))}
                 </datalist>
               </div>
-              <div><Label>Salario</Label><Input value={editing.salary_amount} onChange={(e) => setEditing({ ...editing, salary_amount: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Frecuencia</Label><Input value={editing.payment_frequency} onChange={(e) => setEditing({ ...editing, payment_frequency: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Salary</Label><Input value={editing.salary_amount} onChange={(e) => setEditing({ ...editing, salary_amount: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Frequency</Label><Input value={editing.payment_frequency} onChange={(e) => setEditing({ ...editing, payment_frequency: e.target.value })} className="rounded-xl mt-1" /></div>
               <div>
-                <Label>Ciudad</Label>
+                <Label>City</Label>
                 <Input list="city-options" value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} className="rounded-xl mt-1" />
                 <datalist id="city-options">
                   {CITY_OPTIONS.map((c) => (
@@ -1291,16 +1290,16 @@ const Admin = () => {
                   ))}
                 </datalist>
               </div>
-              <div><Label>Tipo de empleo</Label><Input value={editing.job_type} onChange={(e) => setEditing({ ...editing, job_type: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Modalidad</Label><Input value={editing.workplace_type} onChange={(e) => setEditing({ ...editing, workplace_type: e.target.value })} className="rounded-xl mt-1" /></div>
-              <div><Label>Destacados (separados por coma)</Label><Input value={editing.highlights} onChange={(e) => setEditing({ ...editing, highlights: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Employment Type</Label><Input value={editing.job_type} onChange={(e) => setEditing({ ...editing, job_type: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Workplace Type</Label><Input value={editing.workplace_type} onChange={(e) => setEditing({ ...editing, workplace_type: e.target.value })} className="rounded-xl mt-1" /></div>
+              <div><Label>Highlights (comma-separated)</Label><Input value={editing.highlights} onChange={(e) => setEditing({ ...editing, highlights: e.target.value })} className="rounded-xl mt-1" /></div>
             </div>
-            <div><Label>Resumen</Label><Textarea value={editing.summary} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="rounded-xl mt-1" rows={2} /></div>
-            <div><Label>Descripción</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="rounded-xl mt-1" rows={5} /></div>
-            <div><Label>Requisitos</Label><Textarea value={editing.requirements} onChange={(e) => setEditing({ ...editing, requirements: e.target.value })} className="rounded-xl mt-1" rows={3} /></div>
+            <div><Label>Summary</Label><Textarea value={editing.summary} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="rounded-xl mt-1" rows={2} /></div>
+            <div><Label>Description</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="rounded-xl mt-1" rows={5} /></div>
+            <div><Label>Requirements</Label><Textarea value={editing.requirements} onChange={(e) => setEditing({ ...editing, requirements: e.target.value })} className="rounded-xl mt-1" rows={3} /></div>
             <div className="flex items-center gap-2">
               <Switch checked={editing.is_active} onCheckedChange={(v) => setEditing({ ...editing, is_active: v })} />
-              <Label>Activo</Label>
+              <Label>Active</Label>
             </div>
             <div className="flex gap-3">
               <Button onClick={() => saveMutation.mutate(editing)} className="rounded-xl">{t('admin.save')}</Button>
@@ -1312,13 +1311,13 @@ const Admin = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Plantilla CSV
+                  <Download className="h-4 w-4 mr-2" /> CSV Template
                 </Button>
                 <Button variant="outline" onClick={downloadImcExportTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Plantilla IMC
+                  <Download className="h-4 w-4 mr-2" /> IMC Template
                 </Button>
                 <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> CSV de opciones
+                  <Download className="h-4 w-4 mr-2" /> Options CSV
                 </Button>
                 <input
                   type="file"
@@ -1340,7 +1339,7 @@ const Admin = () => {
                   className="rounded-xl"
                   disabled={Boolean(jobImportProgress?.isRunning)}
                 >
-                  <Upload className="h-4 w-4 mr-2" /> Importar CSV
+                  <Upload className="h-4 w-4 mr-2" /> Import CSV
                 </Button>
                 <Button
                   variant="outline"
@@ -1348,19 +1347,19 @@ const Admin = () => {
                   className="rounded-xl"
                   disabled={Boolean(jobImportProgress?.isRunning)}
                 >
-                  <Upload className="h-4 w-4 mr-2" /> 按ID批量下架
+                  <Upload className="h-4 w-4 mr-2" /> Bulk Disable by ID
                 </Button>
                 <Button
                   variant="destructive"
                   className="rounded-xl"
                   disabled={deleteAllJobsMutation.isPending}
                   onClick={() => {
-                    const v = window.prompt('Escribe DELETE para eliminar todas las vacantes');
+                    const v = window.prompt('Type DELETE to remove all jobs');
                     if (v !== 'DELETE') return;
                     deleteAllJobsMutation.mutate();
                   }}
                 >
-                  Eliminar todas las vacantes
+                  Delete All Jobs
                 </Button>
               </div>
               <Button onClick={openNew} className="rounded-xl">
@@ -1368,7 +1367,7 @@ const Admin = () => {
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-2 mb-3 text-sm">
-              <span className="text-muted-foreground">{selectedJobIds.length} seleccionada(s)</span>
+              <span className="text-muted-foreground">{selectedJobIds.length} selected</span>
               <Button
                 type="button"
                 size="sm"
@@ -1377,7 +1376,7 @@ const Admin = () => {
                 disabled={!selectedJobIds.length || batchJobsActiveMutation.isPending}
                 onClick={() => batchJobsActiveMutation.mutate({ ids: selectedJobIds, is_active: true })}
               >
-                Activar selección
+                Activate Selected
               </Button>
               <Button
                 type="button"
@@ -1387,7 +1386,7 @@ const Admin = () => {
                 disabled={!selectedJobIds.length || batchJobsActiveMutation.isPending}
                 onClick={() => batchJobsActiveMutation.mutate({ ids: selectedJobIds, is_active: false })}
               >
-                Desactivar selección
+                Deactivate Selected
               </Button>
               <Button
                 type="button"
@@ -1397,12 +1396,12 @@ const Admin = () => {
                 disabled={!selectedJobIds.length}
                 onClick={() => setSelectedJobIds([])}
               >
-                Limpiar selección
+                Clear Selection
               </Button>
             </div>
             <div className="bg-card rounded-2xl shadow-sm p-4 mb-3 border border-border">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">上传记录</h3>
+                <h3 className="text-sm font-semibold">Upload History</h3>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1412,26 +1411,26 @@ const Admin = () => {
                     localStorage.removeItem(JOB_UPLOAD_LOG_STORAGE_KEY);
                   }}
                 >
-                  清空
+                  Clear
                 </Button>
               </div>
               {jobOpLogs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">暂无记录</p>
+                <p className="text-xs text-muted-foreground">No history yet.</p>
               ) : (
                 <div className="space-y-2 max-h-56 overflow-auto">
                   {jobOpLogs.map((log) => (
                     <div key={log.id} className="text-xs border border-border rounded-lg p-2">
                       <div className="font-medium">
-                        {log.operation === 'deactivate_by_id_csv' ? '按ID下架' : '导入帖子'} ·{' '}
+                        {log.operation === 'deactivate_by_id_csv' ? 'Disable by ID' : 'Job Import'} ·{' '}
                         {new Date(log.created_at).toLocaleString()}
                       </div>
                       <div className="text-muted-foreground">
-                        操作前在线: {log.online_before}，操作后在线: {log.online_after}，输入: {log.total_input}，处理:{' '}
-                        {log.total_processed}，成功: {log.success}，失败: {log.failed}，跳过: {log.skipped}
+                        Online before: {log.online_before}, online after: {log.online_after}, input: {log.total_input}, processed:{' '}
+                        {log.total_processed}, succeeded: {log.success}, failed: {log.failed}, skipped: {log.skipped}
                       </div>
                       {log.failed_records.length > 0 ? (
                         <div className="text-destructive mt-1">
-                          失败记录: {log.failed_records.slice(0, 3).map((r) => `${r.id}(${r.error})`).join(' ; ')}
+                          Failed records: {log.failed_records.slice(0, 3).map((r) => `${r.id}(${r.error})`).join(' ; ')}
                         </div>
                       ) : null}
                     </div>
@@ -1454,22 +1453,22 @@ const Admin = () => {
                           }
                         }}
                         disabled={!adminPageJobIds.length || isLoading}
-                        aria-label="Seleccionar página"
+                        aria-label="Select page"
                       />
                     </th>
                     <th className="text-left px-4 py-3 font-medium">ID</th>
-                    <th className="text-left px-4 py-3 font-medium">Título</th>
-                    <th className="text-left px-4 py-3 font-medium">Empresa</th>
-                    <th className="text-left px-4 py-3 font-medium">Ciudad</th>
-                    <th className="text-left px-4 py-3 font-medium">Activo</th>
-                    <th className="text-left px-4 py-3 font-medium">Acciones</th>
+                    <th className="text-left px-4 py-3 font-medium">Title</th>
+                    <th className="text-left px-4 py-3 font-medium">Company</th>
+                    <th className="text-left px-4 py-3 font-medium">City</th>
+                    <th className="text-left px-4 py-3 font-medium">Active</th>
+                    <th className="text-left px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading && (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Cargando...
+                        Loading...
                       </td>
                     </tr>
                   )}
@@ -1483,7 +1482,7 @@ const Admin = () => {
                               v === true ? [...prev, job.id] : prev.filter((x) => x !== job.id),
                             );
                           }}
-                          aria-label={`Seleccionar ${job.title}`}
+                          aria-label={`Select ${job.title}`}
                         />
                       </td>
                       <td className="px-4 py-3 font-mono text-xs">{job.id}</td>
@@ -1506,7 +1505,7 @@ const Admin = () => {
                   {jobs.length === 0 && !isLoading && (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No hay vacantes
+                        No jobs found.
                       </td>
                     </tr>
                   )}
@@ -1515,8 +1514,8 @@ const Admin = () => {
               {adminJobsTotalCount > 0 ? (
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border text-sm text-muted-foreground">
                   <span>
-                    Página {adminJobsPage} de {adminJobsMaxPage} · {adminJobsTotalCount} vacante(s) ·{' '}
-                    {ADMIN_JOBS_PAGE_SIZE} por página
+                    Page {adminJobsPage} of {adminJobsMaxPage} · {adminJobsTotalCount} job(s) ·{' '}
+                    {ADMIN_JOBS_PAGE_SIZE} per page
                   </span>
                   <div className="flex gap-2">
                     <Button
@@ -1527,7 +1526,7 @@ const Admin = () => {
                       disabled={adminJobsPage <= 1}
                       onClick={() => setAdminJobsPage((p) => Math.max(1, p - 1))}
                     >
-                      Anterior
+                      Previous
                     </Button>
                     <Button
                       type="button"
@@ -1537,7 +1536,7 @@ const Admin = () => {
                       disabled={adminJobsPage >= adminJobsMaxPage}
                       onClick={() => setAdminJobsPage((p) => Math.min(adminJobsMaxPage, p + 1))}
                     >
-                      Siguiente
+                      Next
                     </Button>
                   </div>
                 </div>
@@ -1551,7 +1550,7 @@ const Admin = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={downloadCandidatesTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Plantilla CSV
+                  <Download className="h-4 w-4 mr-2" /> CSV Template
                 </Button>
                 <input
                   type="file"
@@ -1561,7 +1560,7 @@ const Admin = () => {
                   onChange={handleCandidatesFileUpload}
                 />
                 <Button variant="secondary" onClick={() => candidateFileInputRef.current?.click()} className="rounded-xl">
-                  <Upload className="h-4 w-4 mr-2" /> Importar CSV
+                  <Upload className="h-4 w-4 mr-2" /> Import CSV
                 </Button>
               </div>
             </div>
@@ -1570,18 +1569,18 @@ const Admin = () => {
                 <thead className="bg-secondary text-muted-foreground">
                   <tr>
                     <th className="text-left px-4 py-3 font-medium">ID</th>
-                    <th className="text-left px-4 py-3 font-medium">Nombre</th>
-                    <th className="text-left px-4 py-3 font-medium">Perfil</th>
-                    <th className="text-left px-4 py-3 font-medium">Ciudad</th>
-                    <th className="text-left px-4 py-3 font-medium">Ativo</th>
-                    <th className="text-left px-4 py-3 font-medium">Público</th>
+                    <th className="text-left px-4 py-3 font-medium">Name</th>
+                    <th className="text-left px-4 py-3 font-medium">Profile</th>
+                    <th className="text-left px-4 py-3 font-medium">City</th>
+                    <th className="text-left px-4 py-3 font-medium">Active</th>
+                    <th className="text-left px-4 py-3 font-medium">Public</th>
                   </tr>
                 </thead>
                 <tbody>
                   {candidatesLoading && (
                     <tr>
                       <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Cargando...
+                        Loading...
                       </td>
                     </tr>
                   )}
@@ -1608,7 +1607,7 @@ const Admin = () => {
                   {(!candidates || candidates.length === 0) && !candidatesLoading && (
                     <tr>
                       <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No hay candidatos
+                        No candidates found.
                       </td>
                     </tr>
                   )}

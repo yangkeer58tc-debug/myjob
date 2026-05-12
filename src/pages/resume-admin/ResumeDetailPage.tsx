@@ -32,7 +32,7 @@ export default function ResumeDetailPage() {
       setItem(data.item)
       setDraft({})
     } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败')
+      setError(e instanceof Error ? e.message : 'Failed to load resume')
     } finally {
       setBusy(false)
     }
@@ -60,7 +60,7 @@ export default function ResumeDetailPage() {
       setItem(data.item)
       setDraft({})
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存失败')
+      setError(e instanceof Error ? e.message : 'Failed to save changes')
     } finally {
       setSaving(false)
     }
@@ -74,7 +74,7 @@ export default function ResumeDetailPage() {
       await reparseResume(id)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '重解析失败')
+      setError(e instanceof Error ? e.message : 'Failed to re-parse resume')
     } finally {
       setBusy(false)
     }
@@ -94,12 +94,12 @@ export default function ResumeDetailPage() {
           <div>
             <div className="text-xs text-zinc-500">
               <Link to="/admin/resumes" className="hover:underline">
-                简历列表
+                Resume List
               </Link>{' '}
-              / 简历详情
+              / Resume Detail
             </div>
             <h1 className="mt-1 text-lg font-semibold text-zinc-900">
-              {item?.name || [item?.first_name, item?.last_name].filter(Boolean).join(' ') || '简历详情'}
+              {item?.name || [item?.first_name, item?.last_name].filter(Boolean).join(' ') || 'Resume Detail'}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export default function ResumeDetailPage() {
                 busy ? 'bg-zinc-200 text-zinc-500' : 'bg-zinc-900 text-white hover:bg-zinc-800',
               )}
             >
-              {busy ? '刷新中…' : '刷新'}
+              {busy ? 'Refreshing...' : 'Refresh'}
             </button>
             <button
               type="button"
@@ -120,7 +120,7 @@ export default function ResumeDetailPage() {
               disabled={busy}
               className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200"
             >
-              重解析
+              Re-parse
             </button>
             <button
               type="button"
@@ -133,7 +133,7 @@ export default function ResumeDetailPage() {
                   : 'bg-blue-600 hover:bg-blue-700',
               )}
             >
-              {saving ? '保存中…' : '保存修改'}
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function ResumeDetailPage() {
 
         {!item ? (
           <div className="rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
-            {busy ? '加载中…' : '未找到该简历'}
+            {busy ? 'Loading...' : 'Resume not found'}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
