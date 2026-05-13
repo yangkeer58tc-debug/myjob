@@ -17,6 +17,7 @@
     "env:validate:staging": "node scripts/env/validate-env-template.mjs .env.staging.example",
     "env:validate:prod": "node scripts/env/validate-env-template.mjs env.production.example",
     "env:check:resume-admin": "node scripts/env/check-resume-admin-readiness.mjs",
+    "resume:fetch": "node scripts/fetch-resumes-readonly.mjs",
     "precutover:resumes": "node scripts/env/precutover-resumes-check.mjs",
     "predeploy:staging": "node scripts/env/predeploy-check.mjs staging",
     "predeploy:prod": "node scripts/env/predeploy-check.mjs prod",
