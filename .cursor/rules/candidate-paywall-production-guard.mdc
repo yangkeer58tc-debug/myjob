@@ -1,0 +1,26 @@
+---
+description: 候选人付费墙生产环境主开关 — 其他会话改部署/环境变量时勿误开正式站支付
+alwaysApply: true
+---
+
+# Candidate paywall / 候选人联系付费（生产隔离）
+
+## 行为约定
+
+- 正式域名 **`myjob.com` / `www.myjob.com`** 上，候选人付费墙在代码里**默认关闭**，除非环境变量 **`VITE_ALLOW_CONTACT_PAYWALL_IN_PRODUCTION=true`**（见 `src/lib/candidatePaywallEnv.ts`）。
+- 因此：**合并、部署、发版其他功能**时，即使用户在**别的会话**里改功能，只要**没有**在 Cloudflare **生产**项目里主动加上述变量，**正式站用户不会看到支付流程**；支付相关代码可以长期留在 `main` 里。
+
+## 其他会话里禁止误操作
+
+- 在 **Cloudflare 生产**（`myjob.com` 对应项目）的 Environment variables 中：**不要**添加、打开或建议打开 **`VITE_ALLOW_CONTACT_PAYWALL_IN_PRODUCTION`**，除非用户在本任务中**明确说**要候选人付费**正式上线 / 对正式用户开放支付**。
+- Staging / Preview 的变量不受此限制；支付联调在测试环境做。
+
+## 文档入口
+
+- 上线策略与文件清单：`docs/payment-rollout-zh.md`
+- Airwallex 接入：`docs/airwallex-staging-candidate-paywall-zh.md`
+
+## 与本会话分工
+
+- **支付迭代**：用户在**本会话**沟通时，按上述文档改支付即可。
+- **非支付需求**：其它会话正常开发；生产支付仍由 **`VITE_ALLOW_CONTACT_PAYWALL_IN_PRODUCTION`** 单独控制，与是否合并支付代码无关。
