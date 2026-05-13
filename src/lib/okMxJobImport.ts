@@ -106,6 +106,31 @@ function prettifyLocalCode(code: string): string {
   return c.replace(/\b\w/g, (x) => x.toUpperCase());
 }
 
+/** Build one line from Google-style `addressComponents` array (longText + types). */
+function lineFromAddressComponentArray(arr: Array<{ longText?: string; types?: string[] }>): string {
+  const parts: string[] = [];
+  const prefer = [
+    'sublocality_level_1',
+    'sublocality',
+    'locality',
+    'administrative_area_level_2',
+    'administrative_area_level_1',
+  ] as const;
+  for (const typ of prefer) {
+    const hit = arr.find((x) => x.types?.includes(typ));
+    const lt = String(hit?.longText ?? '').trim();
+    if (!lt || isPlaceholderLocationToken(lt)) continue;
+    if (!parts.includes(lt)) parts.push(lt);
+  }
+  const countryHit = arr.find((x) => x.types?.includes('country'));
+  const ctry = String(countryHit?.longText ?? '').trim();
+  if (parts.length > 0 && ctry && !isPlaceholderLocationToken(ctry)) {
+    const label = ctry === 'Mexico' ? 'México' : ctry;
+    if (!parts.includes(label)) parts.push(label);
+  }
+  return parts.join(', ').trim();
+}
+
 /** Parse `para` field key `66` (Google-style address object) for locality / state. */
 function locationFromPara66(para: string): string | null {
   if (!para?.trim()) return null;
@@ -116,7 +141,14 @@ function locationFromPara66(para: string): string | null {
     const inner = JSON.parse(raw66) as {
       detail?: string;
       standard?: Record<string, string>;
+      addressComponents?: Array<{ longText?: string; types?: string[] }>;
     };
+
+    if (Array.isArray(inner.addressComponents) && inner.addressComponents.length > 0) {
+      const acLine = lineFromAddressComponentArray(inner.addressComponents);
+      if (acLine) return acLine;
+    }
+
     const std = inner?.standard;
     const parts: string[] = [];
     const locality = std?.locality || std?.administrative_area_level_2;
@@ -147,6 +179,9 @@ function locationFromPara66(para: string): string | null {
  * Generic country-only → **México** as default.
  */
 export function resolveMxJobLocation(row: Record<string, string>): string {
+  const geo = String(row.mx_geocoded_location ?? '').trim();
+  if (geo) return geo;
+
   const parts: string[] = [];
   const ac = String(row.addresscomponents ?? '').trim();
 
@@ -154,24 +189,11 @@ export function resolveMxJobLocation(row: Record<string, string>): string {
     try {
       const arr = JSON.parse(ac) as Array<{ longText?: string; types?: string[] }>;
       if (Array.isArray(arr)) {
-        const prefer = [
-          'sublocality_level_1',
-          'sublocality',
-          'locality',
-          'administrative_area_level_2',
-          'administrative_area_level_1',
-        ] as const;
-        for (const typ of prefer) {
-          const hit = arr.find((x) => x.types?.includes(typ));
-          const lt = String(hit?.longText ?? '').trim();
-          if (!lt || isPlaceholderLocationToken(lt)) continue;
-          if (!parts.includes(lt)) parts.push(lt);
-        }
-        const countryHit = arr.find((x) => x.types?.includes('country'));
-        const ctry = String(countryHit?.longText ?? '').trim();
-        if (parts.length > 0 && ctry && !isPlaceholderLocationToken(ctry)) {
-          const label = ctry === 'Mexico' ? 'México' : ctry;
-          if (!parts.includes(label)) parts.push(label);
+        const acLine = lineFromAddressComponentArray(arr);
+        if (acLine) {
+          for (const seg of acLine.split(',').map((s) => s.trim())) {
+            if (seg && !parts.includes(seg)) parts.push(seg);
+          }
         }
       }
     } catch {
