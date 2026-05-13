@@ -6,11 +6,11 @@ const site = () => (Deno.env.get('MYJOB_PUBLIC_SITE_URL') ?? 'https://myjob.com'
 export const COPY = {
   welcomeNoJob:
     '¡Hola! 👋 Soy el asistente de *MyJob*. Para postularte, envíame tu *CV* (PDF, Word o foto, máx. 10 MB).\n\n' +
-    '_Guarda este contacto como **MyJob** para no perder mensajes._',
+    '_Guarda este contacto como *MyJob* para no perder mensajes._',
 
   welcomeWithJob: (jobTitle: string, company: string) =>
     `¡Hola! 👋 Soy el asistente de *MyJob*.\nPara postular a *${jobTitle}* en *${company}*, envíame tu *CV* (PDF, Word o foto, máx. 10 MB).\n\n` +
-    '_Guarda este contacto como **MyJob** para no perder mensajes._',
+    '_Guarda este contacto como *MyJob* para no perder mensajes._',
 
   returningAskChoice: (jobTitle: string, company: string) =>
     `Ya tenemos un CV tuyo en *MyJob*. ¿Quieres postular a *${jobTitle}* en *${company}* con el *mismo archivo* o prefieres *subir uno nuevo*?`,
@@ -69,7 +69,7 @@ export const COPY = {
   postFlowRecommend: (q: string) => {
     const base = site();
     const enc = encodeURIComponent(q.trim() || 'empleo');
-    return `Vacantes relacionadas con tu perfil: ${base}/buscar-candidatos?q=${enc}`;
+    return `Vacantes relacionadas con tu perfil: ${base}/empleos?q=${enc}`;
   },
 
   postFlowHelp: () =>
@@ -78,5 +78,13 @@ export const COPY = {
   postFlowJoinPanelReminder:
     'Si cambias de opinión y quieres aparecer en el panel de candidatos, toca *Súmame al panel* o escribe *Si*.',
 
-  menuHint: '_Escribe **menu** en cualquier momento para ver opciones._',
+  menuHint: '_Escribe *menu* en cualquier momento para ver opciones._',
+
+  /** Shown when the user re-sends a CV while we are still waiting for opt-in. */
+  resumeReplaced:
+    '✅ Recibí tu nuevo CV y reemplacé el anterior. Solo falta tu respuesta arriba: ¿te sumamos al panel?',
+
+  /** Reuse-same-CV branch failed to retrieve any prior CV; ask the user to resend. */
+  returningSameNotFound:
+    'No pude recuperar tu CV anterior. Por favor envíame *tu CV actualizado* aquí mismo (PDF, Word o foto, máx. 10 MB).',
 } as const;

@@ -11,6 +11,7 @@ import {
   extractJobRefFromText,
   extFromMime,
   isExplicitNo,
+  isMenuRequest,
   isReturningSameCvChoice,
   isStrictSi,
   normalizeOptInText,
@@ -181,6 +182,49 @@ describe('expressesNoCv', () => {
 describe('stripJobRefTag', () => {
   it('removes ref tag', () => {
     expect(stripJobRefTag('Hola [REF:x] mundo')).toBe('Hola mundo');
+  });
+});
+
+describe('isMenuRequest', () => {
+  it('accepts plain "menu" with case/punctuation variants', () => {
+    expect(isMenuRequest('menu')).toBe(true);
+    expect(isMenuRequest('Menu')).toBe(true);
+    expect(isMenuRequest('MENU')).toBe(true);
+    expect(isMenuRequest('menu.')).toBe(true);
+    expect(isMenuRequest('menu!')).toBe(true);
+  });
+
+  it('handles Spanish accent on "menú"', () => {
+    expect(isMenuRequest('menú')).toBe(true);
+    expect(isMenuRequest('Menú')).toBe(true);
+    expect(isMenuRequest('MENÚ')).toBe(true);
+  });
+
+  it('strips WhatsApp Markdown emphasis around the token', () => {
+    expect(isMenuRequest('*menu*')).toBe(true);
+    expect(isMenuRequest('*menú*')).toBe(true);
+    expect(isMenuRequest('_menu_')).toBe(true);
+  });
+
+  it('accepts other synonyms', () => {
+    expect(isMenuRequest('ayuda')).toBe(true);
+    expect(isMenuRequest('Ayuda?')).toBe(true);
+    expect(isMenuRequest('help')).toBe(true);
+    expect(isMenuRequest('opciones')).toBe(true);
+    expect(isMenuRequest('inicio')).toBe(true);
+    expect(isMenuRequest('?')).toBe(true);
+  });
+
+  it('matches when token appears inside a short sentence', () => {
+    expect(isMenuRequest('necesito ayuda')).toBe(true);
+    expect(isMenuRequest('por favor menu')).toBe(true);
+  });
+
+  it('rejects unrelated input', () => {
+    expect(isMenuRequest('')).toBe(false);
+    expect(isMenuRequest(null)).toBe(false);
+    expect(isMenuRequest('Hola, ¿hay vacantes?')).toBe(false);
+    expect(isMenuRequest('mismo cv')).toBe(false);
   });
 });
 

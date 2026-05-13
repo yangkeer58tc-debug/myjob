@@ -24,6 +24,7 @@ import {
   extFromMime,
   extractJobRefFromText,
   isExplicitNo,
+  isMenuRequest,
   isReturningSameCvChoice,
   isStrictSi,
   matchesButton,
@@ -397,8 +398,7 @@ async function handleCompletedInbound(
   >,
 ) {
   const t = inboundText.trim();
-  const low = stripJobRefTag(t).toLowerCase();
-  if (low === 'menu' || low === 'menú' || low === 'ayuda') {
+  if (isMenuRequest(stripJobRefTag(t))) {
     await sendPostFlowInteractive(
       supabase,
       config,
@@ -539,6 +539,63 @@ async function maybeRestartCompletedForNewIntent(
     return { conversation: data as ConversationRow, restarted: true };
   }
   return { conversation, restarted: false };
+}
+
+/**
+ * "Reuse previous CV" needs *any* prior CV bytes. Try RMC first (canonical
+ * source other modules read from), then fall back to our local
+ * `whatsapp-resumes` storage — the user's latest WhatsApp upload, which is
+ * always available unless we lost the row entirely.
+ *
+ * Returning null means the user must re-upload from scratch.
+ */
+async function downloadAnyPriorResumeForReuse(
+  supabase: SupabaseClient,
+  conversation: ConversationRow,
+  waUserId: string,
+): Promise<
+  | {
+      bytes: Uint8Array;
+      mime: string;
+      filename: string;
+      candidateNameHint: string;
+      source: 'rmc' | 'whatsapp_local';
+    }
+  | null
+> {
+  const rmcPack = await downloadRmcResumeForSync(waUserId).catch((e) => {
+    console.warn('[wa-bot reuse-cv] RMC download threw', e instanceof Error ? e.message : e);
+    return null;
+  });
+  if (rmcPack) {
+    return {
+      bytes: rmcPack.bytes,
+      mime: rmcPack.mime,
+      filename: rmcPack.filename,
+      candidateNameHint: String(rmcPack.snapshot.name ?? '').trim(),
+      source: 'rmc',
+    };
+  }
+  console.warn('[wa-bot reuse-cv] RMC pack not found, trying local WhatsApp storage');
+
+  const localPath = conversation.last_resume_storage_path ?? conversation.resume_storage_path;
+  if (!localPath) {
+    console.warn('[wa-bot reuse-cv] no local resume path on conversation');
+    return null;
+  }
+  const { data: blob, error } = await supabase.storage.from(RESUME_BUCKET).download(localPath);
+  if (error || !blob) {
+    console.warn('[wa-bot reuse-cv] local storage download failed', error?.message);
+    return null;
+  }
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  return {
+    bytes,
+    mime: blob.type || 'application/octet-stream',
+    filename: localPath.split('/').pop() || 'cv',
+    candidateNameHint: String(conversation.candidate_name ?? '').trim(),
+    source: 'whatsapp_local',
+  };
 }
 
 async function runOptInSyncPipeline(
@@ -750,6 +807,45 @@ export async function dispatchBotMessage(
   // ---- awaiting_returning_cv_choice ----
   if (effectiveState === 'awaiting_returning_cv_choice') {
     const t = inboundText.trim();
+
+    // If the user uploads a new CV directly, treat as "Nuevo CV" path.
+    if (isFile) {
+      const stored = await downloadAndStoreResume(supabase, config, msg.from, msg, downloadMediaFn);
+      if (!stored.ok) {
+        const text = stored.reason === 'too_large' ? COPY.fileTooLarge : COPY.errorGeneric;
+        await reply(supabase, config, conversation, text);
+        await supabase.from('whatsapp_conversations').update({ ...bump } as any).eq('id', conversation.id);
+        return;
+      }
+      if (msg.type === 'image') {
+        const seen = await userJustSentAnotherImage(supabase, conversation.id, msg.messageId);
+        if (seen) await reply(supabase, config, conversation, COPY.multipleImagesHint);
+      }
+      await replyInteractive(supabase, config, conversation, COPY.optInInteractiveBody(), [
+        { id: BTN_OPT_IN_YES, title: 'Sí, súmame' },
+        { id: BTN_OPT_IN_NO, title: 'Ahora no' },
+      ]);
+      const derivedName = resolveCandidateName(conversation, msg);
+      await supabase
+        .from('whatsapp_conversations')
+        .update({
+          ...bump,
+          state: 'awaiting_opt_in',
+          candidate_name: conversation.candidate_name ?? derivedName,
+          last_resume_storage_path: stored.path,
+          resume_storage_path: stored.path,
+          last_resume_received_at: new Date().toISOString(),
+        } as any)
+        .eq('id', conversation.id);
+      return;
+    }
+
+    if (isMenuRequest(t)) {
+      await sendPostFlowInteractive(supabase, config, conversation, 'after_no_cv');
+      await supabase.from('whatsapp_conversations').update({ ...bump } as any).eq('id', conversation.id);
+      return;
+    }
+
     if (matchesButton(t, BTN_RET_NEW, 'Nuevo CV', 'Subir nuevo CV') || isExplicitNo(t)) {
       await reply(supabase, config, conversation, COPY.welcomeNoJob);
       await supabase.from('whatsapp_conversations').update({ ...bump, state: 'awaiting_resume' } as any).eq(
@@ -758,17 +854,21 @@ export async function dispatchBotMessage(
       );
       return;
     }
+
     if (isReturningSameCvChoice(inboundText)) {
-      const pack = await downloadRmcResumeForSync(msg.from);
+      // Try to recover the user's previous CV from RMC, then from our local
+      // WhatsApp storage as a fallback. If both fail we move the user to
+      // awaiting_resume with a clear message instead of throwing errorGeneric.
+      const pack = await downloadAnyPriorResumeForReuse(supabase, conversation, msg.from);
       if (!pack) {
-        await reply(supabase, config, conversation, COPY.errorGeneric);
+        await reply(supabase, config, conversation, COPY.returningSameNotFound);
         await supabase.from('whatsapp_conversations').update({ ...bump, state: 'awaiting_resume' } as any).eq(
           'id',
           conversation.id,
         );
         return;
       }
-      const candidateName = String(pack.snapshot.name ?? '').trim();
+      const candidateName = pack.candidateNameHint || resolveCandidateName(conversation, msg);
       const result = await syncResumeToRmc({
         waUserId: msg.from,
         candidateName,
@@ -779,8 +879,14 @@ export async function dispatchBotMessage(
       const userOk = result.status === 'success' || result.status === 'skipped_no_config' ||
         result.status === 'skipped_staging';
       if (!userOk) {
-        await reply(supabase, config, conversation, COPY.errorGeneric);
-        await supabase.from('whatsapp_conversations').update({ ...bump } as any).eq('id', conversation.id);
+        // RMC sync itself failed (network / permission). Don't blame the
+        // user — ask them to resend so the awaiting_resume branch can try
+        // a fresh upload.
+        await reply(supabase, config, conversation, COPY.returningSameNotFound);
+        await supabase.from('whatsapp_conversations').update({ ...bump, state: 'awaiting_resume' } as any).eq(
+          'id',
+          conversation.id,
+        );
         return;
       }
       const completedAt = new Date().toISOString();
@@ -826,6 +932,7 @@ export async function dispatchBotMessage(
       await sendPostFlowInteractive(supabase, config, conversation, 'after_opt_in');
       return;
     }
+
     await reply(supabase, config, conversation, 'Toca *Mismo CV* o *Nuevo CV*, o escribe *menu*.');
     await supabase.from('whatsapp_conversations').update({ ...bump } as any).eq('id', conversation.id);
     return;
@@ -833,6 +940,11 @@ export async function dispatchBotMessage(
 
   // ---- awaiting_resume ----
   if (effectiveState === 'awaiting_resume') {
+    if (msg.type === 'text' && isMenuRequest(msg.text ?? '')) {
+      await sendPostFlowInteractive(supabase, config, conversation, 'after_no_cv');
+      await supabase.from('whatsapp_conversations').update({ ...bump } as any).eq('id', conversation.id);
+      return;
+    }
     if (msg.type === 'text' && expressesNoCv(msg.text ?? '')) {
       await reply(supabase, config, conversation, COPY.noCvClose);
       const completedAt = new Date().toISOString();
@@ -885,7 +997,46 @@ export async function dispatchBotMessage(
 
   // ---- awaiting_opt_in ----
   if (effectiveState === 'awaiting_opt_in') {
+    // The user already sent a CV and we are waiting for Yes/No. If they
+    // upload another file now (typical for "wait, wrong CV"), replace the
+    // stored resume in place and re-issue the opt-in prompt. Without this
+    // branch the bot used to silently treat the upload as no-op, which we
+    // saw push users to "Speak in English please" / declined.
+    if (isFile) {
+      const stored = await downloadAndStoreResume(supabase, config, msg.from, msg, downloadMediaFn);
+      if (!stored.ok) {
+        const text = stored.reason === 'too_large' ? COPY.fileTooLarge : COPY.errorGeneric;
+        await reply(supabase, config, conversation, text);
+        await supabase.from('whatsapp_conversations').update({ ...bump } as any).eq('id', conversation.id);
+        return;
+      }
+      if (msg.type === 'image') {
+        const seen = await userJustSentAnotherImage(supabase, conversation.id, msg.messageId);
+        if (seen) await reply(supabase, config, conversation, COPY.multipleImagesHint);
+      }
+      await reply(supabase, config, conversation, COPY.resumeReplaced);
+      await replyInteractive(supabase, config, conversation, COPY.optInInteractiveBody(), [
+        { id: BTN_OPT_IN_YES, title: 'Sí, súmame' },
+        { id: BTN_OPT_IN_NO, title: 'Ahora no' },
+      ]);
+      await supabase
+        .from('whatsapp_conversations')
+        .update({
+          ...bump,
+          last_resume_storage_path: stored.path,
+          resume_storage_path: stored.path,
+          last_resume_received_at: new Date().toISOString(),
+        } as any)
+        .eq('id', conversation.id);
+      return;
+    }
+
     const text = inboundText;
+    if (isMenuRequest(text)) {
+      await sendPostFlowInteractive(supabase, config, conversation, 'after_no_cv');
+      await supabase.from('whatsapp_conversations').update({ ...bump } as any).eq('id', conversation.id);
+      return;
+    }
     const positive = isStrictSi(text);
     const negative = isExplicitNo(text);
     if (positive) {

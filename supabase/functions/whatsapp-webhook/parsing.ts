@@ -102,6 +102,40 @@ export function normalizeOptInText(raw: string): string {
   return raw.normalize('NFC').trim().toLowerCase().replace(/[.!?\s]+$/u, '');
 }
 
+// Accent-, case-, and Markdown-insensitive tokens that should trigger the menu.
+// Real-world inbound from CSV: "Menu", "Menú", "*menu*", "*menú*".
+const MENU_TOKENS = new Set([
+  'menu', 'menus',
+  'ayuda', 'help', 'opciones', 'opcion',
+  'inicio', 'start',
+  '?',
+]);
+
+/**
+ * Match common ways users ask for the menu, accent / case / Markdown-insensitive.
+ * Strips WhatsApp Markdown emphasis (`*`, `_`, `~`, backticks) and diacritics so
+ * `Menú`, `*menu*`, `MENU.` and `ayuda?` all resolve to a known token.
+ *
+ * `?` alone is treated as a menu request; trailing `?`s on a known token (e.g.
+ * `ayuda?`) are also accepted.
+ */
+export function isMenuRequest(raw: string | undefined | null): boolean {
+  if (!raw) return false;
+  const s = String(raw)
+    .normalize('NFKD').replace(/\p{Diacritic}/gu, '')
+    .replace(/[*_~`]/g, '')
+    .replace(/[.!¡¿,;:]+/g, ' ')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!s) return false;
+  if (s === '?') return true;
+  const stripped = s.replace(/\?+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!stripped) return false;
+  if (MENU_TOKENS.has(stripped)) return true;
+  return stripped.split(' ').some((tok) => MENU_TOKENS.has(tok));
+}
+
 // Strip leading/trailing comma+punctuation and collapse internal whitespace.
 // Used to compare against button titles like "Sí, súmame" / "Más vacantes".
 function squashForButtonCompare(raw: string): string {
