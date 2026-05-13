@@ -27,5 +27,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# Local exports / scratch (may contain PII)
+tmp/
+
 # Supabase CLI local link state (do not commit)
 supabase/.temp/
