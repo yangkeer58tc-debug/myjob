@@ -29,11 +29,11 @@ export function parseEmpleoParam(param: string): ParsedEmpleo {
     return { kind: 'id', id: raw };
   }
 
-  /** Last `-digits` segment is treated as DB id (IMC / external ids are often 6–12 digits). */
+  /** Last `-digits` segment is the DB `jobs.id` (may be short, e.g. MX `info_id`). */
   const hyphenIdx = raw.lastIndexOf('-');
   if (hyphenIdx >= 1) {
     const tail = raw.slice(hyphenIdx + 1);
-    if (/^\d{4,}$/.test(tail)) {
+    if (/^\d+$/.test(tail)) {
       return { kind: 'id', id: tail };
     }
   }

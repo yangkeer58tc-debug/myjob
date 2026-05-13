@@ -13,6 +13,10 @@ describe('parseEmpleoParam', () => {
   it('parses slug-id with shorter numeric id (IMC)', () => {
     expect(parseEmpleoParam('asesor-de-nutricion-55398649')).toEqual({ kind: 'id', id: '55398649' });
   });
+
+  it('parses MX-style path where info_id is fewer than 4 digits', () => {
+    expect(parseEmpleoParam('mx-206-206')).toEqual({ kind: 'id', id: '206' });
+  });
 });
 
 describe('jobPublicPath', () => {
