@@ -23,6 +23,11 @@ interface ImportMetaEnv {
   readonly VITE_CANDIDATE_CONTACT_PRICE_MXN?: string;
   /** Enable candidate paywall regardless of mode when set to true/1. */
   readonly VITE_ENABLE_CANDIDATE_PAYWALL?: string;
+  /**
+   * Master switch: allow candidate paywall on production host myjob.com. Omit or false = paywall
+   * never shows on live domain even if other flags are mis-set.
+   */
+  readonly VITE_ALLOW_CONTACT_PAYWALL_IN_PRODUCTION?: string;
   /** Enable admin resumes module in /admin when true/1. */
   readonly VITE_ENABLE_RESUME_ADMIN?: string;
 }
