@@ -186,6 +186,83 @@ export async function generateJobSummaryAndHighlights(description: string): Prom
   return callOpenAiCompatible(text);
 }
 
+/** True when OpenAI-compatible key is set (used for MX non-Spanish → es-MX translation). Custom `VITE_JOB_AI_URL` alone does not enable this path. */
+export function hasOpenAiCompatibleKeyForMxTranslate(): boolean {
+  return Boolean(openAiCompatibleKey());
+}
+
+/**
+ * Translate MX job title + body into Mexican Spanish (es-MX). Requires OpenAI-compatible API key (same env as summary AI).
+ * Does not call `VITE_JOB_AI_URL` custom endpoint.
+ */
+export async function translateMxJobPostToEsMx(
+  title: string,
+  description: string,
+): Promise<{ title: string; description: string }> {
+  const apiKey = openAiCompatibleKey();
+  if (!apiKey) {
+    throw new Error('Missing OpenAI-compatible API key for MX translation (set VITE_OPENAI_API_KEY or LLM_API_KEY).');
+  }
+
+  const base = openAiCompatibleBase();
+  const model = openAiCompatibleModel();
+  const titleIn = stripNewlines(title).slice(0, 400);
+  const descIn = String(description ?? '').trim().slice(0, 14_000);
+
+  const user = [
+    'Translate the following job post into **Mexican Spanish (es-MX)**.',
+    'Return JSON only: {"title":"<translated title>","description":"<translated description>"}.',
+    'Preserve meaning; do not add duties, benefits, or locations that are not in the source.',
+    'Keep line breaks in description as single \\n where helpful; no markdown.',
+    '',
+    `SOURCE_TITLE:\n${titleIn}`,
+    '',
+    `SOURCE_DESCRIPTION:\n${descIn}`,
+  ].join('\n');
+
+  const res = await fetch(`${base}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.15,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You translate job ads into Mexican Spanish. Always return valid JSON with keys "title" and "description" (strings).',
+        },
+        { role: 'user', content: user },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`OpenAI-compatible API ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = data.choices?.[0]?.message?.content || '';
+  const parsed = parseAiJsonPayload(content) as { title?: unknown; description?: unknown } | null;
+  if (!parsed) throw new Error('Translation response was not valid JSON');
+
+  const outTitle = typeof parsed.title === 'string' ? stripNewlines(parsed.title).slice(0, 400) : titleIn;
+  const outDesc = typeof parsed.description === 'string' ? String(parsed.description).trim() : descIn;
+  if (!outTitle && !outDesc) throw new Error('Translation returned empty strings');
+
+  return {
+    title: outTitle || titleIn,
+    description: outDesc || descIn,
+  };
+}
+
 function sentenceFallbackHighlights(description: string): string[] {
   const text = stripNewlines(description);
   if (!text) return [];

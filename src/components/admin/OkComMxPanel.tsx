@@ -9,11 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { decodeCsvFile } from '@/lib/csvFileDecode';
 import { jobImportUpsertOnlyConcurrency, runPool } from '@/lib/jobImportPool';
+import { hasOpenAiCompatibleKeyForMxTranslate, translateMxJobPostToEsMx } from '@/lib/jobSummaryAi';
 import { supabase } from '@/integrations/supabase/client';
 import type { MxCategoryInfo } from '@/lib/okMxJobImport';
 import {
   OK_MX_EMPLOYER_NAME,
   OK_MX_EXTERNAL_SOURCE,
+  OK_MX_LEGACY_EMPLOYER_NAMES,
   buildOkMxJobRows,
   isMxRealPostsCsvHeader,
   parseMxCategoryCsvText,
@@ -95,7 +97,30 @@ export default function OkComMxPanel() {
           uploaded.forEach((v, k) => categoryMap.set(k, v));
         }
 
-        let payload = buildOkMxJobRows(rows, categoryMap);
+        const normalizedRows = rows.map((r) => ({ ...r }));
+        const needTranslate = normalizedRows
+          .map((r, i) => ({ i, lang: String(r.language ?? '').trim().toLowerCase() }))
+          .filter((x) => x.lang && x.lang !== 'es');
+
+        if (needTranslate.length > 0) {
+          if (!hasOpenAiCompatibleKeyForMxTranslate()) {
+            toast.warning(
+              `有 ${needTranslate.length} 条语言不是 es，但未配置 OpenAI 兼容密钥（VITE_OPENAI_API_KEY 或 LLM_API_KEY），无法自动译为西语。`,
+              { duration: 9000 },
+            );
+          } else {
+            toast.message(`正在将 ${needTranslate.length} 条非西语职位译为 es-MX…`, { duration: 5000 });
+            const trConc = Math.min(6, Math.max(1, needTranslate.length));
+            await runPool(needTranslate.length, trConc, async (k) => {
+              const { i } = needTranslate[k];
+              const r = normalizedRows[i];
+              const tr = await translateMxJobPostToEsMx(String(r.title ?? ''), String(r.content ?? ''));
+              normalizedRows[i] = { ...r, title: tr.title, content: tr.description };
+            });
+          }
+        }
+
+        let payload = buildOkMxJobRows(normalizedRows, categoryMap);
         const totalInput = payload.length;
         if (totalInput === 0) {
           toast.message('没有可导入的数据行。');
@@ -162,7 +187,7 @@ export default function OkComMxPanel() {
 
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
-        if (failed === 0) toast.success(`已导入 ${saved} 条 ok.com 招聘（MX 真实帖子）。`);
+        if (failed === 0) toast.success(`已导入 ${saved} 条 OK.com Jobs（MX 真实帖子）。`);
         else toast.error(`导入结束：成功 ${saved}，失败 ${failed}。`);
 
         window.setTimeout(() => setMxImportProgress(null), 3200);
@@ -179,8 +204,8 @@ export default function OkComMxPanel() {
     if (exporting) return;
     setExporting(true);
     try {
-      const pageSize = 1000;
-      const apps: Array<{
+      const selectCols = 'id,conversation_id,wa_user_id,job_id,job_title,job_company,created_at';
+      type AppRow = {
         id: string;
         conversation_id: string | null;
         wa_user_id: string;
@@ -188,22 +213,54 @@ export default function OkComMxPanel() {
         job_title: string | null;
         job_company: string | null;
         created_at: string;
-      }> = [];
+      };
+      const appMap = new Map<string, AppRow>();
+      const companyFilter = [OK_MX_EMPLOYER_NAME, ...OK_MX_LEGACY_EMPLOYER_NAMES];
+
       let from = 0;
+      const pageSize = 1000;
       for (;;) {
         const { data, error } = await supabase
           .from('whatsapp_applications')
-          .select('id,conversation_id,wa_user_id,job_id,job_title,job_company,created_at')
-          .eq('job_company', OK_MX_EMPLOYER_NAME)
+          .select(selectCols)
+          .in('job_company', companyFilter)
           .order('created_at', { ascending: false })
           .range(from, from + pageSize - 1);
         if (error) throw error;
-        const batch = data ?? [];
-        apps.push(...batch);
+        const batch = (data ?? []) as AppRow[];
+        for (const a of batch) appMap.set(a.id, a);
         if (batch.length < pageSize) break;
         from += pageSize;
         if (from > 50_000) break;
       }
+
+      const { data: mxJobs, error: mxErr } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('external_source', OK_MX_EXTERNAL_SOURCE);
+      if (mxErr) throw mxErr;
+      const mxJobIds = (mxJobs ?? []).map((j) => j.id).filter(Boolean);
+
+      for (const idPart of chunk(mxJobIds, 120)) {
+        if (idPart.length === 0) continue;
+        let from2 = 0;
+        for (;;) {
+          const { data, error } = await supabase
+            .from('whatsapp_applications')
+            .select(selectCols)
+            .in('job_id', idPart)
+            .order('created_at', { ascending: false })
+            .range(from2, from2 + pageSize - 1);
+          if (error) throw error;
+          const batch = (data ?? []) as AppRow[];
+          for (const a of batch) appMap.set(a.id, a);
+          if (batch.length < pageSize) break;
+          from2 += pageSize;
+          if (from2 > 50_000) break;
+        }
+      }
+
+      const apps = [...appMap.values()].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
       const convIds = [...new Set(apps.map((a) => a.conversation_id).filter(Boolean))] as string[];
       const convById = new Map<
@@ -267,7 +324,7 @@ export default function OkComMxPanel() {
       link.click();
       URL.revokeObjectURL(url);
 
-      toast.success(`已导出 ${apps.length} 条投递记录（公司名：${OK_MX_EMPLOYER_NAME}）。`);
+      toast.success(`已导出 ${apps.length} 条投递（OK.com Jobs / 旧名 ok.com招聘 / external_source 职位）。`);
     } catch (err: unknown) {
       toast.error(String((err as { message?: unknown })?.message || err));
     } finally {
@@ -278,12 +335,12 @@ export default function OkComMxPanel() {
   return (
     <Card className="mb-4 border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">ok.com 招聘 · MX 真实帖子</CardTitle>
+        <CardTitle className="text-base">OK.com Jobs · MX 真实帖子</CardTitle>
         <CardDescription>
-          使用桌面上的「MX真实帖子」CSV（含 info_id / cate_code / content）。品类名称会合并内置的{' '}
-          <code className="text-xs">public/data/mx-job-categories.csv</code>；可选再上传一份新的品类表覆盖同名 code。
-          职位统一写入公司「{OK_MX_EMPLOYER_NAME}」，Logo 为{' '}
-          <code className="text-xs">/employers/okcom-recruitment-logo.jpg</code>。投递导出仅包含该公司名下 WhatsApp 申请。
+          使用「MX真实帖子」CSV（含 info_id / cate_code / content）。品类名称会合并内置的{' '}
+          <code className="text-xs">public/data/mx-job-categories.csv</code>；可选再上传品类表覆盖同名 code。
+          职位写入公司「{OK_MX_EMPLOYER_NAME}」，站点分类按 MX 品类 path 的第二段映射到现有 5 类；Logo 为{' '}
+          <code className="text-xs">/employers/okcom-recruitment-logo.jpg</code>。非 es 语言在配置了 OpenAI 兼容密钥时会译为 es-MX。
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
