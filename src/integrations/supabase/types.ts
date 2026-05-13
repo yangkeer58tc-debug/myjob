@@ -24,6 +24,7 @@ export type Database = {
           description: string | null
           education_level: string | null
           experience: string | null
+          external_source: string | null
           highlights: string[] | null
           id: string
           industry: string | null
@@ -31,6 +32,7 @@ export type Database = {
           job_type: string
           language_req: string | null
           location: string
+          mx_category_code: string | null
           payment_frequency: string
           requirements: string | null
           salary_amount: string
@@ -49,6 +51,7 @@ export type Database = {
           description?: string | null
           education_level?: string | null
           experience?: string | null
+          external_source?: string | null
           highlights?: string[] | null
           id?: string
           industry?: string | null
@@ -56,6 +59,7 @@ export type Database = {
           job_type?: string
           language_req?: string | null
           location?: string
+          mx_category_code?: string | null
           payment_frequency?: string
           requirements?: string | null
           salary_amount?: string
@@ -74,6 +78,7 @@ export type Database = {
           description?: string | null
           education_level?: string | null
           experience?: string | null
+          external_source?: string | null
           highlights?: string[] | null
           id?: string
           industry?: string | null
@@ -81,6 +86,7 @@ export type Database = {
           job_type?: string
           language_req?: string | null
           location?: string
+          mx_category_code?: string | null
           payment_frequency?: string
           requirements?: string | null
           salary_amount?: string

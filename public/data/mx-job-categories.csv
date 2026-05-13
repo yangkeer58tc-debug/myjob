@@ -1,0 +1,421 @@
+systemId,categoryId,code,name,parentId,parentCode,order,categoryLevel,isLeaf,path,status
+1635616,1261,jobs,"{""es"":""Empleos"",""en"":""Jobs""}",0,,6,1,false,jobs,1
+1635617,1292,jobs-other,"{""es"":""Otro"",""en"":""Other""}",1261,,-1,2,true,"jobs,jobs-other",1
+1635618,1291,construction01,"{""es"":""Construcción"",""en"":""Construction""}",1261,,23,2,false,"jobs,construction01",1
+1635619,3722,construction-plant-machinery-operators,"{""es"":""Operadores de plantas y maquinaria"",""en"":""Plant & Machinery Operators""}",1291,,4,3,true,"jobs,construction01,construction-plant-machinery-operators",1
+1635620,3721,construction-construction-other,"{""es"":""Otro"",""en"":""Other""}",1291,,0,3,true,"jobs,construction01,construction-construction-other",2
+1635621,3720,construction-surveying,"{""es"":""Topografía"",""en"":""Surveying""}",1291,,1,3,true,"jobs,construction01,construction-surveying",1
+1635622,3719,construction-quality-assurance-control,"{""es"":""Garantía y control de calidad"",""en"":""Quality Assurance & Control""}",1291,,2,3,true,"jobs,construction01,construction-quality-assurance-control",1
+1635623,3718,construction-project-management,"{""es"":""Gestión de proyectos"",""en"":""Project Management""}",1291,,3,3,true,"jobs,construction01,construction-project-management",1
+1635624,3717,construction-planning-scheduling,"{""es"":""Planificación y programación"",""en"":""Planning & Scheduling""}",1291,,5,3,true,"jobs,construction01,construction-planning-scheduling",1
+1635625,3716,construction-management,"{""es"":""Gestión"",""en"":""Management""}",1291,,6,3,true,"jobs,construction01,construction-management",1
+1635626,3715,construction-health-safety-environment,"{""es"":""Salud seguridad y medio ambiente"",""en"":""Health Safety & Environment""}",1291,,7,3,true,"jobs,construction01,construction-health-safety-environment",1
+1635627,3714,construction-foreperson-supervisors,"{""es"":""Foreperson / Supervisoras"",""en"":""Foreperson/Supervisors""}",1291,,8,3,true,"jobs,construction01,construction-foreperson-supervisors",1
+1635628,3713,construction-estimating,"{""es"":""Estimando"",""en"":""Estimating""}",1291,,9,3,true,"jobs,construction01,construction-estimating",1
+1635629,3712,construction-contracts-management,"{""es"":""Gestión de contratos"",""en"":""Contracts Management""}",1291,,10,3,true,"jobs,construction01,construction-contracts-management",1
+1635630,3711,construction-other,"{""es"":""Otro"",""en"":""Other""}",1291,,0,3,true,"jobs,construction01,construction-other",1
+1635631,1290,trades-services,"{""es"":""Oficios y Servicios"",""en"":""Trades & Services""}",1261,,1,2,false,"jobs,trades-services",1
+1635632,1673,welders-boilermakers,"{""es"":""Soldadores y Caldereros"",""en"":""Welders & Boilermakers""}",1290,,0,3,true,"jobs,trades-services,welders-boilermakers",1
+1635633,1653,technicians,"{""es"":""Técnicos"",""en"":""Technicians""}",1290,,0,3,true,"jobs,trades-services,technicians",1
+1635634,1641,tailors-dressmakers,"{""es"":""Sastres y Modistas"",""en"":""Tailors & Dressmakers""}",1290,,0,3,true,"jobs,trades-services,tailors-dressmakers",1
+1635635,1627,security-services,"{""es"":""Servicios de Seguridad"",""en"":""Security Services""}",1290,,0,3,true,"jobs,trades-services,security-services",1
+1635636,1589,printing-publishing-services,"{""es"":""Servicios de Impresión y Publicación"",""en"":""Printing & Publishing Services""}",1290,,0,3,true,"jobs,trades-services,printing-publishing-services",1
+1635637,1583,plumbers,"{""es"":""Plomeros"",""en"":""Plumbers""}",1290,,0,3,true,"jobs,trades-services,plumbers",1
+1635638,1572,painters-sign-writers,"{""es"":""Pintores y Rotulistas"",""en"":""Painters & Sign Writers""}",1290,,0,3,true,"jobs,trades-services,painters-sign-writers",1
+1635639,1542,other1,"{""es"":""Otro"",""en"":""Other""}",1290,,-1,3,true,"jobs,trades-services,other1",1
+1635640,1518,nannies-babysitters,"{""es"":""Niñeras y Cuidadores"",""en"":""Nannies & Babysitters""}",1290,,0,3,true,"jobs,trades-services,nannies-babysitters",1
+1635641,1471,locksmiths,"{""es"":""Cerrajeros"",""en"":""Locksmiths""}",1290,,0,3,true,"jobs,trades-services,locksmiths",1
+1635642,1464,laborers,"{""es"":""Peones"",""en"":""Laborers""}",1290,,0,3,true,"jobs,trades-services,laborers",1
+1635643,1443,handyperson-maint-services,"{""es"":""Mantenimiento y Servicios de Manitas"",""en"":""Maintenance & Handyperson Services""}",1290,,0,3,true,"jobs,trades-services,handyperson-maint-services",1
+1635644,1442,hair-beauty-services,"{""es"":""Servicios de Peluquería y Belleza"",""en"":""Hair & Beauty Services""}",1290,,0,3,true,"jobs,trades-services,hair-beauty-services",1
+1635645,1432,gardening-landscaping,"{""es"":""Jardinería y Paisajismo"",""en"":""Gardening & Landscaping""}",1290,,0,3,true,"jobs,trades-services,gardening-landscaping",1
+1635646,1422,floristry,"{""es"":""Floristería"",""en"":""Floristry""}",1290,,0,3,true,"jobs,trades-services,floristry",1
+1635647,1420,fitters-turners-machinists,"{""es"":""Ajustadores · Torneros y Mecánicos"",""en"":""Fitters · Turners & Machinists""}",1290,,0,3,true,"jobs,trades-services,fitters-turners-machinists",1
+1635648,1395,electricians,"{""es"":""Electricistas"",""en"":""Electricians""}",1290,,0,3,true,"jobs,trades-services,electricians",1
+1635649,1355,cleaning-services,"{""es"":""Servicios de Limpieza"",""en"":""Cleaning Services""}",1290,,0,3,true,"jobs,trades-services,cleaning-services",1
+1635650,1346,carpentry-cabinet-making,"{""es"":""Carpintería y Ebanistería"",""en"":""Carpentry & Cabinet Making""}",1290,,0,3,true,"jobs,trades-services,carpentry-cabinet-making",1
+1635651,1344,butchers,"{""es"":""Carniceros"",""en"":""Butchers""}",1290,,0,3,true,"jobs,trades-services,butchers",1
+1635652,1342,building-trades,"{""es"":""Oficios de Construcción"",""en"":""Building Trades""}",1290,,0,3,true,"jobs,trades-services,building-trades",1
+1635653,1329,bakers-pastry-chefs,"{""es"":""Panaderos y Pasteleros"",""en"":""Bakers & Pastry Chefs""}",1290,,0,3,true,"jobs,trades-services,bakers-pastry-chefs",1
+1635654,1327,automotive-trades,"{""es"":""Oficios Automotrices"",""en"":""Automotive Trades""}",1290,,0,3,true,"jobs,trades-services,automotive-trades",1
+1635655,1298,ac-refrigeration,"{""es"":""Aire Acondicionado y Refrigeración"",""en"":""Air Conditioning & Refrigeration""}",1290,,0,3,true,"jobs,trades-services,ac-refrigeration",1
+1635656,1289,sport-recreation,"{""es"":""Deportes y Recreación"",""en"":""Sport & Recreation""}",1261,,2,2,false,"jobs,sport-recreation",1
+1635657,1553,other2,"{""es"":""Otro"",""en"":""Other""}",1289,,-1,3,true,"jobs,sport-recreation,other2",1
+1635658,1473,management,"{""es"":""Gestión"",""en"":""Management""}",1289,,0,3,true,"jobs,sport-recreation,management",1
+1635659,1419,fitness-personal-training,"{""es"":""Fitness y Entrenamiento Personal"",""en"":""Fitness & Personal Training""}",1289,,0,3,true,"jobs,sport-recreation,fitness-personal-training",1
+1635660,1359,coaching-instruction,"{""es"":""Entrenamiento e Instrucción"",""en"":""Coaching & Instruction""}",1289,,0,3,true,"jobs,sport-recreation,coaching-instruction",1
+1635661,1288,self-employment1,"{""es"":""Trabajo Independiente"",""en"":""Self Employment""}",1261,,3,2,false,"jobs,self-employment1",1
+1635662,1628,self-employment,"{""es"":""Trabajo Independiente"",""en"":""Self Employment""}",1288,,0,3,true,"jobs,self-employment1,self-employment",1
+1635663,1287,science-technology,"{""es"":""Ciencia y Tecnología"",""en"":""Science & Technology""}",1261,,4,2,false,"jobs,science-technology",1
+1635664,1605,quality-assurance-control,"{""es"":""Garantía y Control de Calidad"",""en"":""Quality Assurance & Control""}",1287,,0,3,true,"jobs,science-technology,quality-assurance-control",1
+1635665,1564,other3,"{""es"":""Otro"",""en"":""Other""}",1287,,-1,3,true,"jobs,science-technology,other3",1
+1635666,1516,modeling-simulation,"{""es"":""Modelado y Simulación"",""en"":""Modeling & Simulation""}",1287,,0,3,true,"jobs,science-technology,modeling-simulation",1
+1635667,1501,math-stats-info-sciences,"{""es"":""Matemáticas · Estadística y Ciencias de la Información"",""en"":""Mathematics · Statistics & Information Sciences""}",1287,,0,3,true,"jobs,science-technology,math-stats-info-sciences",1
+1635668,1500,materials-sciences,"{""es"":""Ciencias de Materiales"",""en"":""Materials Sciences""}",1287,,0,3,true,"jobs,science-technology,materials-sciences",1
+1635669,1463,laboratory-technical-services,"{""es"":""Servicios de Laboratorio y Técnicos"",""en"":""Laboratory & Technical Services""}",1287,,0,3,true,"jobs,science-technology,laboratory-technical-services",1
+1635670,1423,food-technology-safety,"{""es"":""Tecnología y Seguridad Alimentaria"",""en"":""Food Technology & Safety""}",1287,,0,3,true,"jobs,science-technology,food-technology-safety",1
+1635671,1402,env-earth-geosciences,"{""es"":""Ciencias Ambientales · de la Tierra y Geociencias"",""en"":""Environmental · Earth & Geosciences""}",1287,,0,3,true,"jobs,science-technology,env-earth-geosciences",1
+1635672,1350,chemistry-physics,"{""es"":""Química y Física"",""en"":""Chemistry & Physics""}",1287,,0,3,true,"jobs,science-technology,chemistry-physics",1
+1635673,1335,biotechnology-genetics,"{""es"":""Biotecnología y Genética"",""en"":""Biotechnology & Genetics""}",1287,,0,3,true,"jobs,science-technology,biotechnology-genetics",1
+1635674,1334,bio-biomed-sciences,"{""es"":""Ciencias Biológicas y Biomédicas"",""en"":""Biological & Biomedical Sciences""}",1287,,0,3,true,"jobs,science-technology,bio-biomed-sciences",1
+1635675,1286,sales,"{""es"":""Ventas"",""en"":""Sales""}",1261,,5,2,false,"jobs,sales",1
+1635676,1626,sales-reps-consultants,"{""es"":""Representantes/Consultores de Ventas"",""en"":""Sales Representatives/Consultants""}",1286,,0,3,true,"jobs,sales,sales-reps-consultants",1
+1635677,1622,sales-coordinators,"{""es"":""Coordinadores de Ventas"",""en"":""Sales Coordinators""}",1286,,0,3,true,"jobs,sales,sales-coordinators",1
+1635678,1565,other4,"{""es"":""Otro"",""en"":""Other""}",1286,,-1,3,true,"jobs,sales,other4",1
+1635679,1521,new-business-development,"{""es"":""Desarrollo de Nuevos Negocios"",""en"":""New Business Development""}",1286,,0,3,true,"jobs,sales,new-business-development",1
+1635680,1474,management1,"{""es"":""Gestión"",""en"":""Management""}",1286,,0,3,true,"jobs,sales,management1",1
+1635681,1310,analysis-reporting,"{""es"":""Análisis e Informes"",""en"":""Analysis & Reporting""}",1286,,0,3,true,"jobs,sales,analysis-reporting",1
+1635682,1296,acct-relationship-mgmt,"{""es"":""Gestión de Cuentas y Relaciones"",""en"":""Account & Relationship Management""}",1286,,0,3,true,"jobs,sales,acct-relationship-mgmt",1
+1635683,1285,retail-consumer-products,"{""es"":""Retail y Productos de Consumo"",""en"":""Retail & Consumer Products""}",1261,,6,2,false,"jobs,retail-consumer-products",1
+1635684,1618,retail-assistants,"{""es"":""Asistentes de Retail"",""en"":""Retail Assistants""}",1285,,0,3,true,"jobs,retail-consumer-products,retail-assistants",1
+1635685,1580,planning,"{""es"":""Planificación"",""en"":""Planning""}",1285,,0,3,true,"jobs,retail-consumer-products,planning",1
+1635686,1566,other5,"{""es"":""Otro"",""en"":""Other""}",1285,,-1,3,true,"jobs,retail-consumer-products,other5",1
+1635687,1509,mgmt-dept-assistant,"{""es"":""Gestión - Departamento/Asistente"",""en"":""Management - Department/Assistant""}",1285,,0,3,true,"jobs,retail-consumer-products,mgmt-dept-assistant",1
+1635688,1507,merchandisers,"{""es"":""Merchandisers"",""en"":""Merchandisers""}",1285,,0,3,true,"jobs,retail-consumer-products,merchandisers",1
+1635689,1493,management-store,"{""es"":""Gestión - Tienda"",""en"":""Management - Store""}",1285,,0,3,true,"jobs,retail-consumer-products,management-store",1
+1635690,1489,management-area-multi-site,"{""es"":""Gestión - Zonal/Multi-sucursal"",""en"":""Management - Area/Multi-site""}",1285,,0,3,true,"jobs,retail-consumer-products,management-area-multi-site",1
+1635691,1345,buying,"{""es"":""Compras"",""en"":""Buying""}",1285,,0,3,true,"jobs,retail-consumer-products,buying",1
+1635692,1284,real-estate-property,"{""es"":""Bienes Raíces y Propiedades"",""en"":""Real Estate & Property""}",1261,,7,2,false,"jobs,real-estate-property",1
+1635693,1665,valuation,"{""es"":""Tasaciones"",""en"":""Valuation""}",1284,,0,3,true,"jobs,real-estate-property,valuation",1
+1635694,1619,retail-property-development,"{""es"":""Desarrollo Inmobiliario y Comercial"",""en"":""Retail & Property Development""}",1284,,0,3,true,"jobs,real-estate-property,retail-property-development",1
+1635695,1616,residential-sales,"{""es"":""Ventas Residenciales"",""en"":""Residential Sales""}",1284,,0,3,true,"jobs,real-estate-property,residential-sales",1
+1635696,1615,residential-prop-mgmt,"{""es"":""Arrendamientos y Gestión de Propiedades Residenciales"",""en"":""Residential Leasing & Property Management""}",1284,,0,3,true,"jobs,real-estate-property,residential-prop-mgmt",1
+1635697,1567,other6,"{""es"":""Otro"",""en"":""Other""}",1284,,-1,3,true,"jobs,real-estate-property,other6",1
+1635698,1361,comm-sales-leasing-prop-mgmt,"{""es"":""Ventas Comerciales · Arrendamientos y Gestión de Propiedades"",""en"":""Commercial Sales · Leasing & Property Management""}",1284,,0,3,true,"jobs,real-estate-property,comm-sales-leasing-prop-mgmt",1
+1635699,1337,body-corp-facilities-mgmt,"{""es"":""Administración de Condominios e Instalaciones"",""en"":""Body Corporate & Facilities Management""}",1284,,0,3,true,"jobs,real-estate-property,body-corp-facilities-mgmt",1
+1635700,1315,analysts,"{""es"":""Analistas"",""en"":""Analysts""}",1284,,0,3,true,"jobs,real-estate-property,analysts",1
+1635701,1300,administration,"{""es"":""Administración"",""en"":""Administration""}",1284,,0,3,true,"jobs,real-estate-property,administration",1
+1635702,1283,mining-resources-energy,"{""es"":""Minería · Recursos y Energía"",""en"":""Mining · Resources & Energy""}",1261,,8,2,false,"jobs,mining-resources-energy",1
+1635703,1637,surveying,"{""es"":""Prospección"",""en"":""Surveying""}",1283,,0,3,true,"jobs,mining-resources-energy,surveying",1
+1635704,1587,power-generation-distribution,"{""es"":""Generación y Distribución de Energía"",""en"":""Power Generation & Distribution""}",1283,,0,3,true,"jobs,mining-resources-energy,power-generation-distribution",1
+1635705,1568,other7,"{""es"":""Otro"",""en"":""Other""}",1283,,-1,3,true,"jobs,mining-resources-energy,other7",1
+1635706,1539,oil-gas-production-refinement,"{""es"":""Petróleo y Gas - Producción y Refinación"",""en"":""Oil & Gas - Production & Refinement""}",1283,,0,3,true,"jobs,mining-resources-energy,oil-gas-production-refinement",1
+1635707,1538,oil-gas-operations,"{""es"":""Petróleo y Gas - Operaciones"",""en"":""Oil & Gas - Operations""}",1283,,0,3,true,"jobs,mining-resources-energy,oil-gas-operations",1
+1635708,1537,oil-gas-explore-geoscience,"{""es"":""Petróleo y Gas - Exploración y Geociencia"",""en"":""Oil & Gas - Exploration & Geoscience""}",1283,,0,3,true,"jobs,mining-resources-energy,oil-gas-explore-geoscience",1
+1635709,1536,oil-gas-eng-maintenance,"{""es"":""Petróleo y Gas - Ingeniería y Mantenimiento"",""en"":""Oil & Gas - Engineering & Maintenance""}",1283,,0,3,true,"jobs,mining-resources-energy,oil-gas-eng-maintenance",1
+1635710,1535,oil-gas-drilling,"{""es"":""Petróleo y Gas - Perforación"",""en"":""Oil & Gas - Drilling""}",1283,,0,3,true,"jobs,mining-resources-energy,oil-gas-drilling",1
+1635711,1519,natural-resources-water,"{""es"":""Recursos Naturales y Agua"",""en"":""Natural Resources & Water""}",1283,,0,3,true,"jobs,mining-resources-energy,natural-resources-water",1
+1635712,1514,mining-processing,"{""es"":""Minería - Procesamiento"",""en"":""Mining - Processing""}",1283,,0,3,true,"jobs,mining-resources-energy,mining-processing",1
+1635713,1513,mining-operations,"{""es"":""Minería - Operaciones"",""en"":""Mining - Operations""}",1283,,0,3,true,"jobs,mining-resources-energy,mining-operations",1
+1635714,1512,mining-exploration-geoscience,"{""es"":""Minería - Exploración y Geociencia"",""en"":""Mining - Exploration & Geoscience""}",1283,,0,3,true,"jobs,mining-resources-energy,mining-exploration-geoscience",1
+1635715,1511,mining-eng-maintenance,"{""es"":""Minería - Ingeniería y Mantenimiento"",""en"":""Mining - Engineering & Maintenance""}",1283,,0,3,true,"jobs,mining-resources-energy,mining-eng-maintenance",1
+1635716,1510,mining-drill-blast,"{""es"":""Minería - Perforación y Voladura"",""en"":""Mining - Drill & Blast""}",1283,,0,3,true,"jobs,mining-resources-energy,mining-drill-blast",1
+1635717,1480,management2,"{""es"":""Gestión"",""en"":""Management""}",1283,,0,3,true,"jobs,mining-resources-energy,management2",1
+1635718,1444,health-safety-environment,"{""es"":""Salud · Seguridad y Medio Ambiente"",""en"":""Health · Safety & Environment""}",1283,,0,3,true,"jobs,mining-resources-energy,health-safety-environment",1
+1635719,1311,analysis-reporting1,"{""es"":""Análisis e Informes"",""en"":""Analysis & Reporting""}",1283,,0,3,true,"jobs,mining-resources-energy,analysis-reporting1",1
+1635720,1282,mfg-transport-logistics,"{""es"":""Manufactura · Transporte y Logística"",""en"":""Manufacturing · Transport & Logistics""}",1261,,10,2,false,"jobs,mfg-transport-logistics",1
+1635721,1669,warehouse-storage-distrib,"{""es"":""Almacenamiento y Distribución"",""en"":""Warehousing · Storage & Distribution""}",1282,,0,3,true,"jobs,mfg-transport-logistics,warehouse-storage-distrib",1
+1635722,1651,team-leaders-supervisors,"{""es"":""Líderes de Equipo/Supervisores"",""en"":""Team Leaders/Supervisors""}",1282,,0,3,true,"jobs,mfg-transport-logistics,team-leaders-supervisors",1
+1635723,1621,road-transport,"{""es"":""Transporte por Carretera"",""en"":""Road Transport""}",1282,,0,3,true,"jobs,mfg-transport-logistics,road-transport",1
+1635724,1608,rail-maritime-transport,"{""es"":""Transporte Ferroviario y Marítimo"",""en"":""Rail & Maritime Transport""}",1282,,0,3,true,"jobs,mfg-transport-logistics,rail-maritime-transport",1
+1635725,1606,quality-assurance-control1,"{""es"":""Garantía y Control de Calidad"",""en"":""Quality Assurance & Control""}",1282,,0,3,true,"jobs,mfg-transport-logistics,quality-assurance-control1",1
+1635726,1604,purchasing-inventory,"{""es"":""Compras · Adquisiciones e Inventario"",""en"":""Purchasing · Procurement & Inventory""}",1282,,0,3,true,"jobs,mfg-transport-logistics,purchasing-inventory",1
+1635727,1603,public-transport-taxi,"{""es"":""Transporte Público y Taxis"",""en"":""Public Transport & Taxi Services""}",1282,,0,3,true,"jobs,mfg-transport-logistics,public-transport-taxi",1
+1635728,1591,production-planning,"{""es"":""Producción · Planificación y Programación"",""en"":""Production · Planning & Scheduling""}",1282,,0,3,true,"jobs,mfg-transport-logistics,production-planning",1
+1635729,1579,pickers-packers,"{""es"":""Preparadores y Embaladores"",""en"":""Pickers & Packers""}",1282,,0,3,true,"jobs,mfg-transport-logistics,pickers-packers",1
+1635730,1570,other9,"{""es"":""Otro"",""en"":""Other""}",1282,,-1,3,true,"jobs,mfg-transport-logistics,other9",1
+1635731,1482,management4,"{""es"":""Gestión"",""en"":""Management""}",1282,,0,3,true,"jobs,mfg-transport-logistics,management4",1
+1635732,1472,machine-operators,"{""es"":""Operadores de Máquinas"",""en"":""Machine Operators""}",1282,,0,3,true,"jobs,mfg-transport-logistics,machine-operators",1
+1635733,1451,import-export-customs,"{""es"":""Importación/Exportación y Aduanas"",""en"":""Import/Export & Customs""}",1282,,0,3,true,"jobs,mfg-transport-logistics,import-export-customs",1
+1635734,1433,garment-pattern-techs,"{""es"":""Patronistas y Técnicos de Prendas"",""en"":""Pattern Makers & Garment Technicians""}",1282,,0,3,true,"jobs,mfg-transport-logistics,garment-pattern-techs",1
+1635735,1426,freight-cargo-forwarding,"{""es"":""Flete y Carga"",""en"":""Freight/Cargo Forwarding""}",1282,,0,3,true,"jobs,mfg-transport-logistics,freight-cargo-forwarding",1
+1635736,1421,fleet-management,"{""es"":""Gestión de Flotas"",""en"":""Fleet Management""}",1282,,0,3,true,"jobs,mfg-transport-logistics,fleet-management",1
+1635737,1381,couriers-drivers-postal,"{""es"":""Mensajería · Conductores y Servicios Postales"",""en"":""Couriers · Drivers & Postal Services""}",1282,,0,3,true,"jobs,mfg-transport-logistics,couriers-drivers-postal",1
+1635738,1328,aviation-services,"{""es"":""Servicios de Aviación"",""en"":""Aviation Services""}",1282,,0,3,true,"jobs,mfg-transport-logistics,aviation-services",1
+1635739,1321,assembly-process-work,"{""es"":""Ensamblaje y Procesos"",""en"":""Assembly & Process Work""}",1282,,0,3,true,"jobs,mfg-transport-logistics,assembly-process-work",1
+1635740,1312,analysis-reporting2,"{""es"":""Análisis e Informes"",""en"":""Analysis & Reporting""}",1282,,0,3,true,"jobs,mfg-transport-logistics,analysis-reporting2",1
+1635741,1281,marketing-communications1,"{""es"":""Marketing y Comunicaciones"",""en"":""Marketing & Communications""}",1261,,9,2,false,"jobs,marketing-communications1",1
+1635742,1657,trade-marketing,"{""es"":""Marketing Comercial"",""en"":""Trade Marketing""}",1281,,0,3,true,"jobs,marketing-communications1,trade-marketing",1
+1635743,1592,product-mgmt-dev,"{""es"":""Gestión y Desarrollo de Productos"",""en"":""Product Management & Development""}",1281,,0,3,true,"jobs,marketing-communications1,product-mgmt-dev",1
+1635744,1588,pr-corp-affairs,"{""es"":""Relaciones Públicas y Asuntos Corporativos"",""en"":""Public Relations & Corporate Affairs""}",1281,,0,3,true,"jobs,marketing-communications1,pr-corp-affairs",1
+1635745,1569,other8,"{""es"":""Otro"",""en"":""Other""}",1281,,-1,3,true,"jobs,marketing-communications1,other8",1
+1635746,1515,mktg-assist-coordinators,"{""es"":""Asistentes/Coordinadores de Marketing"",""en"":""Marketing Assistants/Coordinators""}",1281,,0,3,true,"jobs,marketing-communications1,mktg-assist-coordinators",1
+1635747,1498,market-research-analysis,"{""es"":""Investigación y Análisis de Mercado"",""en"":""Market Research & Analysis""}",1281,,0,3,true,"jobs,marketing-communications1,market-research-analysis",1
+1635748,1497,marketing-communications,"{""es"":""Comunicaciones de Marketing"",""en"":""Marketing Communications""}",1281,,0,3,true,"jobs,marketing-communications1,marketing-communications",1
+1635749,1481,management3,"{""es"":""Gestión"",""en"":""Management""}",1281,,0,3,true,"jobs,marketing-communications1,management3",1
+1635750,1459,internal-communications,"{""es"":""Comunicaciones Internas"",""en"":""Internal Communications""}",1281,,0,3,true,"jobs,marketing-communications1,internal-communications",1
+1635751,1408,event-management,"{""es"":""Gestión de Eventos"",""en"":""Event Management""}",1281,,0,3,true,"jobs,marketing-communications1,event-management",1
+1635752,1392,direct-marketing-crm,"{""es"":""Marketing Directo y CRM"",""en"":""Direct Marketing & CRM""}",1281,,0,3,true,"jobs,marketing-communications1,direct-marketing-crm",1
+1635753,1391,digital-search-marketing,"{""es"":""Marketing Digital y de Búsqueda"",""en"":""Digital & Search Marketing""}",1281,,0,3,true,"jobs,marketing-communications1,digital-search-marketing",1
+1635754,1339,brand-management,"{""es"":""Gestión de Marca"",""en"":""Brand Management""}",1281,,0,3,true,"jobs,marketing-communications1,brand-management",1
+1635755,1280,legal,"{""es"":""Legal"",""en"":""Legal""}",1261,,11,2,false,"jobs,legal",1
+1635756,1643,tax-law,"{""es"":""Derecho Tributario"",""en"":""Tax Law""}",1280,,0,3,true,"jobs,legal,tax-law",1
+1635757,1600,property-law,"{""es"":""Derecho de Propiedad"",""en"":""Property Law""}",1280,,0,3,true,"jobs,legal,property-law",1
+1635758,1576,personal-injury-law,"{""es"":""Derecho de Daños Personales"",""en"":""Personal Injury Law""}",1280,,0,3,true,"jobs,legal,personal-injury-law",1
+1635759,1543,other10,"{""es"":""Otro"",""en"":""Other""}",1280,,-1,3,true,"jobs,legal,other10",1
+1635760,1470,litigation-dispute-resolution,"{""es"":""Litigios y Resolución de Disputas"",""en"":""Litigation & Dispute Resolution""}",1280,,0,3,true,"jobs,legal,litigation-dispute-resolution",1
+1635761,1468,legal-secretaries,"{""es"":""Secretarios Legales"",""en"":""Legal Secretaries""}",1280,,0,3,true,"jobs,legal,legal-secretaries",1
+1635762,1467,legal-practice-management,"{""es"":""Gestión de Práctica Legal"",""en"":""Legal Practice Management""}",1280,,0,3,true,"jobs,legal,legal-practice-management",1
+1635763,1466,law-clerks-paralegals,"{""es"":""Pasantes y Paralegales"",""en"":""Law Clerks & Paralegals""}",1280,,0,3,true,"jobs,legal,law-clerks-paralegals",1
+1635764,1457,intellectual-property-law,"{""es"":""Propiedad Intelectual"",""en"":""Intellectual Property Law""}",1280,,0,3,true,"jobs,legal,intellectual-property-law",1
+1635765,1452,ind-relations-employment,"{""es"":""Relaciones Laborales y Derecho del Trabajo"",""en"":""Industrial Relations & Employment Law""}",1280,,0,3,true,"jobs,legal,ind-relations-employment",1
+1635766,1436,generalists-law-firm,"{""es"":""Generalistas - Firma Legal"",""en"":""Generalists - Law Firm""}",1280,,0,3,true,"jobs,legal,generalists-law-firm",1
+1635767,1435,generalists-in-house,"{""es"":""Generalistas - In-house"",""en"":""Generalists - In-house""}",1280,,0,3,true,"jobs,legal,generalists-in-house",1
+1635768,1410,family-law,"{""es"":""Derecho de Familia"",""en"":""Family Law""}",1280,,0,3,true,"jobs,legal,family-law",1
+1635769,1405,environment-planning-law,"{""es"":""Derecho Ambiental y Urbanístico"",""en"":""Environment & Planning Law""}",1280,,0,3,true,"jobs,legal,environment-planning-law",1
+1635770,1383,criminal-civil-law,"{""es"":""Derecho Penal y Civil"",""en"":""Criminal & Civil Law""}",1280,,0,3,true,"jobs,legal,criminal-civil-law",1
+1635771,1378,corporate-commercial-law,"{""es"":""Derecho Corporativo y Comercial"",""en"":""Corporate & Commercial Law""}",1280,,0,3,true,"jobs,legal,corporate-commercial-law",1
+1635772,1369,construction-law,"{""es"":""Derecho de la Construcción"",""en"":""Construction Law""}",1280,,0,3,true,"jobs,legal,construction-law",1
+1635773,1331,banking-finance-law,"{""es"":""Derecho Bancario y Financiero"",""en"":""Banking & Finance Law""}",1280,,0,3,true,"jobs,legal,banking-finance-law",1
+1635774,1279,insurance,"{""es"":""Seguros"",""en"":""Insurance""}",1261,,12,2,false,"jobs,insurance",1
+1635775,1675,workers-compensation,"{""es"":""Compensación Laboral"",""en"":""Workers' Compensation""}",1279,,0,3,true,"jobs,insurance,workers-compensation",1
+1635776,1663,underwriting,"{""es"":""Suscripción"",""en"":""Underwriting""}",1279,,0,3,true,"jobs,insurance,underwriting",1
+1635777,1620,risk-consulting,"{""es"":""Consultoría de Riesgos"",""en"":""Risk Consulting""}",1279,,0,3,true,"jobs,insurance,risk-consulting",1
+1635778,1544,other11,"{""es"":""Otro"",""en"":""Other""}",1279,,-1,3,true,"jobs,insurance,other11",1
+1635779,1483,management5,"{""es"":""Gestión"",""en"":""Management""}",1279,,0,3,true,"jobs,insurance,management5",1
+1635780,1428,fund-administration,"{""es"":""Administración de Fondos"",""en"":""Fund Administration""}",1279,,0,3,true,"jobs,insurance,fund-administration",1
+1635781,1354,claims,"{""es"":""Reclamaciones"",""en"":""Claims""}",1279,,0,3,true,"jobs,insurance,claims",1
+1635782,1340,brokerage,"{""es"":""Correduría"",""en"":""Brokerage""}",1279,,0,3,true,"jobs,insurance,brokerage",1
+1635783,1322,assessment,"{""es"":""Evaluación"",""en"":""Assessment""}",1279,,0,3,true,"jobs,insurance,assessment",1
+1635784,1299,actuarial,"{""es"":""Actuaría"",""en"":""Actuarial""}",1279,,0,3,true,"jobs,insurance,actuarial",1
+1635785,1278,info-comm-technology,"{""es"":""Tecnologías de Información y Comunicación"",""en"":""Information & Communication Technology""}",1261,,13,2,false,"jobs,info-comm-technology",1
+1635786,1679,security01,"{""es"":""Seguridad"",""en"":""Security""}",1278,,0,3,true,"jobs,info-comm-technology,security01",1
+1635787,1671,web-development-production,"{""es"":""Desarrollo y Producción Web"",""en"":""Web Development & Production""}",1278,,0,3,true,"jobs,info-comm-technology,web-development-production",1
+1635788,1655,testing-quality-assurance,"{""es"":""Pruebas y Garantía de Calidad"",""en"":""Testing & Quality Assurance""}",1278,,0,3,true,"jobs,info-comm-technology,testing-quality-assurance",1
+1635789,1654,telecommunications,"{""es"":""Telecomunicaciones"",""en"":""Telecommunications""}",1278,,0,3,true,"jobs,info-comm-technology,telecommunications",1
+1635790,1652,technical-writing,"{""es"":""Redacción Técnica"",""en"":""Technical Writing""}",1278,,0,3,true,"jobs,info-comm-technology,technical-writing",1
+1635791,1650,team-leaders,"{""es"":""Líderes de Equipo"",""en"":""Team Leaders""}",1278,,0,3,true,"jobs,info-comm-technology,team-leaders",1
+1635792,1625,sales-pre-post,"{""es"":""Ventas - Pre y Post Venta"",""en"":""Sales - Pre & Post""}",1278,,0,3,true,"jobs,info-comm-technology,sales-pre-post",1
+1635793,1595,program-project-management,"{""es"":""Gestión de Programas y Proyectos"",""en"":""Program & Project Management""}",1278,,0,3,true,"jobs,info-comm-technology,program-project-management",1
+1635794,1593,product-mgmt-dev1,"{""es"":""Gestión y Desarrollo de Productos"",""en"":""Product Management & Development""}",1278,,0,3,true,"jobs,info-comm-technology,product-mgmt-dev1",1
+1635795,1545,other12,"{""es"":""Otro"",""en"":""Other""}",1278,,-1,3,true,"jobs,info-comm-technology,other12",1
+1635796,1520,network-sys-admin,"{""es"":""Administración de Redes y Sistemas"",""en"":""Networks & Systems Administration""}",1278,,0,3,true,"jobs,info-comm-technology,network-sys-admin",1
+1635797,1484,management6,"{""es"":""Gestión"",""en"":""Management""}",1278,,0,3,true,"jobs,info-comm-technology,management6",1
+1635798,1446,help-desk-it-support,"{""es"":""Mesa de Ayuda y Soporte TI"",""en"":""Help Desk & IT Support""}",1278,,0,3,true,"jobs,info-comm-technology,help-desk-it-support",1
+1635799,1401,engineering-software,"{""es"":""Ingeniería - Software"",""en"":""Engineering - Software""}",1278,,0,3,true,"jobs,info-comm-technology,engineering-software",1
+1635800,1400,engineering-network,"{""es"":""Ingeniería - Redes"",""en"":""Engineering - Network""}",1278,,0,3,true,"jobs,info-comm-technology,engineering-network",1
+1635801,1399,engineering-hardware,"{""es"":""Ingeniería - Hardware"",""en"":""Engineering - Hardware""}",1278,,0,3,true,"jobs,info-comm-technology,engineering-hardware",1
+1635802,1389,developers-programmers,"{""es"":""Desarrolladores/Programadores"",""en"":""Developers/Programmers""}",1278,,0,3,true,"jobs,info-comm-technology,developers-programmers",1
+1635803,1386,database-dev-admin,"{""es"":""Desarrollo y Administración de Bases de Datos"",""en"":""Database Development & Administration""}",1278,,0,3,true,"jobs,info-comm-technology,database-dev-admin",1
+1635804,1370,consultants,"{""es"":""Consultores"",""en"":""Consultants""}",1278,,0,3,true,"jobs,info-comm-technology,consultants",1
+1635805,1367,computer-operators,"{""es"":""Operadores de Computadoras"",""en"":""Computer Operators""}",1278,,0,3,true,"jobs,info-comm-technology,computer-operators",1
+1635806,1343,business-systems-analysts,"{""es"":""Analistas de Negocios/Sistemas"",""en"":""Business/Systems Analysts""}",1278,,0,3,true,"jobs,info-comm-technology,business-systems-analysts",1
+1635807,1317,architects,"{""es"":""Arquitectos"",""en"":""Architects""}",1278,,0,3,true,"jobs,info-comm-technology,architects",1
+1635808,1277,human-resources-recruitment,"{""es"":""Recursos Humanos y Reclutamiento"",""en"":""Human Resources & Recruitment""}",1261,,14,2,false,"jobs,human-resources-recruitment",1
+1635809,1658,training-development,"{""es"":""Capacitación y Desarrollo"",""en"":""Training & Development""}",1277,,0,3,true,"jobs,human-resources-recruitment,training-development",1
+1635810,1612,recruitment-internal,"{""es"":""Reclutamiento - Interno"",""en"":""Recruitment - Internal""}",1277,,0,3,true,"jobs,human-resources-recruitment,recruitment-internal",1
+1635811,1611,recruitment-agency,"{""es"":""Reclutamiento - Agencia"",""en"":""Recruitment - Agency""}",1277,,0,3,true,"jobs,human-resources-recruitment,recruitment-agency",1
+1635812,1546,other13,"{""es"":""Otro"",""en"":""Other""}",1277,,-1,3,true,"jobs,human-resources-recruitment,other13",1
+1635813,1541,organizational-development,"{""es"":""Desarrollo Organizacional"",""en"":""Organizational Development""}",1277,,0,3,true,"jobs,human-resources-recruitment,organizational-development",1
+1635814,1533,occupational-health-safety,"{""es"":""Salud y Seguridad Ocupacional"",""en"":""Occupational Health & Safety""}",1277,,0,3,true,"jobs,human-resources-recruitment,occupational-health-safety",1
+1635815,1491,management-internal,"{""es"":""Gestión - Interna"",""en"":""Management - Internal""}",1277,,0,3,true,"jobs,human-resources-recruitment,management-internal",1
+1635816,1488,management-agency,"{""es"":""Gestión - Agencia"",""en"":""Management - Agency""}",1277,,0,3,true,"jobs,human-resources-recruitment,management-agency",1
+1635817,1454,industrial-employee-relations,"{""es"":""Relaciones Industriales y Laborales"",""en"":""Industrial & Employee Relations""}",1277,,0,3,true,"jobs,human-resources-recruitment,industrial-employee-relations",1
+1635818,1371,consulting-generalist-hr,"{""es"":""Consultoría y RRHH Generalista"",""en"":""Consulting & Generalist HR""}",1277,,0,3,true,"jobs,human-resources-recruitment,consulting-generalist-hr",1
+1635819,1364,compensation-benefits,"{""es"":""Compensaciones y Beneficios"",""en"":""Compensation & Benefits""}",1277,,0,3,true,"jobs,human-resources-recruitment,compensation-benefits",1
+1635820,1276,hospitality-tourism,"{""es"":""Hotelería y Turismo"",""en"":""Hospitality & Tourism""}",1261,,15,2,false,"jobs,hospitality-tourism",1
+1635821,1668,waiting-staff,"{""es"":""Personal de Servicio"",""en"":""Waiting Staff""}",1276,,0,3,true,"jobs,hospitality-tourism,waiting-staff",1
+1635822,1659,travel-agents-consultants,"{""es"":""Agentes/Consultores de Viajes"",""en"":""Travel Agents/Consultants""}",1276,,0,3,true,"jobs,hospitality-tourism,travel-agents-consultants",1
+1635823,1656,tour-guides,"{""es"":""Guías Turísticos"",""en"":""Tour Guides""}",1276,,0,3,true,"jobs,hospitality-tourism,tour-guides",1
+1635824,1614,reservations,"{""es"":""Reservaciones"",""en"":""Reservations""}",1276,,0,3,true,"jobs,hospitality-tourism,reservations",1
+1635825,1547,other14,"{""es"":""Otro"",""en"":""Other""}",1276,,-1,3,true,"jobs,hospitality-tourism,other14",1
+1635826,1485,management7,"{""es"":""Gestión"",""en"":""Management""}",1276,,0,3,true,"jobs,hospitality-tourism,management7",1
+1635827,1462,kitchen-sandwich-hands,"{""es"":""Ayudantes de Cocina"",""en"":""Kitchen & Sandwich Hands""}",1276,,0,3,true,"jobs,hospitality-tourism,kitchen-sandwich-hands",1
+1635828,1448,housekeeping,"{""es"":""Ama de Llaves"",""en"":""Housekeeping""}",1276,,0,3,true,"jobs,hospitality-tourism,housekeeping",1
+1635829,1431,gaming,"{""es"":""Juegos"",""en"":""Gaming""}",1276,,0,3,true,"jobs,hospitality-tourism,gaming",1
+1635830,1427,front-office-guest-services,"{""es"":""Recepción y Servicio al Huésped"",""en"":""Front Office & Guest Services""}",1276,,0,3,true,"jobs,hospitality-tourism,front-office-guest-services",1
+1635831,1348,chefs-cooks,"{""es"":""Chefs/Cocineros"",""en"":""Chefs/Cooks""}",1276,,0,3,true,"jobs,hospitality-tourism,chefs-cooks",1
+1635832,1333,bar-beverage-staff,"{""es"":""Personal de Bar y Bebidas"",""en"":""Bar & Beverage Staff""}",1276,,0,3,true,"jobs,hospitality-tourism,bar-beverage-staff",1
+1635833,1307,airlines,"{""es"":""Aerolíneas"",""en"":""Airlines""}",1276,,0,3,true,"jobs,hospitality-tourism,airlines",1
+1635834,1275,healthcare-medical,"{""es"":""Salud y Medicina"",""en"":""Healthcare & Medical""}",1261,,16,2,false,"jobs,healthcare-medical",1
+1635835,1630,speech-therapy,"{""es"":""Terapia del Lenguaje"",""en"":""Speech Therapy""}",1275,,0,3,true,"jobs,healthcare-medical,speech-therapy",1
+1635836,1617,residents-registrars,"{""es"":""Residentes y Registradores"",""en"":""Residents & Registrars""}",1275,,0,3,true,"jobs,healthcare-medical,residents-registrars",1
+1635837,1602,pt-ot-rehabilitation,"{""es"":""Fisioterapia · Terapia Ocupacional y Rehabilitación"",""en"":""Physical Therapy · Occupational Therapy & Rehabilitation""}",1275,,0,3,true,"jobs,healthcare-medical,pt-ot-rehabilitation",1
+1635838,1601,psych-counsel-social-work,"{""es"":""Psicología · Consejería y Trabajo Social"",""en"":""Psychology · Counseling & Social Work""}",1275,,0,3,true,"jobs,healthcare-medical,psych-counsel-social-work",1
+1635839,1578,pharma-medical-devices,"{""es"":""Farmacéuticos y Dispositivos Médicos"",""en"":""Pharmaceuticals & Medical Devices""}",1275,,0,3,true,"jobs,healthcare-medical,pharma-medical-devices",1
+1635840,1577,pharmacy,"{""es"":""Farmacia"",""en"":""Pharmacy""}",1275,,0,3,true,"jobs,healthcare-medical,pharmacy",1
+1635841,1573,pathology,"{""es"":""Patología"",""en"":""Pathology""}",1275,,0,3,true,"jobs,healthcare-medical,pathology",1
+1635842,1548,other15,"{""es"":""Otro"",""en"":""Other""}",1275,,-1,3,true,"jobs,healthcare-medical,other15",1
+1635843,1540,optical,"{""es"":""Óptica"",""en"":""Optical""}",1275,,0,3,true,"jobs,healthcare-medical,optical",1
+1635844,1532,nursing-psych-correctional,"{""es"":""Enfermería Psiquiátrica · Forense y Penitenciaria"",""en"":""Nursing - Psych · Forensic & Correctional Health""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-psych-correctional",1
+1635845,1531,nursing-pediatric-picu,"{""es"":""Enfermería Pediátrica y UCIP"",""en"":""Nursing - Pediatric & PICU""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-pediatric-picu",1
+1635846,1530,nursing-or-recovery,"{""es"":""Enfermería de Quirófano y Recuperación"",""en"":""Nursing - Operating Room & Recovery""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-or-recovery",1
+1635847,1529,nursing-midwifery-neonatal,"{""es"":""Enfermería Obstétrica · Neonatal y UCIN"",""en"":""Nursing - Midwifery · Neo-Natal · SCN & NICU""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-midwifery-neonatal",1
+1635848,1528,nursing-management,"{""es"":""Enfermería - Gestión"",""en"":""Nursing - Management""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-management",1
+1635849,1527,nursing-high-acuity,"{""es"":""Enfermería de Alta Complejidad"",""en"":""Nursing - High Acuity""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-high-acuity",1
+1635850,1526,nursing-general-surgical,"{""es"":""Enfermería Médico-Quirúrgica General"",""en"":""Nursing - General Medical & Surgical""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-general-surgical",1
+1635851,1525,nursing-er-critical-care-icu,"{""es"":""Enfermería - Emergencias · Cuidados Críticos y UCI"",""en"":""Nursing - ER · Critical Care & ICU""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-er-critical-care-icu",1
+1635852,1524,nursing-educators,"{""es"":""Enfermería - Educadores y Facilitadores"",""en"":""Nursing - Educators & Facilitators""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-educators",1
+1635853,1523,nursing-community-health,"{""es"":""Enfermería Comunitaria · Materno-Infantil"",""en"":""Nursing - Community · Maternal & Child Health""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-community-health",1
+1635854,1522,nursing-aged-care,"{""es"":""Enfermería - Cuidado de Ancianos"",""en"":""Nursing - Aged Care""}",1275,,0,3,true,"jobs,healthcare-medical,nursing-aged-care",1
+1635855,1506,medical-specialists,"{""es"":""Especialistas Médicos"",""en"":""Medical Specialists""}",1275,,0,3,true,"jobs,healthcare-medical,medical-specialists",1
+1635856,1505,medical-imaging,"{""es"":""Imagenología Médica"",""en"":""Medical Imaging""}",1275,,0,3,true,"jobs,healthcare-medical,medical-imaging",1
+1635857,1504,medical-administration,"{""es"":""Administración Médica"",""en"":""Medical Administration""}",1275,,0,3,true,"jobs,healthcare-medical,medical-administration",1
+1635858,1486,management8,"{""es"":""Gestión"",""en"":""Management""}",1275,,0,3,true,"jobs,healthcare-medical,management8",1
+1635859,1437,general-practitioners,"{""es"":""Médicos Generales"",""en"":""General Practitioners""}",1275,,0,3,true,"jobs,healthcare-medical,general-practitioners",1
+1635860,1404,environmental-services,"{""es"":""Servicios Ambientales"",""en"":""Environmental Services""}",1275,,0,3,true,"jobs,healthcare-medical,environmental-services",1
+1635861,1390,dietitians,"{""es"":""Dietistas"",""en"":""Dietitians""}",1275,,0,3,true,"jobs,healthcare-medical,dietitians",1
+1635862,1388,dental,"{""es"":""Odontología"",""en"":""Dental""}",1275,,0,3,true,"jobs,healthcare-medical,dental",1
+1635863,1358,clinical-medical-research,"{""es"":""Investigación Clínica/Médica"",""en"":""Clinical/Medical Research""}",1275,,0,3,true,"jobs,healthcare-medical,clinical-medical-research",1
+1635864,1352,chiropractic-osteopathic,"{""es"":""Quiropráctica y Osteopatía"",""en"":""Chiropractic & Osteopathic""}",1275,,0,3,true,"jobs,healthcare-medical,chiropractic-osteopathic",1
+1635865,1309,ambulance-paramedics,"{""es"":""Ambulancia/Paramédicos"",""en"":""Ambulance/Paramedics""}",1275,,0,3,true,"jobs,healthcare-medical,ambulance-paramedics",1
+1635866,1308,alt-medicine-therapies,"{""es"":""Terapias Naturales y Medicina Alternativa"",""en"":""Natural Therapies & Alternative Medicine""}",1275,,0,3,true,"jobs,healthcare-medical,alt-medicine-therapies",1
+1635867,1274,government-defense,"{""es"":""Gobierno y Defensa"",""en"":""Government & Defense""}",1261,,17,2,false,"jobs,government-defense",1
+1635868,1586,policy-planning-regulation,"{""es"":""Políticas · Planificación y Regulación"",""en"":""Policy · Planning & Regulation""}",1274,,0,3,true,"jobs,government-defense,policy-planning-regulation",1
+1635869,1584,police-corrections,"{""es"":""Policía y Correccionales"",""en"":""Police & Corrections""}",1274,,0,3,true,"jobs,government-defense,police-corrections",1
+1635870,1549,other16,"{""es"":""Otro"",""en"":""Other""}",1274,,-1,3,true,"jobs,government-defense,other16",1
+1635871,1440,government-state,"{""es"":""Gobierno - Estatal"",""en"":""Government - State""}",1274,,0,3,true,"jobs,government-defense,government-state",1
+1635872,1439,government-local,"{""es"":""Gobierno - Local"",""en"":""Government - Local""}",1274,,0,3,true,"jobs,government-defense,government-local",1
+1635873,1438,government-federal,"{""es"":""Gobierno - Federal"",""en"":""Government - Federal""}",1274,,0,3,true,"jobs,government-defense,government-federal",1
+1635874,1396,emergency-services,"{""es"":""Servicios de Emergencia"",""en"":""Emergency Services""}",1274,,0,3,true,"jobs,government-defense,emergency-services",1
+1635875,1273,farming-animals-conservation,"{""es"":""Agricultura · Animales y Conservación"",""en"":""Farming · Animals & Conservation""}",1261,,18,2,false,"jobs,farming-animals-conservation",1
+1635876,1674,winery-viticulture,"{""es"":""Viticultura y Enología"",""en"":""Winery & Viticulture""}",1273,,0,3,true,"jobs,farming-animals-conservation,winery-viticulture",1
+1635877,1666,vet-services-animal-care,"{""es"":""Servicios Veterinarios y Bienestar Animal"",""en"":""Veterinary Services & Animal Welfare""}",1273,,0,3,true,"jobs,farming-animals-conservation,vet-services-animal-care",1
+1635878,1550,other17,"{""es"":""Otro"",""en"":""Other""}",1273,,-1,3,true,"jobs,farming-animals-conservation,other17",1
+1635879,1447,horticulture,"{""es"":""Horticultura"",""en"":""Horticulture""}",1273,,0,3,true,"jobs,farming-animals-conservation,horticulture",1
+1635880,1418,fishing-aquaculture,"{""es"":""Pesca y Acuicultura"",""en"":""Fishing & Aquaculture""}",1273,,0,3,true,"jobs,farming-animals-conservation,fishing-aquaculture",1
+1635881,1412,farm-management,"{""es"":""Gestión Agrícola"",""en"":""Farm Management""}",1273,,0,3,true,"jobs,farming-animals-conservation,farm-management",1
+1635882,1411,farm-labor,"{""es"":""Trabajo Agrícola"",""en"":""Farm Labor""}",1273,,0,3,true,"jobs,farming-animals-conservation,farm-labor",1
+1635883,1368,conservation-parks-wildlife,"{""es"":""Conservación · Parques y Vida Silvestre"",""en"":""Conservation · Parks & Wildlife""}",1273,,0,3,true,"jobs,farming-animals-conservation,conservation-parks-wildlife",1
+1635884,1306,agronomy-farm-services,"{""es"":""Agronomía y Servicios Agrícolas"",""en"":""Agronomy & Farm Services""}",1273,,0,3,true,"jobs,farming-animals-conservation,agronomy-farm-services",1
+1635885,1272,engineering,"{""es"":""Ingeniería"",""en"":""Engineering""}",1261,,19,2,false,"jobs,engineering",1
+1635886,1677,maintenance01,"{""es"":""Mantenimiento"",""en"":""Maintenance""}",1272,,0,3,true,"jobs,engineering,maintenance01",1
+1635887,1670,water-waste-engineering,"{""es"":""Ingeniería de Aguas y Residuos"",""en"":""Water & Waste Engineering""}",1272,,0,3,true,"jobs,engineering,water-waste-engineering",1
+1635888,1640,systems-engineering,"{""es"":""Ingeniería de Sistemas"",""en"":""Systems Engineering""}",1272,,0,3,true,"jobs,engineering,systems-engineering",1
+1635889,1635,supervisors,"{""es"":""Supervisores"",""en"":""Supervisors""}",1272,,0,3,true,"jobs,engineering,supervisors",1
+1635890,1597,project-management,"{""es"":""Gestión de Proyectos"",""en"":""Project Management""}",1272,,0,3,true,"jobs,engineering,project-management",1
+1635891,1596,project-engineering,"{""es"":""Ingeniería de Proyectos"",""en"":""Project Engineering""}",1272,,0,3,true,"jobs,engineering,project-engineering",1
+1635892,1590,process-engineering,"{""es"":""Ingeniería de Procesos"",""en"":""Process Engineering""}",1272,,0,3,true,"jobs,engineering,process-engineering",1
+1635893,1551,other18,"{""es"":""Otro"",""en"":""Other""}",1272,,-1,3,true,"jobs,engineering,other18",1
+1635894,1502,mechanical-engineering,"{""es"":""Ingeniería Mecánica"",""en"":""Mechanical Engineering""}",1272,,0,3,true,"jobs,engineering,mechanical-engineering",1
+1635895,1499,materials-handling-eng,"{""es"":""Ingeniería de Manejo de Materiales"",""en"":""Materials Handling Engineering""}",1272,,0,3,true,"jobs,engineering,materials-handling-eng",1
+1635896,1487,management9,"{""es"":""Gestión"",""en"":""Management""}",1272,,0,3,true,"jobs,engineering,management9",1
+1635897,1455,industrial-engineering,"{""es"":""Ingeniería Industrial"",""en"":""Industrial Engineering""}",1272,,0,3,true,"jobs,engineering,industrial-engineering",1
+1635898,1414,field-engineering,"{""es"":""Ingeniería de Campo"",""en"":""Field Engineering""}",1272,,0,3,true,"jobs,engineering,field-engineering",1
+1635899,1403,environmental-engineering,"{""es"":""Ingeniería Ambiental"",""en"":""Environmental Engineering""}",1272,,0,3,true,"jobs,engineering,environmental-engineering",1
+1635900,1398,engineering-drafting,"{""es"":""Dibujo de Ingeniería"",""en"":""Engineering Drafting""}",1272,,0,3,true,"jobs,engineering,engineering-drafting",1
+1635901,1394,electrical-electronic-eng,"{""es"":""Ingeniería Eléctrica/Electrónica"",""en"":""Electrical/Electronic Engineering""}",1272,,0,3,true,"jobs,engineering,electrical-electronic-eng",1
+1635902,1353,civil-structural-engineering,"{""es"":""Ingeniería Civil/Estructural"",""en"":""Civil/Structural Engineering""}",1272,,0,3,true,"jobs,engineering,civil-structural-engineering",1
+1635903,1349,chemical-engineering,"{""es"":""Ingeniería Química"",""en"":""Chemical Engineering""}",1272,,0,3,true,"jobs,engineering,chemical-engineering",1
+1635904,1341,building-services-engineering,"{""es"":""Ingeniería de Servicios de Edificación"",""en"":""Building Services Engineering""}",1272,,0,3,true,"jobs,engineering,building-services-engineering",1
+1635905,1326,automotive-engineering,"{""es"":""Ingeniería Automotriz"",""en"":""Automotive Engineering""}",1272,,0,3,true,"jobs,engineering,automotive-engineering",1
+1635906,1302,aerospace-engineering,"{""es"":""Ingeniería Aeroespacial"",""en"":""Aerospace Engineering""}",1272,,0,3,true,"jobs,engineering,aerospace-engineering",1
+1635907,1271,education-training,"{""es"":""Educación y Capacitación"",""en"":""Education & Training""}",1261,,20,2,false,"jobs,education-training",1
+1635908,1676,workplace-training-assessment,"{""es"":""Capacitación y Evaluación Laboral"",""en"":""Workplace Training & Assessment""}",1271,,0,3,true,"jobs,education-training,workplace-training-assessment",1
+1635909,1662,tutoring,"{""es"":""Tutorías"",""en"":""Tutoring""}",1271,,0,3,true,"jobs,education-training,tutoring",1
+1635910,1649,teaching-vocational,"{""es"":""Enseñanza - Vocacional"",""en"":""Teaching - Vocational""}",1271,,0,3,true,"jobs,education-training,teaching-vocational",1
+1635911,1648,teaching-tertiary,"{""es"":""Enseñanza - Superior"",""en"":""Teaching - Tertiary""}",1271,,0,3,true,"jobs,education-training,teaching-tertiary",1
+1635912,1647,teaching-secondary,"{""es"":""Enseñanza - Secundaria"",""en"":""Teaching - Secondary""}",1271,,0,3,true,"jobs,education-training,teaching-secondary",1
+1635913,1646,teaching-primary,"{""es"":""Enseñanza - Primaria"",""en"":""Teaching - Primary""}",1271,,0,3,true,"jobs,education-training,teaching-primary",1
+1635914,1645,teaching-early-childhood,"{""es"":""Enseñanza - Educación Temprana"",""en"":""Teaching - Early Childhood""}",1271,,0,3,true,"jobs,education-training,teaching-early-childhood",1
+1635915,1644,teaching-aides-special-needs,"{""es"":""Asistentes de Enseñanza y Necesidades Especiales"",""en"":""Teaching Aides & Special Needs""}",1271,,0,3,true,"jobs,education-training,teaching-aides-special-needs",1
+1635916,1634,student-services,"{""es"":""Servicios Estudiantiles"",""en"":""Student Services""}",1271,,0,3,true,"jobs,education-training,student-services",1
+1635917,1613,research-fellowships,"{""es"":""Investigación y Becas"",""en"":""Research & Fellowships""}",1271,,0,3,true,"jobs,education-training,research-fellowships",1
+1635918,1552,other19,"{""es"":""Otro"",""en"":""Other""}",1271,,-1,3,true,"jobs,education-training,other19",1
+1635919,1496,management-vocational,"{""es"":""Gestión - Vocacional"",""en"":""Management - Vocational""}",1271,,0,3,true,"jobs,education-training,management-vocational",1
+1635920,1495,management-universities,"{""es"":""Gestión - Universidades"",""en"":""Management - Universities""}",1271,,0,3,true,"jobs,education-training,management-universities",1
+1635921,1492,management-schools,"{""es"":""Gestión - Escuelas"",""en"":""Management - Schools""}",1271,,0,3,true,"jobs,education-training,management-schools",1
+1635922,1469,library-info-management,"{""es"":""Servicios Bibliotecarios y Gestión de Información"",""en"":""Library Services & Information Management""}",1271,,0,3,true,"jobs,education-training,library-info-management",1
+1635923,1303,after-school-childcare,"{""es"":""Cuidado Infantil y Extraescolar"",""en"":""Childcare & Outside School Hours Care""}",1271,,0,3,true,"jobs,education-training,after-school-childcare",1
+1635924,1270,design-architecture,"{""es"":""Diseño y Arquitectura"",""en"":""Design & Architecture""}",1261,,21,2,false,"jobs,design-architecture",1
+1635925,1672,web-interaction-design,"{""es"":""Diseño Web e Interacción"",""en"":""Web & Interaction Design""}",1270,,0,3,true,"jobs,design-architecture,web-interaction-design",1
+1635926,1664,urban-design-planning,"{""es"":""Diseño y Planificación Urbana"",""en"":""Urban Design & Planning""}",1270,,0,3,true,"jobs,design-architecture,urban-design-planning",1
+1635927,1554,other20,"{""es"":""Otro"",""en"":""Other""}",1270,,-1,3,true,"jobs,design-architecture,other20",1
+1635928,1465,landscape-architecture,"{""es"":""Arquitectura Paisajista"",""en"":""Landscape Architecture""}",1270,,0,3,true,"jobs,design-architecture,landscape-architecture",1
+1635929,1458,interior-design,"{""es"":""Diseño de Interiores"",""en"":""Interior Design""}",1270,,0,3,true,"jobs,design-architecture,interior-design",1
+1635930,1453,industrial-design,"{""es"":""Diseño Industrial"",""en"":""Industrial Design""}",1270,,0,3,true,"jobs,design-architecture,industrial-design",1
+1635931,1450,illustration-animation,"{""es"":""Ilustración y Animación"",""en"":""Illustration & Animation""}",1270,,0,3,true,"jobs,design-architecture,illustration-animation",1
+1635932,1441,graphic-design,"{""es"":""Diseño Gráfico"",""en"":""Graphic Design""}",1270,,0,3,true,"jobs,design-architecture,graphic-design",1
+1635933,1413,fashion-textile-design,"{""es"":""Diseño de Moda y Textiles"",""en"":""Fashion & Textile Design""}",1270,,0,3,true,"jobs,design-architecture,fashion-textile-design",1
+1635934,1319,architecture,"{""es"":""Arquitectura"",""en"":""Architecture""}",1270,,0,3,true,"jobs,design-architecture,architecture",1
+1635935,1318,architectural-drafting,"{""es"":""Dibujo Arquitectónico"",""en"":""Architectural Drafting""}",1270,,0,3,true,"jobs,design-architecture,architectural-drafting",1
+1635936,1269,consulting-strategy,"{""es"":""Consultoría y Estrategia"",""en"":""Consulting & Strategy""}",1261,,22,2,false,"jobs,consulting-strategy",1
+1635937,1632,strategy-planning,"{""es"":""Estrategia y Planificación"",""en"":""Strategy & Planning""}",1269,,0,3,true,"jobs,consulting-strategy,strategy-planning",1
+1635938,1585,policy,"{""es"":""Políticas"",""en"":""Policy""}",1269,,0,3,true,"jobs,consulting-strategy,policy",1
+1635939,1555,other21,"{""es"":""Otro"",""en"":""Other""}",1269,,-1,3,true,"jobs,consulting-strategy,other21",1
+1635940,1490,management-change-consulting,"{""es"":""Consultoría de Gestión y Cambio"",""en"":""Management & Change Consulting""}",1269,,0,3,true,"jobs,consulting-strategy,management-change-consulting",1
+1635941,1406,env-sustainability-consult,"{""es"":""Consultoría Ambiental y Sostenibilidad"",""en"":""Environment & Sustainability Consulting""}",1269,,0,3,true,"jobs,consulting-strategy,env-sustainability-consult",1
+1635942,1379,corporate-development,"{""es"":""Desarrollo Corporativo"",""en"":""Corporate Development""}",1269,,0,3,true,"jobs,consulting-strategy,corporate-development",1
+1635943,1316,analysts1,"{""es"":""Analistas"",""en"":""Analysts""}",1269,,0,3,true,"jobs,consulting-strategy,analysts1",1
+1635944,1268,community-services-dev,"{""es"":""Servicios Comunitarios y Desarrollo"",""en"":""Community Services & Development""}",1261,,24,2,false,"jobs,community-services-dev",1
+1635945,1667,volunteer-support,"{""es"":""Coordinación y Apoyo a Voluntarios"",""en"":""Volunteer Coordination & Support""}",1268,,0,3,true,"jobs,community-services-dev,volunteer-support",1
+1635946,1557,other23,"{""es"":""Otro"",""en"":""Other""}",1268,,-1,3,true,"jobs,community-services-dev,other23",1
+1635947,1476,management11,"{""es"":""Gestión"",""en"":""Management""}",1268,,0,3,true,"jobs,community-services-dev,management11",1
+1635948,1449,housing-homelessness-services,"{""es"":""Servicios de Vivienda y Personas sin Hogar"",""en"":""Housing & Homelessness Services""}",1268,,0,3,true,"jobs,community-services-dev,housing-homelessness-services",1
+1635949,1429,fundraising,"{""es"":""Recaudación de Fondos"",""en"":""Fundraising""}",1268,,0,3,true,"jobs,community-services-dev,fundraising",1
+1635950,1397,employment-services,"{""es"":""Servicios de Empleo"",""en"":""Employment Services""}",1268,,0,3,true,"jobs,community-services-dev,employment-services",1
+1635951,1362,community-development,"{""es"":""Desarrollo Comunitario"",""en"":""Community Development""}",1268,,0,3,true,"jobs,community-services-dev,community-development",1
+1635952,1351,child-youth-family-services,"{""es"":""Servicios para Niños · Jóvenes y Familias"",""en"":""Child Welfare · Youth & Family Services""}",1268,,0,3,true,"jobs,community-services-dev,child-youth-family-services",1
+1635953,1304,aged-disability-support,"{""es"":""Apoyo a Adultos Mayores y Discapacitados"",""en"":""Aged & Disability Support""}",1268,,0,3,true,"jobs,community-services-dev,aged-disability-support",1
+1635954,1267,ceo-general-management,"{""es"":""CEO y Alta Dirección"",""en"":""CEO & General Management""}",1261,,25,2,false,"jobs,ceo-general-management",1
+1635955,1558,other24,"{""es"":""Otro"",""en"":""Other""}",1267,,-1,3,true,"jobs,ceo-general-management,other24",1
+1635956,1434,general-business-unit-manager,"{""es"":""Gerente General/Unidad de Negocio"",""en"":""General/Business Unit Manager""}",1267,,0,3,true,"jobs,ceo-general-management,general-business-unit-manager",1
+1635957,1374,coo-md,"{""es"":""Director de Operaciones (COO) y Gerente General (MD)"",""en"":""COO & MD""}",1267,,0,3,true,"jobs,ceo-general-management,coo-md",1
+1635958,1347,ceo,"{""es"":""Director Ejecutivo (CEO)"",""en"":""CEO""}",1267,,0,3,true,"jobs,ceo-general-management,ceo",1
+1635959,1336,board-appointments,"{""es"":""Nombramientos de Directorio"",""en"":""Board Appointments""}",1267,,0,3,true,"jobs,ceo-general-management,board-appointments",1
+1635960,1266,call-center-customer-service,"{""es"":""Call Center y Servicio al Cliente"",""en"":""Call Center & Customer Service""}",1261,,26,2,false,"jobs,call-center-customer-service",1
+1635961,1636,supervisors-team-leaders,"{""es"":""Supervisores/Líderes de Equipo"",""en"":""Supervisors/Team Leaders""}",1266,,0,3,true,"jobs,call-center-customer-service,supervisors-team-leaders",1
+1635962,1624,sales-outbound,"{""es"":""Ventas Salientes"",""en"":""Sales - Outbound""}",1266,,0,3,true,"jobs,call-center-customer-service,sales-outbound",1
+1635963,1623,sales-inbound,"{""es"":""Ventas Entrantes"",""en"":""Sales - Inbound""}",1266,,0,3,true,"jobs,call-center-customer-service,sales-inbound",1
+1635964,1559,other25,"{""es"":""Otro"",""en"":""Other""}",1266,,-1,3,true,"jobs,call-center-customer-service,other25",1
+1635965,1494,management-support,"{""es"":""Gestión y Soporte"",""en"":""Management & Support""}",1266,,0,3,true,"jobs,call-center-customer-service,management-support",1
+1635966,1385,cust-service-facing,"{""es"":""Servicio al Cliente - Atención al Público"",""en"":""Customer Service - Customer Facing""}",1266,,0,3,true,"jobs,call-center-customer-service,cust-service-facing",1
+1635967,1384,customer-service-call-center,"{""es"":""Servicio al Cliente - Call Center"",""en"":""Customer Service - Call Center""}",1266,,0,3,true,"jobs,call-center-customer-service,customer-service-call-center",1
+1635968,1360,collections,"{""es"":""Cobranzas"",""en"":""Collections""}",1266,,0,3,true,"jobs,call-center-customer-service,collections",1
+1635969,1265,banking-financial-services,"{""es"":""Banca y Servicios Financieros"",""en"":""Banking & Financial Services""}",1261,,27,2,false,"jobs,banking-financial-services",1
+1635970,1660,treasury,"{""es"":""Tesorería"",""en"":""Treasury""}",1265,,0,3,true,"jobs,banking-financial-services,treasury",1
+1635971,1631,stockbroking-trading,"{""es"":""Bolsa y Trading"",""en"":""Stockbroking & Trading""}",1265,,0,3,true,"jobs,banking-financial-services,stockbroking-trading",1
+1635972,1629,settlements,"{""es"":""Liquidaciones"",""en"":""Settlements""}",1265,,0,3,true,"jobs,banking-financial-services,settlements",1
+1635973,1560,other26,"{""es"":""Otro"",""en"":""Other""}",1265,,-1,3,true,"jobs,banking-financial-services,other26",1
+1635974,1517,mortgages,"{""es"":""Hipotecas"",""en"":""Mortgages""}",1265,,0,3,true,"jobs,banking-financial-services,mortgages",1
+1635975,1477,management12,"{""es"":""Gestión"",""en"":""Management""}",1265,,0,3,true,"jobs,banking-financial-services,management12",1
+1635976,1430,funds-management,"{""es"":""Gestión de Fondos"",""en"":""Funds Management""}",1265,,0,3,true,"jobs,banking-financial-services,funds-management",1
+1635977,1417,financial-planning,"{""es"":""Planificación Financiera"",""en"":""Financial Planning""}",1265,,0,3,true,"jobs,banking-financial-services,financial-planning",1
+1635978,1382,credit,"{""es"":""Crédito"",""en"":""Credit""}",1265,,0,3,true,"jobs,banking-financial-services,credit",1
+1635979,1377,corp-finance-investment,"{""es"":""Finanzas Corporativas y Banca de Inversión"",""en"":""Corporate Finance & Investment Banking""}",1265,,0,3,true,"jobs,banking-financial-services,corp-finance-investment",1
+1635980,1376,corp-banking-institutional,"{""es"":""Banca Corporativa e Institucional"",""en"":""Banking - Corporate & Institutional""}",1265,,0,3,true,"jobs,banking-financial-services,corp-banking-institutional",1
+1635981,1365,compliance-risk,"{""es"":""Cumplimiento y Riesgo"",""en"":""Compliance & Risk""}",1265,,0,3,true,"jobs,banking-financial-services,compliance-risk",1
+1635982,1357,client-services,"{""es"":""Servicios al Cliente"",""en"":""Client Services""}",1265,,0,3,true,"jobs,banking-financial-services,client-services",1
+1635983,1332,banking-retail-branch,"{""es"":""Banca Minorista/Sucursal"",""en"":""Banking - Retail/Branch""}",1265,,0,3,true,"jobs,banking-financial-services,banking-retail-branch",1
+1635984,1330,banking-business,"{""es"":""Banca Empresarial"",""en"":""Banking - Business""}",1265,,0,3,true,"jobs,banking-financial-services,banking-business",1
+1635985,1313,analysis-reporting3,"{""es"":""Análisis e Informes"",""en"":""Analysis & Reporting""}",1265,,0,3,true,"jobs,banking-financial-services,analysis-reporting3",1
+1635986,1297,acct-relationship-mgmt1,"{""es"":""Gestión de Cuentas y Relaciones"",""en"":""Account & Relationship Management""}",1265,,0,3,true,"jobs,banking-financial-services,acct-relationship-mgmt1",1
+1635987,1264,advertising-arts-media,"{""es"":""Publicidad · Artes y Medios"",""en"":""Advertising · Arts & Media""}",1261,,28,2,false,"jobs,advertising-arts-media",1
+1635988,1678,photography01,"{""es"":""Fotografía"",""en"":""Photography""}",1264,,0,3,true,"jobs,advertising-arts-media,photography01",1
+1635989,1599,promotions,"{""es"":""Promociones"",""en"":""Promotions""}",1264,,0,3,true,"jobs,advertising-arts-media,promotions",1
+1635990,1594,programming-production,"{""es"":""Programación y Producción"",""en"":""Programming & Production""}",1264,,0,3,true,"jobs,advertising-arts-media,programming-production",1
+1635991,1575,performing-arts,"{""es"":""Artes Escénicas"",""en"":""Performing Arts""}",1264,,0,3,true,"jobs,advertising-arts-media,performing-arts",1
+1635992,1561,other27,"{""es"":""Otro"",""en"":""Other""}",1264,,-1,3,true,"jobs,advertising-arts-media,other27",1
+1635993,1503,media-strategy-planning,"{""es"":""Estrategia · Planificación y Compra de Medios"",""en"":""Media Strategy · Planning & Buying""}",1264,,0,3,true,"jobs,advertising-arts-media,media-strategy-planning",1
+1635994,1478,management13,"{""es"":""Gestión"",""en"":""Management""}",1264,,0,3,true,"jobs,advertising-arts-media,management13",1
+1635995,1461,journalism-writing,"{""es"":""Periodismo y Escritura"",""en"":""Journalism & Writing""}",1264,,0,3,true,"jobs,advertising-arts-media,journalism-writing",1
+1635996,1409,event-management1,"{""es"":""Gestión de Eventos"",""en"":""Event Management""}",1264,,0,3,true,"jobs,advertising-arts-media,event-management1",1
+1635997,1393,editing-publishing,"{""es"":""Edición y Publicación"",""en"":""Editing & Publishing""}",1264,,0,3,true,"jobs,advertising-arts-media,editing-publishing",1
+1635998,1320,art-direction,"{""es"":""Dirección de Arte"",""en"":""Art Direction""}",1264,,0,3,true,"jobs,advertising-arts-media,art-direction",1
+1635999,1305,agency-account-management,"{""es"":""Gestión de Cuentas de Agencia"",""en"":""Agency Account Management""}",1264,,0,3,true,"jobs,advertising-arts-media,agency-account-management",1
+1636000,1263,administration-office-support,"{""es"":""Administración y Soporte Administrativo"",""en"":""Administration & Office Support""}",1261,,29,2,false,"jobs,administration-office-support",1
+1636001,1610,records-doc-management,"{""es"":""Gestión de Registros y Control Documental"",""en"":""Records Management & Document Control""}",1263,,0,3,true,"jobs,administration-office-support,records-doc-management",1
+1636002,1609,receptionists,"{""es"":""Recepcionistas"",""en"":""Receptionists""}",1263,,0,3,true,"jobs,administration-office-support,receptionists",1
+1636003,1571,pa-ea-secretarial,"{""es"":""Asistentes Personales/Ejecutivos y Secretariado"",""en"":""PA · EA & Secretarial""}",1263,,0,3,true,"jobs,administration-office-support,pa-ea-secretarial",1
+1636004,1562,other28,"{""es"":""Otro"",""en"":""Other""}",1263,,-1,3,true,"jobs,administration-office-support,other28",1
+1636005,1534,office-management,"{""es"":""Gestión de Oficina"",""en"":""Office Management""}",1263,,0,3,true,"jobs,administration-office-support,office-management",1
+1636006,1387,data-entry-word-processing,"{""es"":""Entrada de Datos y Procesamiento de Textos"",""en"":""Data Entry & Word Processing""}",1263,,0,3,true,"jobs,administration-office-support,data-entry-word-processing",1
+1636007,1372,contracts-administration,"{""es"":""Administración de Contratos"",""en"":""Contracts Administration""}",1263,,0,3,true,"jobs,administration-office-support,contracts-administration",1
+1636008,1356,client-sales-administration,"{""es"":""Administración de Clientes y Ventas"",""en"":""Client & Sales Administration""}",1263,,0,3,true,"jobs,administration-office-support,client-sales-administration",1
+1636009,1301,administrative-assistants,"{""es"":""Asistentes Administrativos"",""en"":""Administrative Assistants""}",1263,,0,3,true,"jobs,administration-office-support,administrative-assistants",1
+1636010,1262,accounting,"{""es"":""Contabilidad"",""en"":""Accounting""}",1261,,30,2,false,"jobs,accounting",1
+1636011,1661,treasury1,"{""es"":""Tesorería"",""en"":""Treasury""}",1262,,0,3,true,"jobs,accounting,treasury1",1
+1636012,1642,taxation,"{""es"":""Impuestos"",""en"":""Taxation""}",1262,,0,3,true,"jobs,accounting,taxation",1
+1636013,1639,systems-accounting-it-audit,"{""es"":""Contabilidad de Sistemas y Auditoría TI"",""en"":""Systems Accounting & IT Audit""}",1262,,0,3,true,"jobs,accounting,systems-accounting-it-audit",1
+1636014,1633,strategy-planning1,"{""es"":""Estrategia y Planificación"",""en"":""Strategy & Planning""}",1262,,0,3,true,"jobs,accounting,strategy-planning1",1
+1636015,1574,payroll,"{""es"":""Nómina"",""en"":""Payroll""}",1262,,0,3,true,"jobs,accounting,payroll",1
+1636016,1563,other29,"{""es"":""Otro"",""en"":""Other""}",1262,,-1,3,true,"jobs,accounting,other29",1
+1636017,1508,mgmt-acct-budgeting,"{""es"":""Contabilidad Gerencial y Presupuestos"",""en"":""Management Accounting & Budgeting""}",1262,,0,3,true,"jobs,accounting,mgmt-acct-budgeting",1
+1636018,1479,management14,"{""es"":""Gestión"",""en"":""Management""}",1262,,0,3,true,"jobs,accounting,management14",1
+1636019,1460,inventory-fixed-assets,"{""es"":""Inventario y Activos Fijos"",""en"":""Inventory & Fixed Assets""}",1262,,0,3,true,"jobs,accounting,inventory-fixed-assets",1
+1636020,1456,insolvency-corporate-recovery,"{""es"":""Insolvencia y Recuperación Corporativa"",""en"":""Insolvency & Corporate Recovery""}",1262,,0,3,true,"jobs,accounting,insolvency-corporate-recovery",1
+1636021,1424,forensic-acct-investigation,"{""es"":""Contabilidad Forense e Investigación"",""en"":""Forensic Accounting & Investigation""}",1262,,0,3,true,"jobs,accounting,forensic-acct-investigation",1
+1636022,1416,financial-acct-reporting,"{""es"":""Contabilidad Financiera e Informes"",""en"":""Financial Accounting & Reporting""}",1262,,0,3,true,"jobs,accounting,financial-acct-reporting",1
+1636023,1415,finance-managers-controllers,"{""es"":""Gerentes y Controladores Financieros"",""en"":""Financial Managers & Controllers""}",1262,,0,3,true,"jobs,accounting,finance-managers-controllers",1
+1636024,1380,cost-accounting,"{""es"":""Contabilidad de Costos"",""en"":""Cost Accounting""}",1262,,0,3,true,"jobs,accounting,cost-accounting",1
+1636025,1375,corp-advisory-services,"{""es"":""Servicios Empresariales y Asesoría Corporativa"",""en"":""Business Services & Corporate Advisory""}",1262,,0,3,true,"jobs,accounting,corp-advisory-services",1
+1636026,1366,compliance-risk1,"{""es"":""Cumplimiento y Riesgo"",""en"":""Compliance & Risk""}",1262,,0,3,true,"jobs,accounting,compliance-risk1",1
+1636027,1363,company-secretaries,"{""es"":""Secretarios de Empresa"",""en"":""Company Secretaries""}",1262,,0,3,true,"jobs,accounting,company-secretaries",1
+1636028,1338,bookkeeping-small-practice,"{""es"":""Contabilidad y Teneduría de Libros"",""en"":""Bookkeeping & Small Practice Accounting""}",1262,,0,3,true,"jobs,accounting,bookkeeping-small-practice",1
+1636029,1325,audit-internal,"{""es"":""Auditoría Interna"",""en"":""Audit - Internal""}",1262,,0,3,true,"jobs,accounting,audit-internal",1
+1636030,1324,audit-external,"{""es"":""Auditoría Externa"",""en"":""Audit - External""}",1262,,0,3,true,"jobs,accounting,audit-external",1
+1636031,1323,assistant-accountants,"{""es"":""Asistentes Contables"",""en"":""Assistant Accountants""}",1262,,0,3,true,"jobs,accounting,assistant-accountants",1
+1636032,1314,analysis-reporting4,"{""es"":""Análisis e Informes"",""en"":""Analysis & Reporting""}",1262,,0,3,true,"jobs,accounting,analysis-reporting4",1
+1636033,1295,acct-receivable-credit,"{""es"":""Cuentas por Cobrar/Control de Crédito"",""en"":""Accounts Receivable/Credit Control""}",1262,,0,3,true,"jobs,accounting,acct-receivable-credit",1
+1636034,1294,accounts-payable,"{""es"":""Cuentas por Pagar"",""en"":""Accounts Payable""}",1262,,0,3,true,"jobs,accounting,accounts-payable",1
+1636035,1293,accounts-officers-clerks,"{""es"":""Oficiales/Empleados de Cuentas"",""en"":""Accounts Officers/Clerks""}",1262,,0,3,true,"jobs,accounting,accounts-officers-clerks",1
