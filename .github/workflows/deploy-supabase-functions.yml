@@ -1,0 +1,68 @@
+# Deploy the WhatsApp Edge Function to Supabase without using a local terminal.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN           — from https://supabase.com/dashboard/account/tokens
+#   SUPABASE_STAGING_PROJECT_REF    — staging project ref (dashboard URL)
+#   SUPABASE_PRODUCTION_PROJECT_REF — production project ref
+#
+# Triggers:
+#   - Push to `staging` or `main` when `supabase/functions/whatsapp-webhook/**` or this file changes
+#   - Manual: Actions tab → "Deploy Supabase Edge Functions" → Run workflow
+
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches: [staging, main]
+    paths:
+      - 'supabase/functions/whatsapp-webhook/**'
+      - '.github/workflows/deploy-supabase-functions.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: supabase-functions-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-whatsapp-staging:
+    name: Deploy whatsapp-webhook (staging)
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy whatsapp-webhook to staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase functions deploy whatsapp-webhook \
+            --project-ref "${{ secrets.SUPABASE_STAGING_PROJECT_REF }}"
+
+  deploy-whatsapp-production:
+    name: Deploy whatsapp-webhook (production)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy whatsapp-webhook to production
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase functions deploy whatsapp-webhook \
+            --project-ref "${{ secrets.SUPABASE_PRODUCTION_PROJECT_REF }}"
