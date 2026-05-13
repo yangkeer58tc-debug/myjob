@@ -4,7 +4,8 @@
 
 ## 已接入的代码位置
 
-- 前端支付门禁：`src/components/CandidateCard.tsx`
+- 前端支付门禁：`src/components/CandidateCard.tsx`（弹窗仅跳转）
+- 独立支付页（墨西哥常见方式说明 + 跳转网关）：`/pago-candidato` → `src/pages/PagoCandidato.tsx`
 - 支付成功回跳处理：`src/pages/CandidateSearch.tsx`
 - 本地解锁状态存储：`src/lib/candidateContactUnlock.ts`
 - Airwallex 创建支付链接函数：`supabase/functions/airwallex-create-checkout/index.ts`

@@ -18,6 +18,7 @@ import ResumeImportPage from "./pages/resume-admin/ImportPage";
 import ResumeDetailPage from "./pages/resume-admin/ResumeDetailPage";
 import NotFound from "./pages/NotFound";
 import CandidateSearch from "./pages/CandidateSearch";
+import PagoCandidato from "./pages/PagoCandidato";
 import { EmpleosPrefixJobRedirect, EmployToEmpleoRedirect } from "./components/SeoCanonicalRedirects";
 import StagingBanner from "./components/StagingBanner";
 
@@ -50,6 +51,7 @@ const App = () => (
                 <Route path="/empleo/:id" element={<JobDetail />} />
                 <Route path="/buscar-candidatos" element={<CandidateSearch />} />
                 <Route path="/buscar-candidatos/:role" element={<CandidateSearch />} />
+                <Route path="/pago-candidato" element={<PagoCandidato />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/resume/import" element={<Navigate to="/admin/resumes/import" replace />} />
                 <Route path="/admin/resume/:id" element={<AdminResumeSingularToPlural />} />

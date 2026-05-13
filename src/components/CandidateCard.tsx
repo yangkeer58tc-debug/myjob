@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapPin, User } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,8 @@ import { fixJobTextArtifacts } from '@/lib/jobTextUtils';
 import { queryMatchesText, renderSearchHighlight } from '@/lib/searchHighlight';
 import { QRCodeSVG } from 'qrcode.react';
 import { trackStructuredEvent } from '@/lib/analytics';
-import { supabase } from '@/integrations/supabase/client';
 import { isCandidateContactUnlocked } from '@/lib/candidateContactUnlock';
+import { isCandidatePaywallEnabled } from '@/lib/candidatePaywallEnv';
 import { getWhatsAppBotNumber } from '@/lib/whatsappBotNumber';
 
 type Candidate = {
@@ -101,12 +102,8 @@ const CandidateCard = ({
   query?: string;
   trackingPosition?: number;
 }) => {
-  const paywallEnabled = (() => {
-    const raw = String(import.meta.env.VITE_ENABLE_CANDIDATE_PAYWALL || '').trim().toLowerCase();
-    if (raw) return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
-    const siteUrl = String(import.meta.env.VITE_SITE_URL || '').toLowerCase();
-    return import.meta.env.MODE === 'staging' || siteUrl.includes('staging');
-  })();
+  const navigate = useNavigate();
+  const paywallEnabled = useMemo(() => isCandidatePaywallEnabled(), []);
   const title = toSpanishRoleLabel(candidate.job_title || candidate.role_slug || 'Profesional');
   const name = maskName(candidate.first_name, candidate.last_name, candidate.full_name);
   const country = candidate.country ? fixJobTextArtifacts(candidate.country) : '';
@@ -118,8 +115,6 @@ const CandidateCard = ({
   const highlightByRawRole = queryMatchesText(roleRaw, q) && !queryMatchesText(title, q);
   const [qrOpen, setQrOpen] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
-  const [creatingCheckout, setCreatingCheckout] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isCandidateContactUnlocked(candidate.id));
   const botNumber = useMemo(() => getWhatsAppBotNumber(), []);
   const waUrl = useMemo(() => buildWaUrl(candidate, botNumber), [candidate, botNumber]);
@@ -129,7 +124,6 @@ const CandidateCard = ({
 
   const handleWhatsApp = () => {
     if (paywallEnabled && !isUnlocked) {
-      setCheckoutError(null);
       setPaywallOpen(true);
       return;
     }
@@ -144,43 +138,16 @@ const CandidateCard = ({
     else setQrOpen(true);
   };
 
-  const handleCreateCheckout = async () => {
-    setCreatingCheckout(true);
-    setCheckoutError(null);
-    try {
-      const returnUrl = new URL(window.location.href);
-      returnUrl.searchParams.set('aw_status', 'success');
-      returnUrl.searchParams.set('aw_candidate', candidate.id);
-
-      const cancelUrl = new URL(window.location.href);
-      cancelUrl.searchParams.set('aw_status', 'cancel');
-      cancelUrl.searchParams.set('aw_candidate', candidate.id);
-
-      const { data, error } = await supabase.functions.invoke('airwallex-create-checkout', {
-        body: {
-          candidateId: candidate.id,
-          amount: normalizedPrice,
-          currency: 'MXN',
-          returnUrl: returnUrl.toString(),
-          cancelUrl: cancelUrl.toString(),
-          locale: 'es-MX',
-          metadata: {
-            candidate_role: title,
-            source: 'candidate_card',
-          },
-        },
-      });
-
-      if (error) throw error;
-      const checkoutUrl = String((data as { checkoutUrl?: unknown })?.checkoutUrl || '').trim();
-      if (!checkoutUrl) throw new Error('Airwallex 未返回可用的支付链接。');
-      window.location.href = checkoutUrl;
-    } catch (err) {
-      const message = String((err as { message?: unknown })?.message || err || 'No se pudo iniciar el pago.');
-      setCheckoutError(message);
-    } finally {
-      setCreatingCheckout(false);
-    }
+  const goToCheckoutPage = () => {
+    const returnPath = `${window.location.pathname}${window.location.search}`;
+    const params = new URLSearchParams({
+      candidateId: candidate.id,
+      amount: String(normalizedPrice),
+      role: title,
+      return: returnPath,
+    });
+    setPaywallOpen(false);
+    navigate(`/pago-candidato?${params.toString()}`);
   };
 
   return (
@@ -251,7 +218,6 @@ const CandidateCard = ({
           open={paywallOpen}
           onOpenChange={(open) => {
             setPaywallOpen(open);
-            if (!open) setCheckoutError(null);
             setIsUnlocked(isCandidateContactUnlocked(candidate.id));
           }}
         >
@@ -261,20 +227,17 @@ const CandidateCard = ({
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Realiza el pago para continuar y abrir WhatsApp con la solicitud de contacto de este perfil.
+                Te llevaremos a una página de pago segura (estilo habitual en México: tarjeta, SPEI u otros según disponibilidad). Allí completas el pago y regresas para abrir WhatsApp.
               </p>
               <div className="rounded-xl border border-border/60 p-4 bg-muted/20 flex items-center justify-between">
                 <span className="text-sm font-medium text-foreground">Acceso por candidato</span>
                 <span className="text-xl font-extrabold text-foreground">${normalizedPrice.toFixed(2)} MXN</span>
               </div>
-              {checkoutError ? <p className="text-sm text-destructive break-words">{checkoutError}</p> : null}
               <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-                <Button variant="outline" onClick={() => setPaywallOpen(false)} disabled={creatingCheckout}>
+                <Button variant="outline" onClick={() => setPaywallOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateCheckout} disabled={creatingCheckout}>
-                  {creatingCheckout ? 'Redirigiendo...' : 'Pagar con Airwallex (test)'}
-                </Button>
+                <Button onClick={goToCheckoutPage}>Ir a la página de pago</Button>
               </div>
             </div>
           </DialogContent>
