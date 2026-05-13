@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, Loader2, RefreshCw } from 'lucide-react';
 
 type ConversationRow = {
   id: string;
@@ -162,6 +162,137 @@ const downloadCsv = (rows: ConversationRow[]) => {
   URL.revokeObjectURL(url);
 };
 
+// CSV escape shared by the messages exporter.
+const csvEscape = (v: unknown): string => {
+  const s = v == null ? '' : String(v);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+};
+
+// Page through a Supabase table to bypass PostgREST's default 1000-row cap.
+// We don't accept a `query` callback; pass the table name and the SELECT
+// projection, plus an ORDER BY pair to keep paging deterministic.
+async function fetchAllPaged<T>(
+  table: string,
+  selectCols: string,
+  orderBy: { column: string; ascending: boolean }[],
+  pageSize = 1000,
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  // 50k cap is a safety net so a bad query can't blow up the browser.
+  const HARD_CAP = 50_000;
+  while (all.length < HARD_CAP) {
+    let q = supabase.from(table).select(selectCols);
+    for (const o of orderBy) q = q.order(o.column, { ascending: o.ascending });
+    const { data, error } = await q.range(from, from + pageSize - 1);
+    if (error) throw error;
+    const batch = (data ?? []) as T[];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
+type MessageExportRow = {
+  id: string;
+  conversation_id: string | null;
+  wa_user_id: string;
+  direction: 'inbound' | 'outbound';
+  message_type: string;
+  body: string | null;
+  media_mime: string | null;
+  media_url: string | null;
+  infobip_message_id: string | null;
+  created_at: string;
+};
+
+type ConvExportLite = {
+  id: string;
+  state: string;
+  candidate_name: string | null;
+  applying_job_id: string | null;
+  applying_job_title: string | null;
+  applying_job_company: string | null;
+};
+
+// Pull every whatsapp_messages row (paged) + minimal conversation context,
+// then emit a CSV with one row per message.
+const downloadAllMessagesCsv = async (): Promise<{ messages: number; conversations: number }> => {
+  const [messages, conversations] = await Promise.all([
+    fetchAllPaged<MessageExportRow>(
+      'whatsapp_messages',
+      'id, conversation_id, wa_user_id, direction, message_type, body, media_mime, media_url, infobip_message_id, created_at',
+      [
+        { column: 'wa_user_id', ascending: true },
+        { column: 'created_at', ascending: true },
+      ],
+    ),
+    fetchAllPaged<ConvExportLite>(
+      'whatsapp_conversations',
+      'id, state, candidate_name, applying_job_id, applying_job_title, applying_job_company',
+      [{ column: 'id', ascending: true }],
+    ),
+  ]);
+
+  const convById = new Map<string, ConvExportLite>();
+  for (const c of conversations) convById.set(c.id, c);
+
+  const header = [
+    'created_at',
+    'wa_user_id',
+    'candidate_name',
+    'direction',
+    'message_type',
+    'body',
+    'media_mime',
+    'media_url',
+    'infobip_message_id',
+    'conversation_state',
+    'applying_job_id',
+    'applying_job_title',
+    'applying_job_company',
+    'conversation_id',
+    'message_id',
+  ];
+  const lines = [header.join(',')];
+  for (const m of messages) {
+    const conv = m.conversation_id ? convById.get(m.conversation_id) : undefined;
+    lines.push(
+      [
+        m.created_at,
+        m.wa_user_id,
+        conv?.candidate_name ?? '',
+        m.direction,
+        m.message_type,
+        m.body ?? '',
+        m.media_mime ?? '',
+        m.media_url ?? '',
+        m.infobip_message_id ?? '',
+        conv?.state ?? '',
+        conv?.applying_job_id ?? '',
+        conv?.applying_job_title ?? '',
+        conv?.applying_job_company ?? '',
+        m.conversation_id ?? '',
+        m.id,
+      ]
+        .map(csvEscape)
+        .join(','),
+    );
+  }
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `whatsapp-messages-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  return { messages: messages.length, conversations: conversations.length };
+};
+
 const downloadApplicationsCsv = (rows: ApplicationRow[]) => {
   const header = [
     'wa_user_id',
@@ -209,6 +340,25 @@ const downloadApplicationsCsv = (rows: ApplicationRow[]) => {
 export default function WhatsAppBotPanel() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<ConversationRow | null>(null);
+  const [messagesExporting, setMessagesExporting] = useState(false);
+  const [messagesExportError, setMessagesExportError] = useState<string | null>(null);
+  const [messagesExportInfo, setMessagesExportInfo] = useState<string | null>(null);
+
+  const handleExportAllMessages = async () => {
+    setMessagesExporting(true);
+    setMessagesExportError(null);
+    setMessagesExportInfo(null);
+    try {
+      const r = await downloadAllMessagesCsv();
+      setMessagesExportInfo(
+        `Exported ${r.messages.toLocaleString('en-US')} messages across ${r.conversations.toLocaleString('en-US')} conversations.`,
+      );
+    } catch (e) {
+      setMessagesExportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMessagesExporting(false);
+    }
+  };
 
   const conversationsQuery = useQuery<ConversationRow[]>({
     queryKey: ['waConversations'],
@@ -348,8 +498,34 @@ export default function WhatsAppBotPanel() {
           >
             <Download className="h-4 w-4 mr-1" /> Applications CSV
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => void handleExportAllMessages()}
+            disabled={messagesExporting}
+            title="Export every WhatsApp message (inbound + outbound) with conversation context."
+          >
+            {messagesExporting ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            Messages CSV (all)
+          </Button>
         </div>
       </div>
+
+      {messagesExportInfo && (
+        <div className="bg-card rounded-2xl shadow-sm p-3 text-xs text-muted-foreground">
+          {messagesExportInfo}
+        </div>
+      )}
+      {messagesExportError && (
+        <div className="bg-card rounded-2xl shadow-sm p-3 text-xs text-destructive">
+          Messages export failed: {messagesExportError}
+        </div>
+      )}
 
       {errorMsg && (
         <div className="bg-card rounded-2xl shadow-sm p-4 text-sm text-destructive">
