@@ -301,6 +301,21 @@ export type OkMxJobUpsertRow = {
   street_address: string | null;
 };
 
+/** When prod DB has not run MX migration yet, PostgREST rejects unknown columns — retry without them. */
+export function isJobsMissingMxExtensionColumnError(message: string): boolean {
+  const m = String(message || '').toLowerCase();
+  if (m.includes('pgrst204')) return true;
+  if (!m.includes('column')) return false;
+  return m.includes('external_source') || m.includes('mx_category_code');
+}
+
+export function okMxJobRowForLegacyJobsTable(
+  row: OkMxJobUpsertRow,
+): Omit<OkMxJobUpsertRow, 'external_source' | 'mx_category_code'> {
+  const { external_source: _e, mx_category_code: _m, ...rest } = row;
+  return rest;
+}
+
 /**
  * Build `jobs` upsert rows from MX export rows. Uses numeric `info_id` as `jobs.id` so `/empleo/...-{id}` parsing stays valid.
  * Expects `title` / `content` already in Spanish when non-`es` rows were translated upstream.

@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { mapMxCategoryPathToSiteCategory, resolveMxJobLocation } from '@/lib/okMxJobImport';
+import {
+  isJobsMissingMxExtensionColumnError,
+  mapMxCategoryPathToSiteCategory,
+  resolveMxJobLocation,
+} from '@/lib/okMxJobImport';
+
+describe('isJobsMissingMxExtensionColumnError', () => {
+  it('detects PostgREST missing-column messages', () => {
+    expect(
+      isJobsMissingMxExtensionColumnError(
+        "Could not find the 'external_source' column of 'jobs' in the schema cache",
+      ),
+    ).toBe(true);
+    expect(isJobsMissingMxExtensionColumnError('PGRST204')).toBe(true);
+    expect(isJobsMissingMxExtensionColumnError('new row violates row-level security')).toBe(false);
+  });
+});
 
 describe('mapMxCategoryPathToSiteCategory', () => {
   it('maps MX path second segment to site category ids', () => {

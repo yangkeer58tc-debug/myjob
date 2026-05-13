@@ -22,7 +22,9 @@ import {
   OK_MX_EXTERNAL_SOURCE,
   OK_MX_LEGACY_EMPLOYER_NAMES,
   buildOkMxJobRows,
+  isJobsMissingMxExtensionColumnError,
   isMxRealPostsCsvHeader,
+  okMxJobRowForLegacyJobsTable,
   parseMxCategoryCsvText,
 } from '@/lib/okMxJobImport';
 
@@ -68,6 +70,12 @@ export default function OkComMxPanel() {
 
     (async () => {
       try {
+        const { data: authData } = await supabase.auth.getSession();
+        if (!authData.session) {
+          toast.error('登录已失效，请刷新页面并重新登录后再导入。');
+          return;
+        }
+
         const postsText = await decodeCsvFile(postsFile);
         const postsParsed = Papa.parse<Record<string, string>>(postsText, {
           header: true,
@@ -172,26 +180,65 @@ export default function OkComMxPanel() {
         const concurrency = jobImportUpsertOnlyConcurrency();
         setMxImportProgress({ isRunning: true, total, saved: 0, failed: 0 });
 
-        const outcomes: boolean[] = [];
+        const slot: Array<'pending' | 'ok' | 'fail'> = Array.from({ length: total }, () => 'pending');
+        let omitMxExtensionColumns = false;
+        let legacyNoteShown = false;
+        const errorCounts = new Map<string, number>();
+
+        const bumpErr = (msg: string) => {
+          const key = msg.slice(0, 220);
+          errorCounts.set(key, (errorCounts.get(key) ?? 0) + 1);
+        };
+
         await runPool(total, concurrency, async (i) => {
           let lastError: string | undefined;
+          const row = payload[i];
           try {
-            const { error } = await supabase.from('jobs').upsert([payload[i]]);
-            if (error) throw new Error(error.message || String(error));
-            outcomes.push(true);
+            const upsertBody = async (body: Record<string, unknown>) => {
+              const { error } = await supabase.from('jobs').upsert([body], { onConflict: 'id' });
+              return error;
+            };
+
+            let body: Record<string, unknown> = omitMxExtensionColumns
+              ? { ...okMxJobRowForLegacyJobsTable(row) }
+              : { ...row };
+            let err = await upsertBody(body);
+
+            if (err && isJobsMissingMxExtensionColumnError(err.message ?? '')) {
+              omitMxExtensionColumns = true;
+              body = { ...okMxJobRowForLegacyJobsTable(row) };
+              err = await upsertBody(body);
+            }
+
+            if (err) {
+              slot[i] = 'fail';
+              lastError = err.message || String(err);
+              bumpErr(lastError);
+            } else {
+              slot[i] = 'ok';
+              if (omitMxExtensionColumns && !legacyNoteShown) {
+                legacyNoteShown = true;
+                toast.message(
+                  '当前库尚无 external_source / mx_category_code 列，已按旧表结构写入。建议在 Supabase 执行迁移 20260513190000_ok_mx_jobs_and_resume_export.sql 后再导入，便于筛选 MX 来源。',
+                  { duration: 14000 },
+                );
+              }
+            }
           } catch (err: unknown) {
-            outcomes.push(false);
+            slot[i] = 'fail';
             lastError = String((err as { message?: unknown })?.message || err);
+            bumpErr(lastError);
           }
-          const okN = outcomes.filter(Boolean).length;
-          const badN = outcomes.filter((x) => !x).length;
+
+          const saved = slot.filter((x) => x === 'ok').length;
+          const failed = slot.filter((x) => x === 'fail').length;
           setMxImportProgress((prev) =>
             prev?.isRunning
               ? {
                   isRunning: true,
                   total,
-                  saved: okN,
-                  failed: badN,
+                  saved,
+                  failed,
                   lastTitle: payload[i]?.title,
                   ...(lastError ? { lastError: lastError.slice(0, 160) } : {}),
                 }
@@ -199,14 +246,24 @@ export default function OkComMxPanel() {
           );
         });
 
-        const saved = outcomes.filter(Boolean).length;
-        const failed = outcomes.length - saved;
+        const saved = slot.filter((x) => x === 'ok').length;
+        const failed = slot.filter((x) => x === 'fail').length;
         setMxImportProgress({ isRunning: false, total, saved, failed });
 
         queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
         if (failed === 0) toast.success(`已导入 ${saved} 条 OK.com Jobs（MX 真实帖子）。`);
-        else toast.error(`导入结束：成功 ${saved}，失败 ${failed}。`);
+        else {
+          const top = [...errorCounts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([m, n]) => `${n}× ${m}`)
+            .join('；');
+          toast.error(
+            `导入结束：成功 ${saved}，失败 ${failed}。${top ? `常见错误：${top}` : ''}`,
+            failed > 5 ? { duration: 14000 } : { duration: 9000 },
+          );
+        }
 
         window.setTimeout(() => setMxImportProgress(null), 3200);
       } catch (err: unknown) {
@@ -256,8 +313,12 @@ export default function OkComMxPanel() {
         .from('jobs')
         .select('id')
         .eq('external_source', OK_MX_EXTERNAL_SOURCE);
-      if (mxErr) throw mxErr;
-      const mxJobIds = (mxJobs ?? []).map((j) => j.id).filter(Boolean);
+      let mxJobIds: string[] = [];
+      if (mxErr) {
+        if (!isJobsMissingMxExtensionColumnError(mxErr.message ?? '')) throw mxErr;
+      } else {
+        mxJobIds = (mxJobs ?? []).map((j) => j.id).filter(Boolean);
+      }
 
       for (const idPart of chunk(mxJobIds, 120)) {
         if (idPart.length === 0) continue;
@@ -406,9 +467,9 @@ export default function OkComMxPanel() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          数据库字段 <code className="text-xs">external_source</code> = <code className="text-xs">{OK_MX_EXTERNAL_SOURCE}</code>
-          ，<code className="text-xs">mx_category_code</code> 存 cate_code。请先在 Supabase 执行迁移{' '}
-          <code className="text-xs">20260513190000_ok_mx_jobs_and_resume_export.sql</code>。
+          若已执行迁移 <code className="text-xs">20260513190000_ok_mx_jobs_and_resume_export.sql</code>，会写入{' '}
+          <code className="text-xs">external_source</code> = <code className="text-xs">{OK_MX_EXTERNAL_SOURCE}</code> 与{' '}
+          <code className="text-xs">mx_category_code</code>。未迁移时导入会自动去掉这两列并仍写入职位。
         </p>
         {mxImportProgress?.isRunning || (!mxImportProgress?.isRunning && mxImportProgress && mxImportProgress.total > 0) ? (
           <div className="space-y-2">

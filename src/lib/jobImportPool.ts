@@ -40,5 +40,5 @@ export function jobImportUpsertOnlyConcurrency(): number {
   const raw = String(import.meta.env.VITE_JOB_IMPORT_UPSERT_CONCURRENCY ?? '').trim();
   const n = Number.parseInt(raw, 10);
   if (Number.isFinite(n) && n >= 1) return Math.min(n, 30);
-  return 15;
+  return 8;
 }
