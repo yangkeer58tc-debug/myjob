@@ -1,24 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Building2,
-  Check,
-  ChevronRight,
-  CreditCard,
-  Home,
-  Loader2,
-  Lock,
-  ShieldCheck,
-  Store,
-  Users,
-} from 'lucide-react';
+import { Building2, ChevronLeft, CreditCard, Loader2, Lock, Shield } from 'lucide-react';
 import PublicLayout from '@/components/PublicLayout';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { isCandidatePaywallEnabled } from '@/lib/candidatePaywallEnv';
 import { getSiteOrigin } from '@/lib/siteUrl';
@@ -31,11 +16,30 @@ const sanitizeReturnPath = (raw: string | null): string => {
   return s;
 };
 
-/** Short reference for display (not a secret). */
 const checkoutRef = (candidateId: string) => {
   const tail = candidateId.replace(/-/g, '').slice(-10).toUpperCase();
   return `MYJ-${tail}`;
 };
+
+/**
+ * Airwallex in Mexico (Hosted Payment Page): typically international & local cards,
+ * plus SPEI for bank transfer where enabled on the merchant account.
+ * @see https://www.airwallex.com/docs/payments__north-america-and-latam
+ */
+const MX_AIRWALLEX_METHODS = [
+  {
+    id: 'card',
+    title: 'Tarjeta',
+    desc: 'Visa, Mastercard, American Express y otras habilitadas en tu cuenta.',
+    icon: CreditCard,
+  },
+  {
+    id: 'spei',
+    title: 'SPEI',
+    desc: 'Transferencia bancaria en línea (se elige y completa en la pasarela de Airwallex).',
+    icon: Building2,
+  },
+] as const;
 
 const PagoCandidato = () => {
   const [searchParams] = useSearchParams();
@@ -48,7 +52,6 @@ const PagoCandidato = () => {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const ref = useMemo(() => checkoutRef(candidateId), [candidateId]);
 
   if (!paywallEnabled) {
@@ -104,249 +107,130 @@ const PagoCandidato = () => {
   return (
     <PublicLayout>
       <Helmet>
-        <title>Checkout seguro | MyJob</title>
+        <title>Pago | MyJob</title>
         <meta name="description" content="Completa el pago para desbloquear el contacto del candidato en MyJob." />
         <link rel="canonical" href={`${origin}/pago-candidato`} />
       </Helmet>
 
-      {/* Stripe / MP–style top trust bar */}
-      <div className="border-b border-border/60 bg-muted/30">
-        <div className="container mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-2.5 text-xs text-muted-foreground sm:justify-between">
-          <span className="inline-flex items-center gap-1.5 font-medium text-foreground/90">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden />
-            Conexión cifrada (HTTPS)
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-            El cobro lo procesa un proveedor certificado PCI
-          </span>
-        </div>
-      </div>
-
-      <div className="relative border-b border-border/40 bg-gradient-to-b from-muted/40 to-background pb-16 pt-8">
+      <div className="min-h-[60vh] border-b border-border/40 bg-muted/20 py-10 md:py-14">
         <div className="container mx-auto max-w-3xl px-4">
-          {/* Breadcrumb */}
-          <nav className="mb-6 flex flex-wrap items-center gap-1 text-sm text-muted-foreground" aria-label="Breadcrumb">
-            <Link to="/" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
-              <Home className="h-3.5 w-3.5" />
-              Inicio
-            </Link>
-            <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
-            <Link to={returnPath} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
-              <Users className="h-3.5 w-3.5" />
-              Candidatos
-            </Link>
-            <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
-            <span className="font-medium text-foreground">Pago</span>
-          </nav>
-
-          {/* Steps */}
-          <ol className="mb-8 flex flex-wrap items-stretch justify-center gap-2 sm:gap-3" aria-label="Pasos del checkout">
-            {(
-              [
-                { key: 'resumen', label: 'Resumen', state: 'done' as const },
-                { key: 'pasarela', label: 'Pasarela', state: 'current' as const },
-                { key: 'contacto', label: 'Contacto', state: 'todo' as const },
-              ] as const
-            ).map((step) => (
-              <li key={step.key} className="flex min-w-[6.5rem] flex-1 sm:max-w-[9rem] sm:flex-initial">
-                <div
-                  className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 ${
-                    step.state === 'current'
-                      ? 'border-primary/35 bg-primary/8 text-foreground shadow-sm'
-                      : step.state === 'done'
-                        ? 'border-emerald-500/25 bg-emerald-500/5 text-foreground'
-                        : 'border-border/50 bg-card/40 text-muted-foreground'
-                  }`}
-                >
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      step.state === 'current'
-                        ? 'bg-primary text-primary-foreground'
-                        : step.state === 'done'
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {step.state === 'done' ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
-                    {step.state === 'current' ? '2' : null}
-                    {step.state === 'todo' ? '3' : null}
-                  </span>
-                  <span className="text-xs font-semibold sm:text-sm">{step.label}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            {/* Main checkout card */}
-            <Card className="overflow-hidden rounded-2xl border-border/60 shadow-lg shadow-black/5">
-              <div className="border-b border-border/60 bg-card px-6 py-4 sm:px-8">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MyJob · Checkout</p>
-                    <h1 className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">Desbloquear contacto</h1>
-                    <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                      Un pago único para solicitar el contacto de este candidato por WhatsApp. Tras completar el pago en la pasarela,
-                      volverás a la lista y podrás abrir la conversación.
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="shrink-0 self-start font-mono text-xs font-normal">
-                    Ref. {ref}
-                  </Badge>
-                </div>
+          {/* OPtell-style: split card, no outer chrome overload */}
+          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-xl shadow-black/8 md:flex md:min-h-[420px]">
+            {/* Left: summary (gradient) */}
+            <div className="relative flex w-full flex-col justify-between bg-gradient-to-br from-fuchsia-600 via-purple-600 to-violet-900 p-8 text-white md:w-[44%] md:min-w-[280px] md:p-9">
+              <div>
+                <p className="text-sm font-semibold tracking-tight text-white/90">MyJob</p>
+                <h1 className="mt-2 text-2xl font-extrabold leading-tight md:text-[1.65rem]">Desbloquear contacto</h1>
+                <p className="mt-2 text-sm text-white/80">Pago único · acceso al flujo de WhatsApp para este candidato.</p>
+                <p className="mt-3 font-mono text-xs text-white/60">Ref. {ref}</p>
               </div>
 
-              <CardContent className="space-y-0 p-0 sm:p-0">
-                {/* Line items — table-like */}
-                <div className="px-6 py-5 sm:px-8">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Detalle del pedido</p>
-                  <div className="rounded-xl border border-border/60 bg-muted/15">
-                    <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-border/50 px-4 py-3 text-sm">
-                      <span className="text-muted-foreground">Concepto</span>
-                      <span className="text-right font-medium text-muted-foreground">Importe</span>
-                    </div>
-                    <div className="grid grid-cols-[1fr_auto] gap-3 px-4 py-4 text-sm">
-                      <div>
-                        <p className="font-semibold text-foreground">Acceso al contacto del candidato</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Perfil: {roleLabel} · ID {candidateId.slice(0, 8)}…
-                        </p>
-                      </div>
-                      <p className="self-center text-right font-semibold tabular-nums text-foreground">
-                        ${amount.toFixed(2)} MXN
-                      </p>
-                    </div>
+              <div className="mt-8 space-y-4">
+                <div className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+                  <p className="text-xs font-medium uppercase tracking-wide text-white/70">Facturación</p>
+                  <div className="mt-2 flex items-baseline justify-between gap-2 border-b border-white/15 pb-3">
+                    <span className="text-sm text-white/90">Contacto candidato · {roleLabel}</span>
                   </div>
-
-                  <div className="mt-4 space-y-2 text-sm">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Subtotal</span>
-                      <span className="tabular-nums">${amount.toFixed(2)} MXN</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Impuestos (IVA u otros) y comisiones finales, si aplican, se mostrarán en la pasarela de pago antes de confirmar.
-                    </p>
-                    <Separator className="my-3" />
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-base font-bold text-foreground">Total estimado</span>
-                      <span className="text-2xl font-extrabold tabular-nums tracking-tight text-foreground">
-                        ${amount.toFixed(2)} <span className="text-lg font-bold text-muted-foreground">MXN</span>
-                      </span>
-                    </div>
+                  <div className="mt-3 flex items-end justify-between">
+                    <span className="text-sm text-white/80">Total</span>
+                    <span className="text-3xl font-extrabold tabular-nums tracking-tight">
+                      ${amount.toFixed(2)}{' '}
+                      <span className="text-lg font-bold text-white/85">MXN</span>
+                    </span>
                   </div>
                 </div>
+                <p className="text-[11px] leading-relaxed text-white/65">
+                  IVA u otros cargos, si aplican, se confirman en la pasarela antes de pagar. Para reembolsos consulta la{' '}
+                  <a href="/refund-policy" className="underline underline-offset-2 hover:text-white">
+                    política de reembolsos
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
 
-                <Separator />
+            {/* Right: payment panel */}
+            <div className="flex flex-1 flex-col bg-background p-8 md:p-9">
+              <Link
+                to={returnPath}
+                className="mb-6 inline-flex w-fit items-center gap-1.5 rounded-full border border-border/80 bg-muted/40 px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+                Volver
+              </Link>
 
-                {/* Payment methods */}
-                <div className="px-6 py-5 sm:px-8">
-                  <p className="mb-1 text-sm font-semibold text-foreground">Medios de pago habituales en México</p>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    En el siguiente paso verás la pantalla del proveedor con las opciones reales disponibles para tu cuenta y monto.
-                  </p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {[
-                      { icon: CreditCard, title: 'Tarjeta', sub: 'Visa, Mastercard, AMEX' },
-                      { icon: Building2, title: 'SPEI', sub: 'Transferencia bancaria' },
-                      { icon: Store, title: 'Tiendas', sub: 'Donde aplique' },
-                    ].map(({ icon: Icon, title, sub }) => (
-                      <div
-                        key={title}
-                        className="flex items-start gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 transition-colors hover:border-primary/25 hover:bg-muted/20"
-                      >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <Icon className="h-5 w-5 text-primary" aria-hidden />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{title}</p>
-                          <p className="text-xs text-muted-foreground">{sub}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="border-t border-border/60 bg-muted/20 px-6 py-5 sm:px-8">
-                  {error ? (
-                    <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                      {error}
-                    </p>
-                  ) : null}
-
-                  <Button
-                    size="lg"
-                    className="h-12 w-full rounded-xl text-base font-bold shadow-sm"
-                    onClick={startCheckout}
-                    disabled={submitting}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Abriendo pasarela segura…
-                      </>
-                    ) : (
-                      <>
-                        Continuar con el pago
-                        <ChevronRight className="ml-2 h-5 w-5" />
-                      </>
-                    )}
-                  </Button>
-
-                  <Button variant="ghost" asChild className="mt-2 w-full rounded-xl text-muted-foreground">
-                    <Link to={returnPath} className="inline-flex items-center justify-center gap-2">
-                      <ArrowLeft className="h-4 w-4" />
-                      Volver a candidatos sin pagar
-                    </Link>
-                  </Button>
-
-                  <p className="mt-4 text-center text-[11px] leading-relaxed text-muted-foreground">
-                    Al continuar confirmas que has leído los{' '}
-                    <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
-                      Términos
-                    </a>{' '}
-                    y la{' '}
-                    <a href="/refund-policy" className="underline underline-offset-2 hover:text-foreground">
-                      Política de reembolsos
-                    </a>
-                    . El procesamiento del pago puede mostrarse en inglés según el proveedor.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Side help */}
-            <aside className="space-y-4 lg:pt-2">
-              <Card className="rounded-2xl border-border/60 bg-card/80 shadow-sm">
-                <CardContent className="p-5 text-sm">
-                  <p className="font-semibold text-foreground">¿Qué pasa después?</p>
-                  <ul className="mt-3 space-y-2 text-muted-foreground">
-                    <li className="flex gap-2">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
-                        1
-                      </span>
-                      <span>Se abre la pasarela en la misma ventana para autorizar el cobro.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
-                        2
-                      </span>
-                      <span>Al completarse, regresas a la lista con el acceso desbloqueado.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
-                        3
-                      </span>
-                      <span>Pulsa «Contactar ahora» en la tarjeta del candidato para abrir WhatsApp.</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-              <p className="px-1 text-xs text-muted-foreground">
-                ¿Problemas con el pago? Escríbenos desde el enlace de contacto en el pie de página e indica la referencia{' '}
-                <span className="font-mono text-foreground">{ref}</span>.
+              <h2 className="text-lg font-bold text-foreground">Completar pago</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Continuarás en la{' '}
+                <span className="font-medium text-foreground">página segura de Airwallex</span>. Ahí eliges el medio y autorizas el cobro (no ingresamos datos de tarjeta en MyJob).
               </p>
-            </aside>
+
+              <div className="mt-6 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Medios habituales en México con Airwallex
+                </p>
+                <ul className="space-y-2">
+                  {MX_AIRWALLEX_METHODS.map(({ id, title, desc, icon: Icon }) => (
+                    <li
+                      key={id}
+                      className="flex gap-3 rounded-xl border border-border/70 bg-muted/25 px-4 py-3 text-sm"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-background shadow-sm">
+                        <Icon className="h-5 w-5 text-primary" aria-hidden />
+                      </span>
+                      <span>
+                        <span className="font-semibold text-foreground">{title}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-muted-foreground">
+                  Otros métodos solo aparecen si tu cuenta Airwallex los tiene activos para México.
+                </p>
+              </div>
+
+              <div className="mt-6 flex items-start gap-2 rounded-lg border border-border/60 bg-muted/15 px-3 py-2 text-xs text-muted-foreground">
+                <Shield className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                <span>
+                  El procesamiento lo realiza Airwallex (PCI). MyJob no almacena datos de tarjeta.
+                </span>
+              </div>
+
+              {error ? (
+                <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+
+              <div className="mt-auto flex flex-col gap-3 pt-8">
+                <Button
+                  size="lg"
+                  className="h-12 w-full rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-700 text-base font-bold text-white shadow-md hover:from-fuchsia-700 hover:to-violet-800"
+                  onClick={startCheckout}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Abriendo pasarela…
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4 opacity-90" aria-hidden />
+                      Pagar ${amount.toFixed(2)} MXN
+                    </>
+                  )}
+                </Button>
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Al pagar aceptas los{' '}
+                  <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
+                    términos
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
