@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { MxCategoryInfo } from '@/lib/okMxJobImport';
 import {
   OK_MX_EMPLOYER_NAME,
+  OK_MX_EXTERNAL_SOURCE,
   buildOkMxJobRows,
   isMxRealPostsCsvHeader,
   parseMxCategoryCsvText,
