@@ -3,7 +3,8 @@
  * - Tries OpenStreetMap Nominatim reverse (browser; may fail CORS → fallback).
  * - Falls back to nearest major metro anchor (Haversine) within Mexico.
  *
- * Nominatim: max ~1 req/s when enabled (https://operations.osmfoundation.org/policies/nominatim/).
+ * Nominatim: opt-in via `VITE_MX_IMPORT_NOMINATIM=1` (default off so bulk import does not hang).
+ * When on: ~1 req/s + per-request timeout; cap unique calls via `VITE_MX_IMPORT_NOMINATIM_MAX` (default 200).
  */
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -122,6 +123,8 @@ function formatNominatimAddress(data: {
 /**
  * Reverse-geocode via OSM Nominatim (GET). May fail from browser (CORS / adblock) — caller should fall back.
  */
+const NOMINATIM_FETCH_MS = 6000;
+
 export async function reverseGeocodeNominatimEs(lat: number, lon: number): Promise<string | null> {
   const url = new URL('https://nominatim.openstreetmap.org/reverse');
   url.searchParams.set('lat', String(lat));
@@ -133,26 +136,48 @@ export async function reverseGeocodeNominatimEs(lat: number, lon: number): Promi
 
   const referrer =
     typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://myjob.com/';
-  const res = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      'Accept-Language': 'es',
-      Referer: referrer,
-      // Nominatim policy: identify app
-      'User-Agent': 'MyJob/1.0 (MX import; +https://myjob.com)',
-    },
-  });
+  const ac = new AbortController();
+  const tid = setTimeout(() => ac.abort(), NOMINATIM_FETCH_MS);
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      method: 'GET',
+      signal: ac.signal,
+      headers: {
+        Accept: 'application/json',
+        'Accept-Language': 'es',
+        Referer: referrer,
+        // Nominatim policy: identify app
+        'User-Agent': 'MyJob/1.0 (MX import; +https://myjob.com)',
+      },
+    });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(tid);
+  }
   if (!res.ok) return null;
   const data = (await res.json()) as Parameters<typeof formatNominatimAddress>[0];
   return formatNominatimAddress(data);
 }
 
 export type EnrichMxLocationOptions = {
-  /** When false, only nearest-metro anchor (no HTTP). Default: true unless `VITE_MX_IMPORT_NOMINATIM=0`. */
+  /** When false, only nearest-metro anchor (no HTTP). Default: use env `VITE_MX_IMPORT_NOMINATIM=1` to enable Nominatim. */
   tryNominatim?: boolean;
   onProgress?: (done: number, total: number) => void;
 };
+
+/** OSM reverse geocode during MX CSV import — must be explicitly enabled (avoids hanging bulk imports). */
+export function isMxImportNominatimEnvEnabled(): boolean {
+  return String(import.meta.env.VITE_MX_IMPORT_NOMINATIM ?? '').trim() === '1';
+}
+
+function mxImportNominatimMaxUniqueCalls(): number {
+  const raw = String(import.meta.env.VITE_MX_IMPORT_NOMINATIM_MAX ?? '').trim();
+  const n = Number(raw);
+  if (Number.isFinite(n) && n >= 1) return Math.min(Math.floor(n), 2000);
+  return 200;
+}
 
 /**
  * Dedupe coordinates across rows, then set `mx_geocoded_location` on each row for `resolveMxJobLocation`.
@@ -161,8 +186,9 @@ export async function enrichMxRowsWithGeocodedLocations(
   rows: Record<string, string>[],
   options?: EnrichMxLocationOptions,
 ): Promise<void> {
-  const envOff = String(import.meta.env.VITE_MX_IMPORT_NOMINATIM ?? '').trim() === '0';
-  const tryNominatim = options?.tryNominatim !== false && !envOff;
+  const tryNominatim = options?.tryNominatim !== false && isMxImportNominatimEnvEnabled();
+  const nominatimBudget = tryNominatim ? mxImportNominatimMaxUniqueCalls() : 0;
+  let nominatimCalls = 0;
 
   const keyToIndices = new Map<string, number[]>();
   for (let i = 0; i < rows.length; i += 1) {
@@ -182,7 +208,8 @@ export async function enrichMxRowsWithGeocodedLocations(
 
     let label: string | null = null;
     let usedNominatim = false;
-    if (tryNominatim) {
+    if (tryNominatim && nominatimCalls < nominatimBudget) {
+      nominatimCalls += 1;
       try {
         const n = await reverseGeocodeNominatimEs(lat, lon);
         if (n?.trim()) {

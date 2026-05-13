@@ -9,7 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { decodeCsvFile } from '@/lib/csvFileDecode';
 import { jobImportUpsertOnlyConcurrency, runPool } from '@/lib/jobImportPool';
-import { enrichMxRowsWithGeocodedLocations } from '@/lib/mxLocationGeo';
+import {
+  enrichMxRowsWithGeocodedLocations,
+  isMxImportNominatimEnvEnabled,
+  parseCoordinatesFromPara66,
+} from '@/lib/mxLocationGeo';
 import { hasOpenAiCompatibleKeyForMxTranslate, translateMxJobPostToEsMx } from '@/lib/jobSummaryAi';
 import { supabase } from '@/integrations/supabase/client';
 import type { MxCategoryInfo } from '@/lib/okMxJobImport';
@@ -122,8 +126,16 @@ export default function OkComMxPanel() {
         }
 
         if (normalizedRows.length > 0) {
-          toast.message('正在根据 para 坐标解析地点（Nominatim / 最近大城市）…', { duration: 4000 });
-          await enrichMxRowsWithGeocodedLocations(normalizedRows);
+          const hasCoord = normalizedRows.some((r) => parseCoordinatesFromPara66(String(r.para ?? '')));
+          if (hasCoord) {
+            toast.message(
+              isMxImportNominatimEnvEnabled()
+                ? '正在对唯一点做 OSM 逆地理（有次数上限，其余用最近大城市）…'
+                : '正在根据坐标匹配最近大城市（本地锚点；未开启逆地理）…',
+              { duration: 5000 },
+            );
+            await enrichMxRowsWithGeocodedLocations(normalizedRows);
+          }
         }
 
         let payload = buildOkMxJobRows(normalizedRows, categoryMap);
@@ -347,8 +359,8 @@ export default function OkComMxPanel() {
           <code className="text-xs">public/data/mx-job-categories.csv</code>；可选再上传品类表覆盖同名 code。
           职位写入公司「{OK_MX_EMPLOYER_NAME}」，站点分类按 MX 品类 path 的第二段映射到现有 5 类；Logo 为{' '}
           <code className="text-xs">/employers/okcom-recruitment-logo.jpg</code>。非 es 语言在配置了 OpenAI 兼容密钥时会译为 es-MX。
-          地点：从 <code className="text-xs">para</code> 的坐标做 OSM 逆地理（失败则用最近大城市锚点）；可用{' '}
-          <code className="text-xs">VITE_MX_IMPORT_NOMINATIM=0</code> 关闭外网请求、仅用锚点。
+          地点：默认用 <code className="text-xs">para</code> 坐标匹配最近大城市（无外网）；需要街道级地址时在构建环境设{' '}
+          <code className="text-xs">VITE_MX_IMPORT_NOMINATIM=1</code>（可选 <code className="text-xs">VITE_MX_IMPORT_NOMINATIM_MAX</code> 控制唯一点逆地理次数上限）。
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

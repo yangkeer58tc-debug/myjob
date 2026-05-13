@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  enrichMxRowsWithGeocodedLocations,
   nearestMxMetroLabel,
   parseCoordinatesFromPara66,
 } from '@/lib/mxLocationGeo';
@@ -21,6 +22,18 @@ describe('parseCoordinatesFromPara66', () => {
 describe('nearestMxMetroLabel', () => {
   it('maps CDMX coordinates to Ciudad de México', () => {
     expect(nearestMxMetroLabel(19.4326077, -99.133208)).toBe('Ciudad de México');
+  });
+});
+
+describe('enrichMxRowsWithGeocodedLocations', () => {
+  it('sets mx_geocoded_location from anchor when Nominatim is off', async () => {
+    const inner = {
+      coordinate: [{ longitude: -99.133208, latitude: 19.4326077, axes: 'WGS-84' }],
+    };
+    const para = JSON.stringify({ '60': '1', '66': JSON.stringify(inner) });
+    const rows: Record<string, string>[] = [{ para, title: 'x' }];
+    await enrichMxRowsWithGeocodedLocations(rows, { tryNominatim: false });
+    expect(rows[0].mx_geocoded_location).toBe('Ciudad de México');
   });
 });
 
