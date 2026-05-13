@@ -117,31 +117,31 @@ const PagoCandidato = () => {
           {/* OPtell-style: split card, no outer chrome overload */}
           <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-xl shadow-black/8 md:flex md:min-h-[420px]">
             {/* Left: summary (gradient) */}
-            <div className="relative flex w-full flex-col justify-between bg-gradient-to-br from-fuchsia-600 via-purple-600 to-violet-900 p-8 text-white md:w-[44%] md:min-w-[280px] md:p-9">
+            <div className="relative flex w-full flex-col justify-between bg-gradient-to-br from-primary via-emerald-800 to-emerald-950 p-8 text-primary-foreground md:w-[44%] md:min-w-[280px] md:p-9">
               <div>
-                <p className="text-sm font-semibold tracking-tight text-white/90">MyJob</p>
+                <p className="text-sm font-semibold tracking-tight text-primary-foreground/95">MyJob</p>
                 <h1 className="mt-2 text-2xl font-extrabold leading-tight md:text-[1.65rem]">Desbloquear contacto</h1>
-                <p className="mt-2 text-sm text-white/80">Pago único · acceso al flujo de WhatsApp para este candidato.</p>
-                <p className="mt-3 font-mono text-xs text-white/60">Ref. {ref}</p>
+                <p className="mt-2 text-sm text-primary-foreground/85">Pago único · acceso al flujo de WhatsApp para este candidato.</p>
+                <p className="mt-3 font-mono text-xs text-primary-foreground/65">Ref. {ref}</p>
               </div>
 
               <div className="mt-8 space-y-4">
-                <div className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-white/70">Facturación</p>
-                  <div className="mt-2 flex items-baseline justify-between gap-2 border-b border-white/15 pb-3">
-                    <span className="text-sm text-white/90">Contacto candidato · {roleLabel}</span>
+                <div className="rounded-xl border border-primary-foreground/20 bg-primary-foreground/10 p-4 backdrop-blur-sm">
+                  <p className="text-xs font-medium uppercase tracking-wide text-primary-foreground/75">Facturación</p>
+                  <div className="mt-2 flex items-baseline justify-between gap-2 border-b border-primary-foreground/15 pb-3">
+                    <span className="text-sm text-primary-foreground/95">Contacto candidato · {roleLabel}</span>
                   </div>
                   <div className="mt-3 flex items-end justify-between">
-                    <span className="text-sm text-white/80">Total</span>
+                    <span className="text-sm text-primary-foreground/85">Total</span>
                     <span className="text-3xl font-extrabold tabular-nums tracking-tight">
                       ${amount.toFixed(2)}{' '}
-                      <span className="text-lg font-bold text-white/85">MXN</span>
+                      <span className="text-lg font-bold text-primary-foreground/90">MXN</span>
                     </span>
                   </div>
                 </div>
-                <p className="text-[11px] leading-relaxed text-white/65">
+                <p className="text-[11px] leading-relaxed text-primary-foreground/70">
                   IVA u otros cargos, si aplican, se confirman en la pasarela antes de pagar. Para reembolsos consulta la{' '}
-                  <a href="/refund-policy" className="underline underline-offset-2 hover:text-white">
+                  <a href="/refund-policy" className="underline underline-offset-2 hover:text-primary-foreground">
                     política de reembolsos
                   </a>
                   .
@@ -191,7 +191,7 @@ const PagoCandidato = () => {
               </div>
 
               <div className="mt-6 flex items-start gap-2 rounded-lg border border-border/60 bg-muted/15 px-3 py-2 text-xs text-muted-foreground">
-                <Shield className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
                 <span>
                   El procesamiento lo realiza Airwallex (PCI). MyJob no almacena datos de tarjeta.
                 </span>
@@ -205,8 +205,9 @@ const PagoCandidato = () => {
 
               <div className="mt-auto flex flex-col gap-3 pt-8">
                 <Button
+                  variant="default"
                   size="lg"
-                  className="h-12 w-full rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-700 text-base font-bold text-white shadow-md hover:from-fuchsia-700 hover:to-violet-800"
+                  className="h-12 w-full rounded-xl text-base font-bold shadow-md"
                   onClick={startCheckout}
                   disabled={submitting}
                 >
