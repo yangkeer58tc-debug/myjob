@@ -121,19 +121,23 @@ const MENU_TOKENS = new Set([
  */
 export function isMenuRequest(raw: string | undefined | null): boolean {
   if (!raw) return false;
-  const s = String(raw)
-    .normalize('NFKD').replace(/\p{Diacritic}/gu, '')
-    .replace(/[*_~`]/g, '')
-    .replace(/[.!¡¿,;:]+/g, ' ')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!s) return false;
-  if (s === '?') return true;
-  const stripped = s.replace(/\?+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!stripped) return false;
-  if (MENU_TOKENS.has(stripped)) return true;
-  return stripped.split(' ').some((tok) => MENU_TOKENS.has(tok));
+  try {
+    const s = String(raw)
+      .normalize('NFKD').replace(/\p{Diacritic}/gu, '')
+      .replace(/[*_~`]/g, '')
+      .replace(/[.!¡¿,;:]+/g, ' ')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!s) return false;
+    if (s === '?') return true;
+    const stripped = s.replace(/\?+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!stripped) return false;
+    if (MENU_TOKENS.has(stripped)) return true;
+    return stripped.split(' ').some((tok) => MENU_TOKENS.has(tok));
+  } catch {
+    return false;
+  }
 }
 
 // Strip leading/trailing comma+punctuation and collapse internal whitespace.

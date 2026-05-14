@@ -5,7 +5,7 @@
 // State machine implementation lives in dispatch.ts (dispatchBotMessage).
 //
 // Build marker (used to confirm Supabase Edge runtime is serving the latest
-// version): WA_BOT_BUILD_2026_05_11_v10
+// version): WA_BOT_BUILD_2026_05_13_v11_jwt_public
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
@@ -264,7 +264,7 @@ async function handleReprocess(req: Request): Promise<Response> {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true });
   if (req.method === 'GET') {
-    return json({ ok: true, service: 'whatsapp-webhook', build: 'v10' });
+    return json({ ok: true, service: 'whatsapp-webhook', build: 'v11' });
   }
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 

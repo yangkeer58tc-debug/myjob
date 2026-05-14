@@ -16,6 +16,7 @@ on:
     branches: [staging, main]
     paths:
       - 'supabase/functions/whatsapp-webhook/**'
+      - 'supabase/config.toml'
       - '.github/workflows/deploy-supabase-functions.yml'
   workflow_dispatch: {}
 
@@ -45,6 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           supabase functions deploy whatsapp-webhook \
+            --no-verify-jwt \
             --project-ref "${{ secrets.SUPABASE_STAGING_PROJECT_REF }}"
 
   deploy-whatsapp-production:
@@ -65,4 +67,5 @@ jobs:
         run: |
           set -euo pipefail
           supabase functions deploy whatsapp-webhook \
+            --no-verify-jwt \
             --project-ref "${{ secrets.SUPABASE_PRODUCTION_PROJECT_REF }}"

@@ -1,1 +1,8 @@
 project_id = "ggydlqfkieerrzmszsbl"
+
+# Infobip calls this URL with no Authorization JWT. Without this, some CLI /
+# dashboard redeploys re-enable JWT verification and every webhook returns 401
+# before our handler runs — the bot stops replying entirely.
+# See: https://supabase.com/docs/guides/functions/function-configuration
+[functions.whatsapp-webhook]
+verify_jwt = false
