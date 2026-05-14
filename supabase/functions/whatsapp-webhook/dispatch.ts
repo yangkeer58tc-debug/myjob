@@ -12,9 +12,9 @@ import {
   toE164ForRmc,
 } from './rmc.ts';
 import {
-  BTN_HELP,
+  BTN_BROWSE_JOBS,
+  BTN_CONTACT_HUMAN,
   BTN_JOIN_PANEL,
-  BTN_MORE_JOBS,
   BTN_OPT_IN_NO,
   BTN_OPT_IN_YES,
   BTN_REC_JOBS,
@@ -32,6 +32,12 @@ import {
 } from './parsing.ts';
 import type { InfobipConfig } from './infobip.ts';
 import { sendInteractiveButtons, sendText } from './infobip.ts';
+import {
+  formatJobCardBody,
+  mexicoCityDateString,
+  pickNextRecommendedJob,
+  type JobRecRow,
+} from './jobRecommend.ts';
 
 export type ConversationState =
   | 'new'
@@ -108,6 +114,13 @@ export function resolveCandidateName(
 const RESUME_BUCKET = 'whatsapp-resumes';
 const RESUME_MAX_BYTES = 10 * 1024 * 1024;
 const MULTI_IMAGE_HINT_WINDOW_MS = 30 * 1000;
+const MAX_JOB_RECS_PER_DAY = 5;
+const JOBS_FETCH_LIMIT_FOR_RECOMMEND = 500;
+
+const empleosListUrl = (): string => {
+  const base = (Deno.env.get('MYJOB_PUBLIC_SITE_URL') ?? 'https://myjob.com').replace(/\/+$/, '');
+  return `${base}/empleos`;
+};
 
 function scheduleBackground(promise: Promise<void>): void {
   // ALWAYS wrap the promise in a catch so a background failure (e.g. enrich
@@ -335,27 +348,117 @@ function jobCompanyLabel(c: ConversationRow): string {
   return (c.applying_job_company ?? '').trim() || 'la empresa';
 }
 
-async function recommendQueryForUser(
+async function countRecommendationsToday(supabase: SupabaseClient, waUserId: string): Promise<number> {
+  const day = mexicoCityDateString();
+  const { count, error } = await supabase
+    .from('whatsapp_job_recommendation_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('wa_user_id', waUserId)
+    .eq('day_mx', day);
+  if (error) console.error('[wa-bot] count recommendations today', error);
+  return count ?? 0;
+}
+
+async function collectExcludedJobIdsForRecommend(
   supabase: SupabaseClient,
-  conversation: ConversationRow,
-): Promise<string> {
-  if (conversation.rmc_resume_id) {
-    const rmcCfg = getRmcServiceConfig();
-    if (rmcCfg) {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
-      const rmc = createClient(rmcCfg.url, rmcCfg.serviceRoleKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { data } = await rmc
-        .from('resumes')
-        .select('job_direction')
-        .eq('id', conversation.rmc_resume_id)
-        .maybeSingle();
-      const jd = String((data as any)?.job_direction ?? '').trim();
-      if (jd) return jd;
-    }
+  waUserId: string,
+): Promise<Set<string>> {
+  const excluded = new Set<string>();
+  const [{ data: apps }, { data: evs }] = await Promise.all([
+    supabase.from('whatsapp_applications').select('job_id').eq('wa_user_id', waUserId).not('job_id', 'is', null),
+    supabase.from('whatsapp_job_recommendation_events').select('job_id').eq('wa_user_id', waUserId),
+  ]);
+  for (const r of apps ?? []) {
+    const id = String((r as { job_id?: string }).job_id ?? '').trim();
+    if (id) excluded.add(id);
   }
-  return (conversation.applying_job_title ?? '').trim() || 'empleo';
+  for (const r of evs ?? []) {
+    const id = String((r as { job_id?: string }).job_id ?? '').trim();
+    if (id) excluded.add(id);
+  }
+  return excluded;
+}
+
+async function loadAnchorJobRow(
+  supabase: SupabaseClient,
+  waUserId: string,
+  conversation: ConversationRow,
+): Promise<JobRecRow | null> {
+  const { data: app } = await supabase
+    .from('whatsapp_applications')
+    .select('job_id')
+    .eq('wa_user_id', waUserId)
+    .not('job_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  let anchorId = String((app as { job_id?: string } | null)?.job_id ?? '').trim();
+  if (!anchorId) anchorId = String(conversation.applying_job_id ?? '').trim();
+  if (!anchorId) return null;
+  const { data: row, error } = await supabase
+    .from('jobs')
+    .select(
+      'id,title,b_name,location,salary_amount,payment_frequency,job_type,workplace_type,category,mx_category_code,summary,industry,experience,education_level,is_active,created_at',
+    )
+    .eq('id', anchorId)
+    .maybeSingle();
+  if (error || !row) return null;
+  return row as unknown as JobRecRow;
+}
+
+async function fetchActiveJobPoolForRecommend(supabase: SupabaseClient): Promise<JobRecRow[]> {
+  const { data, error } = await supabase
+    .from('jobs')
+    .select(
+      'id,title,b_name,location,salary_amount,payment_frequency,job_type,workplace_type,category,mx_category_code,summary,industry,experience,education_level,is_active,created_at',
+    )
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(JOBS_FETCH_LIMIT_FOR_RECOMMEND);
+  if (error) {
+    console.error('[wa-bot] fetch job pool', error);
+    return [];
+  }
+  return (data ?? []) as unknown as JobRecRow[];
+}
+
+async function sendNextJobRecommendation(
+  supabase: SupabaseClient,
+  config: InfobipConfig,
+  conversation: ConversationRow,
+): Promise<void> {
+  const n = await countRecommendationsToday(supabase, conversation.wa_user_id);
+  if (n >= MAX_JOB_RECS_PER_DAY) {
+    await reply(supabase, config, conversation, COPY.recommendDailyCap);
+    return;
+  }
+  const anchor = await loadAnchorJobRow(supabase, conversation.wa_user_id, conversation);
+  const excluded = await collectExcludedJobIdsForRecommend(supabase, conversation.wa_user_id);
+  const pool = await fetchActiveJobPoolForRecommend(supabase);
+  const next = pickNextRecommendedJob(pool, anchor, excluded);
+  if (!next) {
+    await reply(supabase, config, conversation, COPY.recommendNoRelatedJobs(empleosListUrl()));
+    return;
+  }
+  const card = formatJobCardBody(next);
+  const refTag = `[REF:${next.id}]`;
+  let body = `${COPY.recommendJobIntro}\n\n${card}`;
+  if (body.length > 1020) body = `${body.slice(0, 1017)}…`;
+  await replyInteractive(supabase, config, conversation, body, [{ id: refTag, title: 'Postular' }]);
+  const { error: logErr } = await supabase.from('whatsapp_job_recommendation_events').insert({
+    wa_user_id: conversation.wa_user_id,
+    job_id: next.id,
+    day_mx: mexicoCityDateString(),
+  } as any);
+  if (logErr) console.error('[wa-bot] recommendation event insert', logErr);
+}
+
+function postFlowMenuVariant(
+  conversation: ConversationRow,
+): 'after_opt_in' | 'after_decline' | 'after_no_cv' {
+  if (conversation.state === 'completed_declined') return 'after_decline';
+  if (conversation.state === 'completed_no_cv') return 'after_no_cv';
+  return 'after_opt_in';
 }
 
 async function sendPostFlowInteractive(
@@ -367,24 +470,23 @@ async function sendPostFlowInteractive(
   const body = `${COPY.postFlowIntro}\n\n${COPY.menuHint}`;
   if (variant === 'after_no_cv') {
     await replyInteractive(supabase, config, conversation, body, [
-      { id: BTN_MORE_JOBS, title: 'Ver vacantes' },
-      { id: BTN_HELP, title: 'Ayuda' },
+      { id: BTN_BROWSE_JOBS, title: 'Ver empleos' },
+      { id: BTN_CONTACT_HUMAN, title: 'Contacto humano' },
     ]);
     return;
   }
-  const buttons =
-    variant === 'after_decline'
-      ? [
-          { id: BTN_MORE_JOBS, title: 'Más vacantes' },
-          { id: BTN_REC_JOBS, title: 'Recomiéndame' },
-          { id: BTN_JOIN_PANEL, title: 'Súmame al panel' },
-        ]
-      : [
-          { id: BTN_MORE_JOBS, title: 'Más vacantes' },
-          { id: BTN_REC_JOBS, title: 'Recomiéndame' },
-          { id: BTN_HELP, title: 'Ayuda' },
-        ];
-  await replyInteractive(supabase, config, conversation, body, buttons);
+  if (variant === 'after_decline') {
+    await replyInteractive(supabase, config, conversation, body, [
+      { id: BTN_REC_JOBS, title: 'Recomiéndame' },
+      { id: BTN_JOIN_PANEL, title: 'Súmame al panel' },
+      { id: BTN_CONTACT_HUMAN, title: 'Contacto humano' },
+    ]);
+    return;
+  }
+  await replyInteractive(supabase, config, conversation, body, [
+    { id: BTN_REC_JOBS, title: 'Recomiéndame' },
+    { id: BTN_CONTACT_HUMAN, title: 'Contacto humano' },
+  ]);
 }
 
 async function handleCompletedInbound(
@@ -399,25 +501,38 @@ async function handleCompletedInbound(
 ) {
   const t = inboundText.trim();
   if (isMenuRequest(stripJobRefTag(t))) {
-    await sendPostFlowInteractive(
-      supabase,
-      config,
-      conversation,
-      conversation.state === 'completed_declined' ? 'after_decline' : 'after_opt_in',
-    );
+    await sendPostFlowInteractive(supabase, config, conversation, postFlowMenuVariant(conversation));
     return;
   }
-  if (matchesButton(t, BTN_MORE_JOBS, 'Más vacantes', 'Mas vacantes', 'Ver vacantes')) {
+  if (
+    matchesButton(t, BTN_BROWSE_JOBS, 'Ver empleos', 'Ver vacantes', 'Más vacantes', 'Mas vacantes') ||
+    matchesButton(t, 'WA_MORE_JOBS', 'Más vacantes', 'Mas vacantes', 'Ver vacantes', 'Ver empleos')
+  ) {
     await reply(supabase, config, conversation, COPY.postFlowMoreJobs());
     return;
   }
-  if (matchesButton(t, BTN_REC_JOBS, 'Recomiéndame', 'Recomiendame')) {
-    const q = await recommendQueryForUser(supabase, conversation);
-    await reply(supabase, config, conversation, COPY.postFlowRecommend(q));
+  if (matchesButton(t, 'WA_HELP', 'Ayuda')) {
+    await reply(supabase, config, conversation, COPY.contactHumanMessage());
     return;
   }
-  if (matchesButton(t, BTN_HELP, 'Ayuda')) {
-    await reply(supabase, config, conversation, COPY.postFlowHelp());
+  if (
+    matchesButton(
+      t,
+      BTN_CONTACT_HUMAN,
+      'Contacto humano',
+      'Contacto',
+      'Soporte',
+      'Ayuda',
+    )
+  ) {
+    await reply(supabase, config, conversation, COPY.contactHumanMessage());
+    return;
+  }
+  if (
+    matchesButton(t, BTN_REC_JOBS, 'Recomiéndame', 'Recomiendame') &&
+    (conversation.state === 'completed_opt_in' || conversation.state === 'completed_declined')
+  ) {
+    await sendNextJobRecommendation(supabase, config, conversation);
     return;
   }
   if (
@@ -500,7 +615,7 @@ async function handleCompletedInbound(
     supabase,
     config,
     conversation,
-    conversation.state === 'completed_declined' ? 'after_decline' : 'after_opt_in',
+    postFlowMenuVariant(conversation),
   );
 }
 

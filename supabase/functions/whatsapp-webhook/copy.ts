@@ -66,14 +66,17 @@ export const COPY = {
 
   postFlowMoreJobs: () => `Aquí tienes vacantes abiertas: ${site()}/empleos`,
 
-  postFlowRecommend: (q: string) => {
-    const base = site();
-    const enc = encodeURIComponent(q.trim() || 'empleo');
-    return `Vacantes relacionadas con tu perfil: ${base}/empleos?q=${enc}`;
-  },
+  recommendJobIntro: 'Te sugerimos esta vacante:',
 
-  postFlowHelp: () =>
-    `Puedes explorar más en ${site()} o escribirnos por el formulario de contacto en la web.`,
+  recommendNoRelatedJobs: (empleosUrl: string) =>
+    'Por ahora no encontramos vacantes relacionadas con el puesto al que te postulaste. ' +
+    `Puedes ver el listado aquí: ${empleosUrl}`,
+
+  recommendDailyCap:
+    'Hoy ya te mostramos 5 vacantes sugeridas. Mañana podrás pedir más desde *menu*, o revisa el listado en la web.',
+
+  contactHumanMessage: () =>
+    'Soporte humano por WhatsApp:\nhttps://wa.me/528132689146\nO al +52 81 3268 9146',
 
   postFlowJoinPanelReminder:
     'Si cambias de opinión y quieres aparecer en el panel de candidatos, toca *Súmame al panel* o escribe *Si*.',

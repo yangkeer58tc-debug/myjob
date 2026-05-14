@@ -11,9 +11,11 @@ export const BTN_OPT_IN_YES = 'WA_OPT_YES';
 export const BTN_OPT_IN_NO = 'WA_OPT_NO';
 export const BTN_RET_SAME = 'WA_RET_SAME';
 export const BTN_RET_NEW = 'WA_RET_NEW';
-export const BTN_MORE_JOBS = 'WA_MORE_JOBS';
+/** Opens job list URL (legacy inbound may still say "Ver vacantes"). */
+export const BTN_BROWSE_JOBS = 'WA_BROWSE_JOBS';
 export const BTN_REC_JOBS = 'WA_REC_JOBS';
-export const BTN_HELP = 'WA_HELP';
+/** Human support WhatsApp (+52 81 3268 9146). */
+export const BTN_CONTACT_HUMAN = 'WA_CONTACT_HUMAN';
 export const BTN_JOIN_PANEL = 'WA_JOIN_PANEL';
 
 /** First inbound from wa.me may carry `[REF:<jobId>]` (digits) for job context. */
