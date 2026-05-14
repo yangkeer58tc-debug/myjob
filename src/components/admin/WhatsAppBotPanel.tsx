@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,28 @@ type MessageRow = {
   created_at: string;
 };
 
+const CONV_PAGE_SIZE = 25;
+const APP_PAGE_SIZE = 25;
+
+const WA_CONV_SELECT =
+  'id, wa_user_id, state, candidate_name, rmc_sync_status, rmc_sync_error, opt_in_clarify_count, last_resume_storage_path, resume_storage_path, last_resume_received_at, completed_at, archived_at, created_at, last_message_at, applying_job_id, applying_job_title, applying_job_company';
+
+/** PostgREST `.or()` filter for conversation search (ilike on common fields). */
+function buildConversationSearchOr(searchRaw: string): string | null {
+  const t = searchRaw.trim();
+  if (!t) return null;
+  const escaped = t.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+  const p = `%${escaped}%`;
+  return [
+    `wa_user_id.ilike.${p}`,
+    `candidate_name.ilike.${p}`,
+    `state.ilike.${p}`,
+    `applying_job_id.ilike.${p}`,
+    `applying_job_title.ilike.${p}`,
+    `applying_job_company.ilike.${p}`,
+  ].join(',');
+}
+
 type FunnelStats = {
   total: number;
   awaitingResume: number;
@@ -63,6 +85,55 @@ type FunnelStats = {
   rmcFailed: number;
   rmcSkipped: number;
 };
+
+type PvUvBucket = { pv: number; uv: number };
+
+type DashboardRpcPayload = {
+  funnel: FunnelStats;
+  inbound_pv_uv: {
+    h24: PvUvBucket;
+    d7: PvUvBucket;
+    d30: PvUvBucket;
+    all: PvUvBucket;
+  };
+};
+
+function parseDashboardPayload(raw: unknown): DashboardRpcPayload | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const funnel = o.funnel;
+  const inbound = o.inbound_pv_uv;
+  if (!funnel || typeof funnel !== 'object' || !inbound || typeof inbound !== 'object') return null;
+  const f = funnel as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0);
+  const bucket = (b: unknown): PvUvBucket | null => {
+    if (!b || typeof b !== 'object') return null;
+    const x = b as Record<string, unknown>;
+    return { pv: num(x.pv), uv: num(x.uv) };
+  };
+  const inboundObj = inbound as Record<string, unknown>;
+  const h24 = bucket(inboundObj.h24);
+  const d7 = bucket(inboundObj.d7);
+  const d30 = bucket(inboundObj.d30);
+  const all = bucket(inboundObj.all);
+  if (!h24 || !d7 || !d30 || !all) return null;
+  return {
+    funnel: {
+      total: num(f.total),
+      awaitingResume: num(f.awaiting_resume),
+      awaitingReturningCv: num(f.awaiting_returning_cv),
+      awaitingOptIn: num(f.awaiting_opt_in),
+      completedNoCv: num(f.completed_no_cv),
+      resumeReceived: num(f.resume_received),
+      optedIn: num(f.opted_in),
+      declined: num(f.declined),
+      rmcSuccess: num(f.rmc_success),
+      rmcFailed: num(f.rmc_failed),
+      rmcSkipped: num(f.rmc_skipped),
+    },
+    inbound_pv_uv: { h24, d7, d30, all },
+  };
+}
 
 const STATE_LABEL: Record<string, string> = {
   new: 'New',
@@ -188,6 +259,28 @@ async function fetchAllPaged<T>(
     const { data, error } = await q.range(from, from + pageSize - 1);
     if (error) throw error;
     const batch = (data ?? []) as T[];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
+async function fetchAllConversationsMatchingSearch(searchRaw: string): Promise<ConversationRow[]> {
+  const orf = buildConversationSearchOr(searchRaw);
+  const all: ConversationRow[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  const HARD_CAP = 50_000;
+  while (all.length < HARD_CAP) {
+    let q = supabase
+      .from('whatsapp_conversations')
+      .select(WA_CONV_SELECT)
+      .order('last_message_at', { ascending: false });
+    if (orf) q = q.or(orf);
+    const { data, error } = await q.range(from, from + pageSize - 1);
+    if (error) throw error;
+    const batch = (data ?? []) as ConversationRow[];
     all.push(...batch);
     if (batch.length < pageSize) break;
     from += pageSize;
@@ -337,12 +430,47 @@ const downloadApplicationsCsv = (rows: ApplicationRow[]) => {
   URL.revokeObjectURL(url);
 };
 
+const EMPTY_FUNNEL: FunnelStats = {
+  total: 0,
+  awaitingResume: 0,
+  awaitingReturningCv: 0,
+  awaitingOptIn: 0,
+  completedNoCv: 0,
+  resumeReceived: 0,
+  optedIn: 0,
+  declined: 0,
+  rmcSuccess: 0,
+  rmcFailed: 0,
+  rmcSkipped: 0,
+};
+
+const TRAFFIC_PERIOD_LABEL: Record<'h24' | 'd7' | 'd30' | 'all', string> = {
+  h24: '近 24 小时',
+  d7: '近 7 天',
+  d30: '近 30 天',
+  all: '全部时间',
+};
+
 export default function WhatsAppBotPanel() {
   const [search, setSearch] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [convPage, setConvPage] = useState(1);
+  const [appPage, setAppPage] = useState(1);
   const [selected, setSelected] = useState<ConversationRow | null>(null);
   const [messagesExporting, setMessagesExporting] = useState(false);
   const [messagesExportError, setMessagesExportError] = useState<string | null>(null);
   const [messagesExportInfo, setMessagesExportInfo] = useState<string | null>(null);
+  const [convCsvExporting, setConvCsvExporting] = useState(false);
+  const [appCsvExporting, setAppCsvExporting] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setSearchDebounced(search), 400);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setConvPage(1);
+  }, [searchDebounced]);
 
   const handleExportAllMessages = async () => {
     setMessagesExporting(true);
@@ -360,34 +488,53 @@ export default function WhatsAppBotPanel() {
     }
   };
 
-  const conversationsQuery = useQuery<ConversationRow[]>({
-    queryKey: ['waConversations'],
+  const dashboardQuery = useQuery({
+    queryKey: ['waDashboardStats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('whatsapp_conversations')
-        .select(
-          'id, wa_user_id, state, candidate_name, rmc_sync_status, rmc_sync_error, opt_in_clarify_count, last_resume_storage_path, resume_storage_path, last_resume_received_at, completed_at, archived_at, created_at, last_message_at, applying_job_id, applying_job_title, applying_job_company',
-        )
-        .order('last_message_at', { ascending: false })
-        .limit(500);
+      const { data, error } = await supabase.rpc('whatsapp_admin_dashboard_stats');
       if (error) throw error;
-      return (data ?? []) as ConversationRow[];
+      const parsed = parseDashboardPayload(data);
+      if (!parsed) throw new Error('Invalid dashboard stats payload');
+      return parsed;
     },
     refetchInterval: 30_000,
   });
 
-  const applicationsQuery = useQuery<ApplicationRow[]>({
-    queryKey: ['waApplications'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  const conversationsQuery = useQuery({
+    queryKey: ['waConversations', convPage, searchDebounced],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<{ rows: ConversationRow[]; total: number }> => {
+      const from = (convPage - 1) * CONV_PAGE_SIZE;
+      const to = from + CONV_PAGE_SIZE - 1;
+      let q = supabase
+        .from('whatsapp_conversations')
+        .select(WA_CONV_SELECT, { count: 'exact' })
+        .order('last_message_at', { ascending: false });
+      const orf = buildConversationSearchOr(searchDebounced);
+      if (orf) q = q.or(orf);
+      const { data, error, count } = await q.range(from, to);
+      if (error) throw error;
+      return { rows: (data ?? []) as ConversationRow[], total: count ?? 0 };
+    },
+    refetchInterval: 30_000,
+  });
+
+  const applicationsQuery = useQuery({
+    queryKey: ['waApplications', appPage],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<{ rows: ApplicationRow[]; total: number }> => {
+      const from = (appPage - 1) * APP_PAGE_SIZE;
+      const to = from + APP_PAGE_SIZE - 1;
+      const { data, error, count } = await supabase
         .from('whatsapp_applications')
         .select(
           'id, conversation_id, wa_user_id, rmc_resume_id, job_id, job_title, job_company, reused_existing_cv, opt_in_status, created_at',
+          { count: 'exact' },
         )
         .order('created_at', { ascending: false })
-        .limit(300);
+        .range(from, to);
       if (error) throw error;
-      return (data ?? []) as ApplicationRow[];
+      return { rows: (data ?? []) as ApplicationRow[], total: count ?? 0 };
     },
     refetchInterval: 30_000,
   });
@@ -408,60 +555,54 @@ export default function WhatsAppBotPanel() {
     },
   });
 
-  const stats: FunnelStats = useMemo(() => {
-    const rows = conversationsQuery.data ?? [];
-    const stats: FunnelStats = {
-      total: rows.length,
-      awaitingResume: 0,
-      awaitingReturningCv: 0,
-      awaitingOptIn: 0,
-      completedNoCv: 0,
-      resumeReceived: 0,
-      optedIn: 0,
-      declined: 0,
-      rmcSuccess: 0,
-      rmcFailed: 0,
-      rmcSkipped: 0,
-    };
-    for (const r of rows) {
-      if (r.state === 'awaiting_resume' || r.state === 'awaiting_name') stats.awaitingResume += 1;
-      if (r.state === 'awaiting_returning_cv_choice') stats.awaitingReturningCv += 1;
-      if (r.state === 'awaiting_opt_in') stats.awaitingOptIn += 1;
-      if (r.state === 'completed_no_cv') stats.completedNoCv += 1;
-      if (r.last_resume_storage_path || r.resume_storage_path) stats.resumeReceived += 1;
-      if (r.state === 'completed_opt_in') stats.optedIn += 1;
-      if (r.state === 'completed_declined') stats.declined += 1;
-      if (r.rmc_sync_status === 'success') stats.rmcSuccess += 1;
-      if (r.rmc_sync_status === 'failed') stats.rmcFailed += 1;
-      if (r.rmc_sync_status === 'skipped_no_config' || r.rmc_sync_status === 'skipped_staging') {
-        stats.rmcSkipped += 1;
-      }
-    }
-    return stats;
-  }, [conversationsQuery.data]);
+  const stats: FunnelStats = dashboardQuery.data?.funnel ?? EMPTY_FUNNEL;
+  const traffic = dashboardQuery.data?.inbound_pv_uv;
 
-  const filteredRows = useMemo(() => {
-    const rows = conversationsQuery.data ?? [];
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => {
-      const fields = [
-        r.wa_user_id,
-        r.candidate_name ?? '',
-        r.state,
-        r.rmc_sync_status ?? '',
-        r.applying_job_id ?? '',
-        r.applying_job_title ?? '',
-        r.applying_job_company ?? '',
-      ]
-        .map((s) => String(s).toLowerCase());
-      return fields.some((f) => f.includes(q));
-    });
-  }, [conversationsQuery.data, search]);
+  const convRows = conversationsQuery.data?.rows ?? [];
+  const convTotal = conversationsQuery.data?.total ?? 0;
+  const convMaxPage = Math.max(1, Math.ceil(convTotal / CONV_PAGE_SIZE));
+
+  const appRows = applicationsQuery.data?.rows ?? [];
+  const appTotal = applicationsQuery.data?.total ?? 0;
+  const appMaxPage = Math.max(1, Math.ceil(appTotal / APP_PAGE_SIZE));
+
+  useEffect(() => {
+    setConvPage((p) => Math.min(Math.max(1, p), convMaxPage));
+  }, [convMaxPage]);
+
+  useEffect(() => {
+    setAppPage((p) => Math.min(Math.max(1, p), appMaxPage));
+  }, [appMaxPage]);
+
+  const handleExportConversationsCsv = async () => {
+    setConvCsvExporting(true);
+    try {
+      const rows = await fetchAllConversationsMatchingSearch(searchDebounced);
+      downloadCsv(rows);
+    } finally {
+      setConvCsvExporting(false);
+    }
+  };
+
+  const handleExportApplicationsCsv = async () => {
+    setAppCsvExporting(true);
+    try {
+      const rows = await fetchAllPaged<ApplicationRow>(
+        'whatsapp_applications',
+        'id, conversation_id, wa_user_id, rmc_resume_id, job_id, job_title, job_company, reused_existing_cv, opt_in_status, created_at',
+        [{ column: 'created_at', ascending: false }],
+      );
+      downloadApplicationsCsv(rows);
+    } finally {
+      setAppCsvExporting(false);
+    }
+  };
 
   const errorMsg = conversationsQuery.error
     ? (conversationsQuery.error as Error).message
-    : null;
+    : dashboardQuery.error
+      ? (dashboardQuery.error as Error).message
+      : null;
 
   return (
     <div className="space-y-4">
@@ -473,10 +614,15 @@ export default function WhatsAppBotPanel() {
             size="sm"
             className="rounded-xl"
             onClick={() => {
+              void dashboardQuery.refetch();
               void conversationsQuery.refetch();
               void applicationsQuery.refetch();
             }}
-            disabled={conversationsQuery.isFetching || applicationsQuery.isFetching}
+            disabled={
+              dashboardQuery.isFetching ||
+              conversationsQuery.isFetching ||
+              applicationsQuery.isFetching
+            }
           >
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
@@ -484,19 +630,31 @@ export default function WhatsAppBotPanel() {
             variant="outline"
             size="sm"
             className="rounded-xl"
-            onClick={() => downloadCsv(filteredRows)}
-            disabled={filteredRows.length === 0}
+            onClick={() => void handleExportConversationsCsv()}
+            disabled={convCsvExporting}
+            title="按当前搜索条件导出全部匹配会话（分页拉取，最多约 5 万条）。"
           >
-            <Download className="h-4 w-4 mr-1" /> CSV conv.
+            {convCsvExporting ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            CSV 会话
           </Button>
           <Button
             variant="outline"
             size="sm"
             className="rounded-xl"
-            onClick={() => downloadApplicationsCsv(applicationsQuery.data ?? [])}
-            disabled={(applicationsQuery.data?.length ?? 0) === 0}
+            onClick={() => void handleExportApplicationsCsv()}
+            disabled={appCsvExporting || appTotal === 0}
+            title="导出全部申请记录（分页拉取，最多约 5 万条）。"
           >
-            <Download className="h-4 w-4 mr-1" /> Applications CSV
+            {appCsvExporting ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            CSV 申请
           </Button>
           <Button
             variant="outline"
@@ -534,11 +692,11 @@ export default function WhatsAppBotPanel() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        <StatCard label="Conversations" value={stats.total} subtitle="latest 500" />
+        <StatCard label="Conversations" value={stats.total} subtitle="库内全部" />
         <StatCard label="Awaiting Resume" value={stats.awaitingResume} />
         <StatCard label="Existing / New Resume" value={stats.awaitingReturningCv} />
         <StatCard label="Awaiting Highlights Opt-In" value={stats.awaitingOptIn} />
-        <StatCard label="Resume Received" value={stats.resumeReceived} subtitle="cumulative" />
+        <StatCard label="Resume Received" value={stats.resumeReceived} subtitle="有简历路径" />
         <StatCard label="Accepted Highlights" value={stats.optedIn} />
         <StatCard label="Declined" value={stats.declined} />
       </div>
@@ -552,19 +710,64 @@ export default function WhatsAppBotPanel() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Conversations</CardTitle>
+          <CardTitle className="text-base">用户消息流量（Inbound）</CardTitle>
           <CardDescription>
-            Most recent first. Click a row to view messages.
+            PV = 用户发送的 inbound 消息条数；UV = 按号码去重（仅保留数字后的 wa_user_id，COUNT DISTINCT）。
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-3">
-            <Input
-              placeholder="Search by number, name, or status..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-sm"
-            />
+          {dashboardQuery.isLoading && !traffic ? (
+            <p className="text-sm text-muted-foreground">加载统计数据…</p>
+          ) : traffic ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(['h24', 'd7', 'd30', 'all'] as const).map((key) => {
+                const b = traffic[key];
+                return (
+                  <div key={key} className="rounded-xl border border-border bg-muted/20 p-3">
+                    <div className="text-xs font-medium text-muted-foreground">{TRAFFIC_PERIOD_LABEL[key]}</div>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                      <div>
+                        <span className="text-xs text-muted-foreground">PV</span>
+                        <div className="text-lg font-semibold tabular-nums">{b.pv.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">UV</span>
+                        <div className="text-lg font-semibold tabular-nums">{b.uv.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">暂无流量数据。</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Conversations</CardTitle>
+          <CardDescription>
+            按最后消息时间倒序；服务端分页（每页 {CONV_PAGE_SIZE} 条）。点击行查看消息。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-sm w-full">
+              <Input
+                placeholder="号码、姓名、状态、职位关键词…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="rounded-xl"
+              />
+              {search !== searchDebounced ? (
+                <p className="text-xs text-muted-foreground mt-1">正在更新搜索…</p>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              共 {convTotal.toLocaleString()} 条匹配
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -581,11 +784,19 @@ export default function WhatsAppBotPanel() {
               </thead>
               <tbody>
                 {conversationsQuery.isLoading ? (
-                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
-                ) : filteredRows.length === 0 ? (
-                  <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">No conversations yet.</td></tr>
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : convRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                      没有匹配的会话。
+                    </td>
+                  </tr>
                 ) : (
-                  filteredRows.map((r) => (
+                  convRows.map((r) => (
                     <tr
                       key={r.id}
                       onClick={() => setSelected(r)}
@@ -610,13 +821,42 @@ export default function WhatsAppBotPanel() {
               </tbody>
             </table>
           </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
+            <span>
+              第 {convPage} / {convMaxPage} 页 · 每页 {CONV_PAGE_SIZE} 条
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                disabled={convPage <= 1 || conversationsQuery.isFetching}
+                onClick={() => setConvPage((p) => Math.max(1, p - 1))}
+              >
+                上一页
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                disabled={convPage >= convMaxPage || conversationsQuery.isFetching || convTotal === 0}
+                onClick={() => setConvPage((p) => Math.min(convMaxPage, p + 1))}
+              >
+                下一页
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Applications (whatsapp_applications)</CardTitle>
-          <CardDescription>Latest 300 applications recorded by the bot.</CardDescription>
+          <CardDescription>
+            按创建时间倒序；服务端分页（每页 {APP_PAGE_SIZE} 条），共 {appTotal.toLocaleString()} 条。
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -632,11 +872,19 @@ export default function WhatsAppBotPanel() {
               </thead>
               <tbody>
                 {applicationsQuery.isLoading ? (
-                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
-                ) : (applicationsQuery.data?.length ?? 0) === 0 ? (
-                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No applications yet.</td></tr>
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : appRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      No applications yet.
+                    </td>
+                  </tr>
                 ) : (
-                  applicationsQuery.data!.map((a) => (
+                  appRows.map((a) => (
                     <tr key={a.id} className="border-b">
                       <td className="py-2 pr-3 whitespace-nowrap">{formatDate(a.created_at)}</td>
                       <td className="py-2 pr-3 font-mono text-xs">{a.wa_user_id}</td>
@@ -653,6 +901,33 @@ export default function WhatsAppBotPanel() {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
+            <span>
+              第 {appPage} / {appMaxPage} 页 · 每页 {APP_PAGE_SIZE} 条
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                disabled={appPage <= 1 || applicationsQuery.isFetching}
+                onClick={() => setAppPage((p) => Math.max(1, p - 1))}
+              >
+                上一页
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                disabled={appPage >= appMaxPage || applicationsQuery.isFetching || appTotal === 0}
+                onClick={() => setAppPage((p) => Math.min(appMaxPage, p + 1))}
+              >
+                下一页
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
