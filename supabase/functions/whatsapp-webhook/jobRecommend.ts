@@ -38,6 +38,21 @@ const norm = (s: string | null | undefined) =>
     .trim()
     .toLowerCase();
 
+/** OK feed uses `MX · …` while IMC often uses English free text — strip for comparison. */
+function industryComparable(s: string | null | undefined): string {
+  return norm(s)
+    .replace(/^mx\s*[·.:]\s*/u, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function industryWordOverlap(a: string, b: string): number {
+  const wa = a.split(/[\s,/|·]+/).filter((w) => w.length > 3);
+  const wb = new Set(b.split(/[\s,/|·]+/).filter((w) => w.length > 3));
+  if (!wa.length || !wb.size) return 0;
+  return wa.filter((w) => wb.has(w)).length;
+}
+
 export function scoreJobAgainstAnchor(job: JobRecRow, anchor: JobRecRow | null): number {
   if (!anchor) return 0;
   let score = 0;
@@ -52,6 +67,20 @@ export function scoreJobAgainstAnchor(job: JobRecRow, anchor: JobRecRow | null):
   const ai = norm(anchor.industry);
   const ji = norm(job.industry);
   if (ai && ji && ai === ji) score += 40;
+  else {
+    const aci = industryComparable(anchor.industry);
+    const jci = industryComparable(job.industry);
+    if (aci && jci) {
+      if (aci === jci) score += 38;
+      else if (aci.includes(jci) || jci.includes(aci)) {
+        const shorter = aci.length <= jci.length ? aci : jci;
+        if (shorter.length >= 4) score += 28;
+      } else {
+        const overlap = industryWordOverlap(aci, jci);
+        if (overlap > 0) score += Math.min(32, overlap * 10);
+      }
+    }
+  }
 
   const al = (anchor.location ?? '').trim();
   const jl = (job.location ?? '').trim();
@@ -67,7 +96,7 @@ export function scoreJobAgainstAnchor(job: JobRecRow, anchor: JobRecRow | null):
   if (at.length > 4 && jt.length > 4) {
     const words = at.split(/\s+/).filter((w) => w.length > 3);
     const hits = words.filter((w) => jt.includes(w)).length;
-    if (hits) score += Math.min(25, hits * 5);
+    if (hits) score += Math.min(30, hits * 5);
   }
 
   return score;

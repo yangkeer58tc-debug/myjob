@@ -51,6 +51,23 @@ describe('scoreJobAgainstAnchor', () => {
     });
     expect(scoreJobAgainstAnchor(jMatch, anchor)).toBeGreaterThan(scoreJobAgainstAnchor(jMiss, anchor));
   });
+
+  it('gives partial credit when OK MX-style industry overlaps plain text', () => {
+    const okAnchor = baseJob({
+      id: 'a2',
+      title: 'Agente telefónico',
+      category: 'call-center-customer-service',
+      industry: 'MX · Call center',
+      location: 'Monterrey',
+    });
+    const imcJob = baseJob({
+      id: 'x3',
+      category: 'sales',
+      industry: 'Call center representative bilingual',
+      location: 'Monterrey',
+    });
+    expect(scoreJobAgainstAnchor(imcJob, okAnchor)).toBeGreaterThan(0);
+  });
 });
 
 describe('OK.com Jobs priority', () => {
