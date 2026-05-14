@@ -1,5 +1,7 @@
 // Pure helpers + types for WhatsApp in-chat job recommendations (Edge + vitest).
 
+import { canonicalSiteCategory } from './jobRecommendCanonical.ts';
+
 export const OK_COM_JOBS_B_NAME = 'OK.com Jobs';
 
 export type JobRecRow = {
@@ -59,6 +61,11 @@ export function scoreJobAgainstAnchor(job: JobRecRow, anchor: JobRecRow | null):
   const ac = (anchor.category ?? '').trim();
   const jc = (job.category ?? '').trim();
   if (ac && jc && ac === jc) score += 100;
+  else {
+    const canA = canonicalSiteCategory(anchor);
+    const canJ = canonicalSiteCategory(job);
+    if (canA && canJ && canA === canJ) score += 90;
+  }
 
   const amx = (anchor.mx_category_code ?? '').trim();
   const jmx = (job.mx_category_code ?? '').trim();

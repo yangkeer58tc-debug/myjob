@@ -14,6 +14,7 @@
     "indexing:urls": "node scripts/google-indexing-from-urls.mjs",
     "sync:sample:staging": "node scripts/sync-sample-to-staging.mjs",
     "imc:backtrace:disable-offline": "node scripts/imc-backtrace-disable-offline.mjs",
+    "gen:mx-code-map": "node scripts/generate-mx-code-site-category-map.mjs",
     "env:validate:staging": "node scripts/env/validate-env-template.mjs .env.staging.example",
     "env:validate:prod": "node scripts/env/validate-env-template.mjs env.production.example",
     "env:check:resume-admin": "node scripts/env/check-resume-admin-readiness.mjs",

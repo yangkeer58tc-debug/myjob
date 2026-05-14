@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { canonicalSiteCategory } from '../../supabase/functions/whatsapp-webhook/jobRecommendCanonical';
 import {
   OK_COM_JOBS_B_NAME,
   pickNextRecommendedJob,
@@ -67,6 +68,35 @@ describe('scoreJobAgainstAnchor', () => {
       location: 'Monterrey',
     });
     expect(scoreJobAgainstAnchor(imcJob, okAnchor)).toBeGreaterThan(0);
+  });
+});
+
+describe('canonicalSiteCategory (OK mx_code ↔ IMC category)', () => {
+  it('maps OK leaf cate_code via CSV-derived map', () => {
+    const ok = baseJob({
+      category: null,
+      mx_category_code: 'nursing-community-health',
+      industry: 'MX · Enfermería',
+      title: 'Auxiliar',
+    });
+    expect(canonicalSiteCategory(ok)).toBe('healthcare-medical');
+  });
+
+  it('scores cross-feed when canonical buckets match', () => {
+    const anchor = baseJob({
+      id: 'a',
+      category: null,
+      mx_category_code: 'customer-service-call-center',
+      industry: 'MX · Atención',
+      title: 'Agente',
+    });
+    const imc = baseJob({
+      id: 'x',
+      category: 'call-center-customer-service',
+      mx_category_code: null,
+      title: 'Otro',
+    });
+    expect(scoreJobAgainstAnchor(imc, anchor)).toBeGreaterThanOrEqual(90);
   });
 });
 
