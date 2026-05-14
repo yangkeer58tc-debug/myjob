@@ -180,14 +180,22 @@ export default function OkComMxPanel() {
         const concurrency = jobImportUpsertOnlyConcurrency();
         setMxImportProgress({ isRunning: true, total, saved: 0, failed: 0 });
 
+const MX_JOBS_MIGRATION_HINT_SESSION_KEY = 'myjob_mx_jobs_migration_strip_hint_v1';
+
         const slot: Array<'pending' | 'ok' | 'fail'> = Array.from({ length: total }, () => 'pending');
         let migrationAdaptationNotified = false;
         const notifyMigrationAdaptation = () => {
           if (migrationAdaptationNotified) return;
           migrationAdaptationNotified = true;
+          try {
+            if (sessionStorage.getItem(MX_JOBS_MIGRATION_HINT_SESSION_KEY) === '1') return;
+            sessionStorage.setItem(MX_JOBS_MIGRATION_HINT_SESSION_KEY, '1');
+          } catch {
+            // private mode / disabled storage
+          }
           toast.message(
-            '当前生产库 jobs 表缺少部分迁移列（如 b_same_as / street_address / external_source），已自动从本次写入中略过。请在 Supabase 对齐迁移：20260413120000_add_jobs_b_same_as、20260413140000_add_jobs_street_address、20260513190000_ok_mx_jobs_and_resume_export.sql。',
-            { duration: 16000 },
+            '本次导入已跳过生产库尚未创建的 jobs 扩展列，数据已写入。请在 Supabase 补齐迁移（具体 SQL 文件名见本卡片下方说明）。',
+            { duration: 7000 },
           );
         };
         const errorCounts = new Map<string, number>();
