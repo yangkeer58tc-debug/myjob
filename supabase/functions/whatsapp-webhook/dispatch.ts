@@ -23,6 +23,7 @@ import {
   expressesNoCv,
   extFromMime,
   extractJobRefFromText,
+  extractViewJobIdFromButtonText,
   isExplicitNo,
   isMenuRequest,
   isReturningSameCvChoice,
@@ -33,7 +34,9 @@ import {
 import type { InfobipConfig } from './infobip.ts';
 import { sendInteractiveButtons, sendText } from './infobip.ts';
 import {
+  formatEmployerNameForWhatsApp,
   formatJobCardBody,
+  formatJobTitleForWhatsApp,
   mexicoCityDateString,
   pickNextRecommendedJob,
   type JobRecRow,
@@ -289,21 +292,25 @@ async function archiveConversation(supabase: SupabaseClient, conversationId: str
 async function fetchJobByRef(
   supabase: SupabaseClient,
   jobId: string,
-): Promise<{ title: string; b_name: string } | null> {
+): Promise<{ title: string; b_name: string; slug: string | null } | null> {
   const { data, error } = await supabase
     .from('jobs')
-    .select('title,b_name')
+    .select('title,b_name,slug')
     .eq('id', jobId)
     .maybeSingle();
   if (error || !data) return null;
-  return { title: String((data as any).title ?? ''), b_name: String((data as any).b_name ?? '') };
+  return {
+    title: String((data as any).title ?? ''),
+    b_name: String((data as any).b_name ?? ''),
+    slug: (data as any).slug != null ? String((data as any).slug) : null,
+  };
 }
 
 async function patchConversationJobFields(
   supabase: SupabaseClient,
   convId: string,
   ref: string | null,
-  job: { title: string; b_name: string } | null,
+  job: { title: string; b_name: string; slug?: string | null } | null,
 ) {
   await supabase
     .from('whatsapp_conversations')
@@ -341,11 +348,43 @@ async function insertApplication(
 }
 
 function jobTitleLabel(c: ConversationRow): string {
-  return (c.applying_job_title ?? '').trim() || 'esta vacante';
+  const raw = (c.applying_job_title ?? '').trim();
+  return raw ? formatJobTitleForWhatsApp(raw) : 'esta vacante';
 }
 
 function jobCompanyLabel(c: ConversationRow): string {
-  return (c.applying_job_company ?? '').trim() || 'la empresa';
+  const raw = (c.applying_job_company ?? '').trim();
+  return raw ? formatEmployerNameForWhatsApp(raw) : 'la empresa';
+}
+
+/** Same rules as `scripts/prerender-jobs.mjs` job URL segment. */
+function slugifyForJobUrl(value: string): string {
+  const s = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return s || 'empleo';
+}
+
+function myjobPublicSiteBase(): string {
+  return (Deno.env.get('MYJOB_PUBLIC_SITE_URL') ?? 'https://myjob.com').replace(/\/+$/, '');
+}
+
+async function buildMyjobJobPublicUrl(supabase: SupabaseClient, jobId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('jobs')
+    .select('id,title,slug')
+    .eq('id', jobId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as { id: string; title: string; slug: string | null };
+  const head = (row.slug && String(row.slug).trim())
+    ? slugifyForJobUrl(row.slug)
+    : slugifyForJobUrl(row.title);
+  return `${myjobPublicSiteBase()}/empleo/${head}-${row.id}/`;
 }
 
 async function countRecommendationsToday(supabase: SupabaseClient, waUserId: string): Promise<number> {
@@ -398,7 +437,7 @@ async function loadAnchorJobRow(
   const { data: row, error } = await supabase
     .from('jobs')
     .select(
-      'id,title,b_name,location,salary_amount,payment_frequency,job_type,workplace_type,category,mx_category_code,summary,industry,experience,education_level,is_active,created_at',
+      'id,slug,title,b_name,location,salary_amount,payment_frequency,job_type,workplace_type,category,mx_category_code,summary,industry,experience,education_level,is_active,created_at',
     )
     .eq('id', anchorId)
     .maybeSingle();
@@ -410,7 +449,7 @@ async function fetchActiveJobPoolForRecommend(supabase: SupabaseClient): Promise
   const { data, error } = await supabase
     .from('jobs')
     .select(
-      'id,title,b_name,location,salary_amount,payment_frequency,job_type,workplace_type,category,mx_category_code,summary,industry,experience,education_level,is_active,created_at',
+      'id,slug,title,b_name,location,salary_amount,payment_frequency,job_type,workplace_type,category,mx_category_code,summary,industry,experience,education_level,is_active,created_at',
     )
     .eq('is_active', true)
     .order('created_at', { ascending: false })
@@ -444,7 +483,10 @@ async function sendNextJobRecommendation(
   const refTag = `[REF:${next.id}]`;
   let body = `${COPY.recommendJobIntro}\n\n${card}`;
   if (body.length > 1020) body = `${body.slice(0, 1017)}…`;
-  await replyInteractive(supabase, config, conversation, body, [{ id: refTag, title: 'Postular' }]);
+  await replyInteractive(supabase, config, conversation, body, [
+    { id: refTag, title: 'Postular' },
+    { id: `WA_VIEW_JOB:${next.id}`, title: 'Ver en MyJob' },
+  ]);
   const { error: logErr } = await supabase.from('whatsapp_job_recommendation_events').insert({
     wa_user_id: conversation.wa_user_id,
     job_id: next.id,
@@ -500,6 +542,13 @@ async function handleCompletedInbound(
   >,
 ) {
   const t = inboundText.trim();
+  const viewJobId = extractViewJobIdFromButtonText(t);
+  if (viewJobId) {
+    const url = await buildMyjobJobPublicUrl(supabase, viewJobId);
+    if (url) await reply(supabase, config, conversation, COPY.viewJobOnMyjob(url));
+    else await reply(supabase, config, conversation, COPY.viewJobNotFound);
+    return;
+  }
   if (isMenuRequest(stripJobRefTag(t))) {
     await sendPostFlowInteractive(supabase, config, conversation, postFlowMenuVariant(conversation));
     return;
@@ -651,7 +700,46 @@ async function maybeRestartCompletedForNewIntent(
       .single();
     if (error) throw error;
     if (!data) throw new Error('whatsapp_conversations insert returned no row');
-    return { conversation: data as ConversationRow, restarted: true };
+    const newId = String((data as any).id);
+    const { data: prev } = await supabase
+      .from('whatsapp_conversations')
+      .select('resume_storage_path,last_resume_storage_path,candidate_name,rmc_resume_id')
+      .eq('wa_user_id', conversation.wa_user_id)
+      .not('archived_at', 'is', null)
+      .order('archived_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prev) {
+      const p = prev as {
+        resume_storage_path: string | null;
+        last_resume_storage_path: string | null;
+        candidate_name: string | null;
+        rmc_resume_id: string | null;
+      };
+      await supabase
+        .from('whatsapp_conversations')
+        .update({
+          resume_storage_path: p.resume_storage_path ?? null,
+          last_resume_storage_path: p.last_resume_storage_path ?? p.resume_storage_path ?? null,
+          candidate_name: p.candidate_name ?? null,
+          rmc_resume_id: p.rmc_resume_id ?? null,
+        } as any)
+        .eq('id', newId);
+    }
+    const { data: merged, error: errMerge } = await supabase
+      .from('whatsapp_conversations')
+      .select(
+        `id, wa_user_id, state, candidate_name, resume_storage_path,
+        last_resume_storage_path, last_resume_received_at, language,
+        is_human_takeover, last_inbound_message_id, opt_in_clarify_count,
+        rmc_resume_id, rmc_sync_status, rmc_sync_error,
+        completed_at, archived_at, created_at, last_message_at,
+        applying_job_id, applying_job_title, applying_job_company`,
+      )
+      .eq('id', newId)
+      .single();
+    if (errMerge || !merged) throw errMerge ?? new Error('whatsapp_conversations re-select failed');
+    return { conversation: merged as ConversationRow, restarted: true };
   }
   return { conversation, restarted: false };
 }
@@ -893,7 +981,8 @@ export async function dispatchBotMessage(
     }
 
     const existing = await findRmcResumeByWhatsApp(msg.from);
-    if (existing) {
+    const localPath = (convFresh.last_resume_storage_path ?? convFresh.resume_storage_path ?? '').trim();
+    if (existing || localPath) {
       const jt = jobTitleLabel(convFresh);
       const jc = jobCompanyLabel(convFresh);
       const body = job
@@ -909,7 +998,7 @@ export async function dispatchBotMessage(
     }
 
     const welcome = job
-      ? COPY.welcomeWithJob(job.title, job.b_name)
+      ? COPY.welcomeWithJob(formatJobTitleForWhatsApp(job.title), formatEmployerNameForWhatsApp(job.b_name))
       : COPY.welcomeNoJob;
     await reply(supabase, config, convFresh, `${welcome}\n\n${COPY.menuHint}`);
     await supabase.from('whatsapp_conversations').update({ ...bump, state: 'awaiting_resume' } as any).eq(

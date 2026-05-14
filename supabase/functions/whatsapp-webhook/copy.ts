@@ -90,4 +90,8 @@ export const COPY = {
   /** Reuse-same-CV branch failed to retrieve any prior CV; ask the user to resend. */
   returningSameNotFound:
     'No pude recuperar tu CV anterior. Por favor envíame *tu CV actualizado* aquí mismo (PDF, Word o foto, máx. 10 MB).',
+
+  viewJobOnMyjob: (jobUrl: string) => `Vacante en MyJob:\n${jobUrl}`,
+
+  viewJobNotFound: 'No encontramos esa vacante en MyJob. Revisa el listado en la web.',
 } as const;

@@ -18,6 +18,9 @@ export const BTN_REC_JOBS = 'WA_REC_JOBS';
 export const BTN_CONTACT_HUMAN = 'WA_CONTACT_HUMAN';
 export const BTN_JOIN_PANEL = 'WA_JOIN_PANEL';
 
+/** Quick-reply id prefix: `WA_VIEW_JOB:<jobId>` → bot replies with MyJob public URL. */
+export const BTN_VIEW_JOB_PREFIX = 'WA_VIEW_JOB:';
+
 /** First inbound from wa.me may carry `[REF:<jobId>]` (digits) for job context. */
 export function extractJobRefFromText(raw: string | undefined | null): string | null {
   const m = String(raw ?? '').match(/\[REF:([\w-]+)\]/i);
@@ -27,6 +30,13 @@ export function extractJobRefFromText(raw: string | undefined | null): string | 
 
 export function stripJobRefTag(raw: string): string {
   return String(raw ?? '').replace(/\s*\[REF:[\w-]+\]\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function extractViewJobIdFromButtonText(raw: string | undefined | null): string | null {
+  const t = String(raw ?? '').trim();
+  if (!t.startsWith(BTN_VIEW_JOB_PREFIX)) return null;
+  const id = t.slice(BTN_VIEW_JOB_PREFIX.length).trim();
+  return id || null;
 }
 
 const NO_CV_PHRASES = [

@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { canonicalSiteCategory } from '../../supabase/functions/whatsapp-webhook/jobRecommendCanonical';
 import {
   OK_COM_JOBS_B_NAME,
+  formatJobCardBody,
   pickNextRecommendedJob,
   scoreJobAgainstAnchor,
   sortJobsForRecommendation,
   type JobRecRow,
 } from '../../supabase/functions/whatsapp-webhook/jobRecommend';
+import { extractViewJobIdFromButtonText } from '../../supabase/functions/whatsapp-webhook/parsing';
 
 const baseJob = (over: Partial<JobRecRow>): JobRecRow => ({
   id: over.id ?? 'j1',
+  slug: over.slug ?? null,
   title: over.title ?? 'Dev',
   b_name: over.b_name ?? 'Other Co',
   location: over.location ?? 'Monterrey',
@@ -131,5 +134,26 @@ describe('pickNextRecommendedJob', () => {
     const j2 = baseJob({ id: 'x2', category: 'cat', industry: 'Ind', location: 'Loc', created_at: '2025-01-01T00:00:00Z' });
     const picked = pickNextRecommendedJob([j1, j2], anchor, new Set(['x1']));
     expect(picked?.id).toBe('x2');
+  });
+});
+
+describe('formatJobCardBody', () => {
+  it('shows OK·com instead of OK.com in employer line', () => {
+    const j = baseJob({ b_name: 'OK.com Jobs', title: 'Chef', industry: 'MX · Restaurantes' });
+    const body = formatJobCardBody(j);
+    expect(body).toContain('OK·com');
+    expect(body).not.toContain('OK.com');
+  });
+
+  it('omits slug-like industry blobs', () => {
+    const j = baseJob({ industry: 'customer-service-call-center-ops-and-more-slug' });
+    const body = formatJobCardBody(j);
+    expect(body).not.toContain('customer-service-call-center');
+  });
+});
+
+describe('extractViewJobIdFromButtonText', () => {
+  it('parses WA_VIEW_JOB prefix', () => {
+    expect(extractViewJobIdFromButtonText('WA_VIEW_JOB:uuid-here')).toBe('uuid-here');
   });
 });
