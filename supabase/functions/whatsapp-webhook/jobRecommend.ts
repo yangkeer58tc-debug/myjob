@@ -137,6 +137,41 @@ export function pickNextRecommendedJob(
   return null;
 }
 
+/** DB slug → short Spanish label for WhatsApp (aligned with site CATEGORY_OPTIONS). */
+const CATEGORY_LABEL_ES: Record<string, string> = {
+  'healthcare-medical': 'Salud',
+  'call-center-customer-service': 'Atención / Call center',
+  sales: 'Ventas',
+  'mfg-transport-logistics': 'Logística',
+  'trades-services': 'Servicios',
+};
+
+function formatCategoryForWhatsApp(raw: string): string {
+  const id = raw.trim();
+  if (!id) return '';
+  return CATEGORY_LABEL_ES[id] ?? id.replace(/-/g, ' ');
+}
+
+const JOB_TYPE_LABEL_ES: Record<string, string> = {
+  'tempo-integral': 'Tiempo completo',
+  'meio-periodo': 'Medio tiempo',
+  temporario: 'Temporal',
+  freelancer: 'Freelance',
+  estagio: 'Prácticas',
+};
+
+const WORKPLACE_LABEL_ES: Record<string, string> = {
+  presencial: 'Presencial',
+  hibrido: 'Híbrido',
+  remoto: 'Remoto',
+};
+
+function formatJobTypeLine(jobType: string, workplace: string): string {
+  const jt = JOB_TYPE_LABEL_ES[jobType.trim()] ?? jobType.trim();
+  const wp = WORKPLACE_LABEL_ES[workplace.trim()] ?? workplace.trim();
+  return `${jt} · ${wp}`;
+}
+
 export function formatJobCardBody(job: JobRecRow): string {
   const lines: string[] = [];
   lines.push(`*${job.title.trim()}*`);
@@ -144,9 +179,9 @@ export function formatJobCardBody(job: JobRecRow): string {
   lines.push(`📍 ${job.location.trim()}`);
   const sal = [job.salary_amount?.trim(), job.payment_frequency?.trim()].filter(Boolean).join(' · ');
   if (sal) lines.push(`💰 ${sal}`);
-  lines.push(`📋 ${job.job_type.trim()} · ${job.workplace_type.trim()}`);
+  lines.push(`📋 ${formatJobTypeLine(job.job_type, job.workplace_type)}`);
   const cat = (job.category ?? '').trim();
-  if (cat) lines.push(`📂 ${cat}`);
+  if (cat) lines.push(`📂 ${formatCategoryForWhatsApp(cat)}`);
   const ind = (job.industry ?? '').trim();
   if (ind) lines.push(`🏭 ${ind}`);
   const exp = (job.experience ?? '').trim();
