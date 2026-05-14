@@ -154,6 +154,29 @@ const fetchJobs = async () => {
   return jobs;
 };
 
+/**
+ * Cloudflare Pages rejects deployments with >20k files. Each prerendered job adds one
+ * `dist/empleo/.../index.html`. Cap by default on CF Pages; override with PRERENDER_JOB_LIMIT.
+ * Set SKIP_JOB_PRERENDER=1 to skip prerender entirely (smallest upload).
+ */
+const resolvePrerenderJobLimit = (totalFetched) => {
+  const skip = ['1', 'true', 'yes'].includes(String(process.env.SKIP_JOB_PRERENDER ?? '').trim().toLowerCase());
+  if (skip) return 0;
+
+  const onCfPages = String(process.env.CF_PAGES ?? '').trim() === '1';
+  const raw = String(process.env.PRERENDER_JOB_LIMIT ?? '').trim();
+  const parsed = raw === '' ? NaN : Number.parseInt(raw, 10);
+
+  const CF_SAFE_DEFAULT = 17_000;
+  const CF_HARD_MAX = 19_500;
+  const OFF_CF_DEFAULT = 500_000;
+
+  let max = Number.isFinite(parsed) && parsed >= 0 ? parsed : onCfPages ? CF_SAFE_DEFAULT : OFF_CF_DEFAULT;
+  if (onCfPages && max > CF_HARD_MAX) max = CF_HARD_MAX;
+  if (max === 0) return 0;
+  return Math.min(max, totalFetched);
+};
+
 const applyHead = ({ html, title, description, canonical, ogImage }) => {
   let out = html;
 
@@ -214,6 +237,20 @@ const main = async () => {
     jobs = await fetchJobs();
   } catch {
     return;
+  }
+
+  if (!jobs.length) return;
+
+  const limit = resolvePrerenderJobLimit(jobs.length);
+  if (limit === 0) {
+    console.log('[prerender-jobs] skip (SKIP_JOB_PRERENDER or PRERENDER_JOB_LIMIT=0)');
+    return;
+  }
+  if (jobs.length > limit) {
+    console.warn(
+      `[prerender-jobs] capping prerender from ${jobs.length} to ${limit} jobs (newest first; CF Pages 20k file limit)`,
+    );
+    jobs = jobs.slice(0, limit);
   }
 
   for (const job of jobs) {
