@@ -22,7 +22,12 @@ const parseSalaryNumber = (input: string) => {
       normalized = cleaned.replace(/,/g, '');
     }
   } else if (lastComma !== -1) {
-    normalized = cleaned.replace(/,/g, '.');
+    // US/MX style thousands: "12,000" or "1,234,567" — comma is not a decimal separator.
+    if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
+      normalized = cleaned.replace(/,/g, '');
+    } else {
+      normalized = cleaned.replace(/,/g, '.');
+    }
   } else if (lastDot !== -1) {
     const decimals = cleaned.length - lastDot - 1;
     if (decimals === 3 && cleaned.length > 4) normalized = cleaned.replace(/\./g, '');
