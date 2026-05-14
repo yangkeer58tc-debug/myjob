@@ -17,10 +17,12 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { LogOut, Plus, Pencil, Upload, Download, Pause, Play, Search } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { LogOut, Plus, Pencil, Upload, Download, Pause, Play, Search, ChevronDown } from 'lucide-react';
 import OkComMxPanel from '@/components/admin/OkComMxPanel';
 import WhatsAppBotPanel from '@/components/admin/WhatsAppBotPanel';
 import { isResumeAdminEnabled } from '@/lib/featureFlags';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import Papa from 'papaparse';
@@ -224,6 +226,12 @@ function adminJobsSearchOrFilter(searchRaw: string): string | null {
   return `title.ilike.${p},b_name.ilike.${p},id.ilike.${p},location.ilike.${p}`;
 }
 
+function adminJobCategoryLabel(categoryId: string | null | undefined): string {
+  if (!categoryId) return '—';
+  const hit = CATEGORY_OPTIONS.find((c) => c.id === categoryId);
+  return hit?.label ?? categoryId;
+}
+
 type JobCsvPayloadRow = {
   id: string;
   b_name: string;
@@ -374,6 +382,7 @@ const Admin = () => {
   const [jobSearchDebounced, setJobSearchDebounced] = useState('');
   const [jobActiveFilter, setJobActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [jobCategoryFilter, setJobCategoryFilter] = useState<string>('');
+  const [importSectionOpen, setImportSectionOpen] = useState(true);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [jobOpLogs, setJobOpLogs] = useState<JobOperationLog[]>([]);
 
@@ -1392,7 +1401,7 @@ const Admin = () => {
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 mb-3 text-sm">
-              <span className="text-muted-foreground">{selectedJobIds.length} selected</span>
+              <span className="text-muted-foreground">已选 {selectedJobIds.length} 条</span>
               <Button
                 type="button"
                 size="sm"
@@ -1401,7 +1410,7 @@ const Admin = () => {
                 disabled={!selectedJobIds.length || batchJobsActiveMutation.isPending}
                 onClick={() => batchJobsActiveMutation.mutate({ ids: selectedJobIds, is_active: true })}
               >
-                Activate Selected
+                上架所选
               </Button>
               <Button
                 type="button"
@@ -1411,7 +1420,7 @@ const Admin = () => {
                 disabled={!selectedJobIds.length || batchJobsActiveMutation.isPending}
                 onClick={() => batchJobsActiveMutation.mutate({ ids: selectedJobIds, is_active: false })}
               >
-                Deactivate Selected
+                下架所选
               </Button>
               <Button
                 type="button"
@@ -1421,84 +1430,95 @@ const Admin = () => {
                 disabled={!selectedJobIds.length}
                 onClick={() => setSelectedJobIds([])}
               >
-                Clear Selection
+                取消勾选
               </Button>
             </div>
-            <div className="bg-card rounded-2xl shadow-sm overflow-hidden mb-4">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary text-muted-foreground">
-                  <tr>
-                    <th className="w-10 px-2 py-3">
-                      <Checkbox
-                        checked={allPageSelected ? true : somePageSelected ? 'indeterminate' : false}
-                        onCheckedChange={(v) => {
-                          if (v === true) {
-                            setSelectedJobIds((prev) => [...new Set([...prev, ...adminPageJobIds])]);
-                          } else {
-                            setSelectedJobIds((prev) => prev.filter((id) => !adminPageJobIds.includes(id)));
-                          }
-                        }}
-                        disabled={!adminPageJobIds.length || isLoading}
-                        aria-label="Select page"
-                      />
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium">ID</th>
-                    <th className="text-left px-4 py-3 font-medium">Title</th>
-                    <th className="text-left px-4 py-3 font-medium">Company</th>
-                    <th className="text-left px-4 py-3 font-medium">City</th>
-                    <th className="text-left px-4 py-3 font-medium">Active</th>
-                    <th className="text-left px-4 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading && (
-                    <tr>
-                      <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Loading...
-                      </td>
-                    </tr>
-                  )}
-                  {jobsPageItems.map((job) => (
-                    <tr key={job.id} className="border-t border-border">
-                      <td className="px-2 py-3 align-middle">
-                        <Checkbox
-                          checked={selectedJobIds.includes(job.id)}
-                          onCheckedChange={(v) => {
-                            setSelectedJobIds((prev) =>
-                              v === true ? [...prev, job.id] : prev.filter((x) => x !== job.id),
-                            );
-                          }}
-                          aria-label={`Select ${job.title}`}
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">{job.id}</td>
-                      <td className="px-4 py-3 font-medium">{job.title}</td>
-                      <td className="px-4 py-3">{job.b_name}</td>
-                      <td className="px-4 py-3">{job.location}</td>
-                      <td className="px-4 py-3">
-                        <Switch
-                          checked={Boolean(job.is_active)}
-                          onCheckedChange={(v) => toggleActive.mutate({ id: job.id, is_active: v })}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(job)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {jobs.length === 0 && !isLoading && (
-                    <tr>
-                      <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        {jobSearchDebounced.trim() || jobActiveFilter !== 'all' || jobCategoryFilter
-                          ? '当前筛选条件下没有职位。'
-                          : 'No jobs found.'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="bg-card rounded-2xl shadow-sm border border-border mb-4 overflow-hidden">
+              <div className="max-h-[min(70vh,720px)] overflow-auto">
+                <div className="min-w-[720px]">
+                  <table className="w-full text-sm caption-bottom">
+                    <thead className="sticky top-0 z-10 bg-secondary text-muted-foreground shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
+                      <tr>
+                        <th className="w-10 px-2 py-3">
+                          <Checkbox
+                            checked={allPageSelected ? true : somePageSelected ? 'indeterminate' : false}
+                            onCheckedChange={(v) => {
+                              if (v === true) {
+                                setSelectedJobIds((prev) => [...new Set([...prev, ...adminPageJobIds])]);
+                              } else {
+                                setSelectedJobIds((prev) => prev.filter((id) => !adminPageJobIds.includes(id)));
+                              }
+                            }}
+                            disabled={!adminPageJobIds.length || isLoading}
+                            aria-label="全选本页"
+                          />
+                        </th>
+                        <th className="text-left px-4 py-3 font-medium whitespace-nowrap">ID</th>
+                        <th className="text-left px-4 py-3 font-medium min-w-[8rem]">标题</th>
+                        <th className="text-left px-4 py-3 font-medium min-w-[6rem]">公司</th>
+                        <th className="text-left px-4 py-3 font-medium whitespace-nowrap">品类</th>
+                        <th className="text-left px-4 py-3 font-medium whitespace-nowrap">城市</th>
+                        <th className="text-left px-4 py-3 font-medium whitespace-nowrap">上架</th>
+                        <th className="text-left px-4 py-3 font-medium whitespace-nowrap w-20">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoading && (
+                        <tr>
+                          <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                            加载中…
+                          </td>
+                        </tr>
+                      )}
+                      {jobsPageItems.map((job) => (
+                        <tr
+                          key={job.id}
+                          className="border-t border-border hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-2 py-3 align-middle">
+                            <Checkbox
+                              checked={selectedJobIds.includes(job.id)}
+                              onCheckedChange={(v) => {
+                                setSelectedJobIds((prev) =>
+                                  v === true ? [...prev, job.id] : prev.filter((x) => x !== job.id),
+                                );
+                              }}
+                              aria-label={`选择 ${job.title}`}
+                            />
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs align-middle">{job.id}</td>
+                          <td className="px-4 py-3 font-medium align-middle">{job.title}</td>
+                          <td className="px-4 py-3 align-middle">{job.b_name}</td>
+                          <td className="px-4 py-3 text-muted-foreground align-middle text-xs max-w-[10rem] truncate" title={adminJobCategoryLabel(job.category)}>
+                            {adminJobCategoryLabel(job.category)}
+                          </td>
+                          <td className="px-4 py-3 align-middle">{job.location}</td>
+                          <td className="px-4 py-3 align-middle">
+                            <Switch
+                              checked={Boolean(job.is_active)}
+                              onCheckedChange={(v) => toggleActive.mutate({ id: job.id, is_active: v })}
+                            />
+                          </td>
+                          <td className="px-4 py-3 align-middle">
+                            <Button variant="ghost" size="sm" className="rounded-lg" onClick={() => openEdit(job)} aria-label="编辑">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                      {jobs.length === 0 && !isLoading && (
+                        <tr>
+                          <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                            {jobSearchDebounced.trim() || jobActiveFilter !== 'all' || jobCategoryFilter
+                              ? '当前筛选条件下没有职位。'
+                              : '暂无职位。'}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               {!isLoading ? (
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border text-sm text-muted-foreground">
                   <span>
@@ -1530,102 +1550,138 @@ const Admin = () => {
               ) : null}
             </div>
 
-            <p className="text-xs font-medium text-muted-foreground mb-2 mt-6">数据导入与模板</p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> CSV Template
-                </Button>
-                <Button variant="outline" onClick={downloadImcExportTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> IMC Template
-                </Button>
-                <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Options CSV
-                </Button>
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                />
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  className="hidden"
-                  ref={deactivateIdsFileInputRef}
-                  onChange={handleDeactivateIdsFileUpload}
-                />
-                <Button
-                  variant="secondary"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="rounded-xl"
-                  disabled={Boolean(jobImportProgress?.isRunning)}
-                >
-                  <Upload className="h-4 w-4 mr-2" /> Import CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => deactivateIdsFileInputRef.current?.click()}
-                  className="rounded-xl"
-                  disabled={Boolean(jobImportProgress?.isRunning)}
-                >
-                  <Upload className="h-4 w-4 mr-2" /> Bulk Disable by ID
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="rounded-xl"
-                  disabled={deleteAllJobsMutation.isPending}
-                  onClick={() => {
-                    const v = window.prompt('Type DELETE to remove all jobs');
-                    if (v !== 'DELETE') return;
-                    deleteAllJobsMutation.mutate();
-                  }}
-                >
-                  Delete All Jobs
-                </Button>
-              </div>
-            </div>
-            <OkComMxPanel />
-            <div className="bg-card rounded-2xl shadow-sm p-4 mb-3 border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">Upload History</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-xl"
-                  onClick={() => {
-                    setJobOpLogs([]);
-                    localStorage.removeItem(JOB_UPLOAD_LOG_STORAGE_KEY);
-                  }}
-                >
-                  Clear
-                </Button>
-              </div>
-              {jobOpLogs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No history yet.</p>
-              ) : (
-                <div className="space-y-2 max-h-56 overflow-auto">
-                  {jobOpLogs.map((log) => (
-                    <div key={log.id} className="text-xs border border-border rounded-lg p-2">
-                      <div className="font-medium">
-                        {log.operation === 'deactivate_by_id_csv' ? 'Disable by ID' : 'Job Import'} ·{' '}
-                        {new Date(log.created_at).toLocaleString()}
-                      </div>
-                      <div className="text-muted-foreground">
-                        Online before: {log.online_before}, online after: {log.online_after}, input: {log.total_input}, processed:{' '}
-                        {log.total_processed}, succeeded: {log.success}, failed: {log.failed}, skipped: {log.skipped}
-                      </div>
-                      {log.failed_records.length > 0 ? (
-                        <div className="text-destructive mt-1">
-                          Failed records: {log.failed_records.slice(0, 3).map((r) => `${r.id}(${r.error})`).join(' ; ')}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
+            <Collapsible
+              open={importSectionOpen}
+              onOpenChange={setImportSectionOpen}
+              className="rounded-2xl border border-border bg-card mb-4 shadow-sm"
+            >
+              <CollapsibleTrigger className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 rounded-t-2xl transition-colors [&[data-state=open]]:border-b [&[data-state=open]]:border-border">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-foreground">数据导入与模板</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    模板下载 · 主 CSV 导入 · 按 ID 下架 · MX 专用 · 上传记录
+                  </p>
                 </div>
-              )}
-            </div>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+                    importSectionOpen && 'rotate-180',
+                  )}
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-6 px-4 pb-4 pt-4">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                  />
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    className="hidden"
+                    ref={deactivateIdsFileInputRef}
+                    onChange={handleDeactivateIdsFileUpload}
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">下载模板</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
+                        <Download className="h-4 w-4 mr-2" /> 标准职位 CSV
+                      </Button>
+                      <Button variant="outline" onClick={downloadImcExportTemplate} className="rounded-xl">
+                        <Download className="h-4 w-4 mr-2" /> IMC 导出模板
+                      </Button>
+                      <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
+                        <Download className="h-4 w-4 mr-2" /> 选项枚举 CSV
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">字段名与枚举值与导入逻辑一致，建议先下载再填。</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">批量导入 / 下架</p>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Button
+                        variant="secondary"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="rounded-xl"
+                        disabled={Boolean(jobImportProgress?.isRunning)}
+                      >
+                        <Upload className="h-4 w-4 mr-2" /> 导入主 CSV
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => deactivateIdsFileInputRef.current?.click()}
+                        className="rounded-xl"
+                        disabled={Boolean(jobImportProgress?.isRunning)}
+                      >
+                        <Upload className="h-4 w-4 mr-2" /> 按 ID 批量下架
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-destructive/25 bg-destructive/[0.06] p-3">
+                    <p className="text-xs font-medium text-destructive mb-2">危险操作</p>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Button
+                        variant="destructive"
+                        className="rounded-xl"
+                        disabled={deleteAllJobsMutation.isPending}
+                        onClick={() => {
+                          const v = window.prompt('输入 DELETE 以删除全部职位（不可恢复）');
+                          if (v !== 'DELETE') return;
+                          deleteAllJobsMutation.mutate();
+                        }}
+                      >
+                        清空全部职位
+                      </Button>
+                      <span className="text-xs text-muted-foreground">仅紧急情况使用，删除后无法撤销。</span>
+                    </div>
+                  </div>
+                  <OkComMxPanel />
+                  <div className="bg-muted/30 rounded-xl border border-border p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold">上传记录</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setJobOpLogs([]);
+                          localStorage.removeItem(JOB_UPLOAD_LOG_STORAGE_KEY);
+                        }}
+                      >
+                        清除记录
+                      </Button>
+                    </div>
+                    {jobOpLogs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">暂无上传记录。</p>
+                    ) : (
+                      <div className="space-y-2 max-h-56 overflow-auto">
+                        {jobOpLogs.map((log) => (
+                          <div key={log.id} className="text-xs border border-border rounded-lg p-2 bg-card">
+                            <div className="font-medium">
+                              {log.operation === 'deactivate_by_id_csv' ? '按 ID 下架' : '职位导入'} ·{' '}
+                              {new Date(log.created_at).toLocaleString()}
+                            </div>
+                            <div className="text-muted-foreground">
+                              导入前在线：{log.online_before}，导入后在线：{log.online_after}；输入 {log.total_input} 条，已处理{' '}
+                              {log.total_processed}，成功 {log.success}，失败 {log.failed}，跳过 {log.skipped}
+                            </div>
+                            {log.failed_records.length > 0 ? (
+                              <div className="text-destructive mt-1">
+                                失败行（节选）：{log.failed_records.slice(0, 3).map((r) => `${r.id}（${r.error}）`).join('；')}
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </>
         ) : activeTab === 'whatsapp' ? (
           <WhatsAppBotPanel />
