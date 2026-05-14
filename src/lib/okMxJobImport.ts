@@ -301,19 +301,41 @@ export type OkMxJobUpsertRow = {
   street_address: string | null;
 };
 
-/** When prod DB has not run MX migration yet, PostgREST rejects unknown columns — retry without them. */
-export function isJobsMissingMxExtensionColumnError(message: string): boolean {
-  const m = String(message || '').toLowerCase();
-  if (m.includes('pgrst204')) return true;
-  if (!m.includes('column')) return false;
-  return m.includes('external_source') || m.includes('mx_category_code');
+/**
+ * Columns added in later migrations — PostgREST schema cache errors if prod DB lags.
+ * Only these may be stripped from MX import upserts; anything else is a real failure.
+ */
+export const OPTIONAL_JOBS_COLUMNS_FOR_IMPORT_UPSERT = new Set([
+  'b_same_as',
+  'street_address',
+  'external_source',
+  'mx_category_code',
+]);
+
+/**
+ * Parses PostgREST "Could not find the 'col' column of 'jobs' in the schema cache"
+ * and removes `col` from `body` when it is an optional import column. Returns whether a column was removed.
+ */
+export function stripOptionalJobColumnFromPostgrestSchemaError(
+  message: string,
+  body: Record<string, unknown>,
+): boolean {
+  const m = /Could not find the '([^']+)' column of 'jobs'/i.exec(String(message || ''));
+  if (!m) return false;
+  const col = m[1];
+  if (!OPTIONAL_JOBS_COLUMNS_FOR_IMPORT_UPSERT.has(col)) return false;
+  if (!(col in body)) return false;
+  delete body[col];
+  return true;
 }
 
-export function okMxJobRowForLegacyJobsTable(
-  row: OkMxJobUpsertRow,
-): Omit<OkMxJobUpsertRow, 'external_source' | 'mx_category_code'> {
-  const { external_source: _e, mx_category_code: _m, ...rest } = row;
-  return rest;
+/** True when `jobs` query failed because `external_source` (or legacy mx marker) column is absent — export can skip job_id expansion. */
+export function isJobsMissingMxFeedColumnError(message: string): boolean {
+  const s = String(message || '');
+  return (
+    /Could not find the 'external_source' column of 'jobs'/i.test(s) ||
+    /Could not find the 'mx_category_code' column of 'jobs'/i.test(s)
+  );
 }
 
 /**

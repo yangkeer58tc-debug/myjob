@@ -1,19 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import {
-  isJobsMissingMxExtensionColumnError,
+  isJobsMissingMxFeedColumnError,
   mapMxCategoryPathToSiteCategory,
   resolveMxJobLocation,
+  stripOptionalJobColumnFromPostgrestSchemaError,
 } from '@/lib/okMxJobImport';
 
-describe('isJobsMissingMxExtensionColumnError', () => {
-  it('detects PostgREST missing-column messages', () => {
+describe('stripOptionalJobColumnFromPostgrestSchemaError', () => {
+  it('removes b_same_as when PostgREST reports schema cache miss', () => {
+    const body: Record<string, unknown> = { id: '1', b_same_as: null, title: 'x' };
+    const ok = stripOptionalJobColumnFromPostgrestSchemaError(
+      "Could not find the 'b_same_as' column of 'jobs' in the schema cache",
+      body,
+    );
+    expect(ok).toBe(true);
+    expect('b_same_as' in body).toBe(false);
+  });
+
+  it('does not remove core columns', () => {
+    const body: Record<string, unknown> = { id: '1', title: 'x' };
     expect(
-      isJobsMissingMxExtensionColumnError(
+      stripOptionalJobColumnFromPostgrestSchemaError(
+        "Could not find the 'title' column of 'jobs' in the schema cache",
+        body,
+      ),
+    ).toBe(false);
+    expect(body.title).toBe('x');
+  });
+});
+
+describe('isJobsMissingMxFeedColumnError', () => {
+  it('detects missing external_source for export fallback', () => {
+    expect(
+      isJobsMissingMxFeedColumnError(
         "Could not find the 'external_source' column of 'jobs' in the schema cache",
       ),
     ).toBe(true);
-    expect(isJobsMissingMxExtensionColumnError('PGRST204')).toBe(true);
-    expect(isJobsMissingMxExtensionColumnError('new row violates row-level security')).toBe(false);
+    expect(isJobsMissingMxFeedColumnError('new row violates row-level security')).toBe(false);
   });
 });
 

@@ -22,10 +22,10 @@ import {
   OK_MX_EXTERNAL_SOURCE,
   OK_MX_LEGACY_EMPLOYER_NAMES,
   buildOkMxJobRows,
-  isJobsMissingMxExtensionColumnError,
+  isJobsMissingMxFeedColumnError,
   isMxRealPostsCsvHeader,
-  okMxJobRowForLegacyJobsTable,
   parseMxCategoryCsvText,
+  stripOptionalJobColumnFromPostgrestSchemaError,
 } from '@/lib/okMxJobImport';
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -181,8 +181,15 @@ export default function OkComMxPanel() {
         setMxImportProgress({ isRunning: true, total, saved: 0, failed: 0 });
 
         const slot: Array<'pending' | 'ok' | 'fail'> = Array.from({ length: total }, () => 'pending');
-        let omitMxExtensionColumns = false;
-        let legacyNoteShown = false;
+        let migrationAdaptationNotified = false;
+        const notifyMigrationAdaptation = () => {
+          if (migrationAdaptationNotified) return;
+          migrationAdaptationNotified = true;
+          toast.message(
+            '当前生产库 jobs 表缺少部分迁移列（如 b_same_as / street_address / external_source），已自动从本次写入中略过。请在 Supabase 对齐迁移：20260413120000_add_jobs_b_same_as、20260413140000_add_jobs_street_address、20260513190000_ok_mx_jobs_and_resume_export.sql。',
+            { duration: 16000 },
+          );
+        };
         const errorCounts = new Map<string, number>();
 
         const bumpErr = (msg: string) => {
@@ -199,15 +206,17 @@ export default function OkComMxPanel() {
               return error;
             };
 
-            let body: Record<string, unknown> = omitMxExtensionColumns
-              ? { ...okMxJobRowForLegacyJobsTable(row) }
-              : { ...row };
-            let err = await upsertBody(body);
-
-            if (err && isJobsMissingMxExtensionColumnError(err.message ?? '')) {
-              omitMxExtensionColumns = true;
-              body = { ...okMxJobRowForLegacyJobsTable(row) };
+            const body: Record<string, unknown> = { ...row };
+            let hadStrip = false;
+            let err = null as Awaited<ReturnType<typeof upsertBody>>;
+            for (let round = 0; round < 12; round += 1) {
               err = await upsertBody(body);
+              if (!err) break;
+              if (stripOptionalJobColumnFromPostgrestSchemaError(err.message ?? '', body)) {
+                hadStrip = true;
+                continue;
+              }
+              break;
             }
 
             if (err) {
@@ -216,13 +225,7 @@ export default function OkComMxPanel() {
               bumpErr(lastError);
             } else {
               slot[i] = 'ok';
-              if (omitMxExtensionColumns && !legacyNoteShown) {
-                legacyNoteShown = true;
-                toast.message(
-                  '当前库尚无 external_source / mx_category_code 列，已按旧表结构写入。建议在 Supabase 执行迁移 20260513190000_ok_mx_jobs_and_resume_export.sql 后再导入，便于筛选 MX 来源。',
-                  { duration: 14000 },
-                );
-              }
+              if (hadStrip) notifyMigrationAdaptation();
             }
           } catch (err: unknown) {
             slot[i] = 'fail';
@@ -314,10 +317,10 @@ export default function OkComMxPanel() {
         .select('id')
         .eq('external_source', OK_MX_EXTERNAL_SOURCE);
       let mxJobIds: string[] = [];
-      if (mxErr) {
-        if (!isJobsMissingMxExtensionColumnError(mxErr.message ?? '')) throw mxErr;
-      } else {
+      if (!mxErr) {
         mxJobIds = (mxJobs ?? []).map((j) => j.id).filter(Boolean);
+      } else if (!isJobsMissingMxFeedColumnError(mxErr.message ?? '')) {
+        throw mxErr;
       }
 
       for (const idPart of chunk(mxJobIds, 120)) {
@@ -467,9 +470,12 @@ export default function OkComMxPanel() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          若已执行迁移 <code className="text-xs">20260513190000_ok_mx_jobs_and_resume_export.sql</code>，会写入{' '}
-          <code className="text-xs">external_source</code> = <code className="text-xs">{OK_MX_EXTERNAL_SOURCE}</code> 与{' '}
-          <code className="text-xs">mx_category_code</code>。未迁移时导入会自动去掉这两列并仍写入职位。
+          完整迁移会写入 <code className="text-xs">b_same_as</code>、<code className="text-xs">street_address</code>、
+          <code className="text-xs">external_source</code>（{OK_MX_EXTERNAL_SOURCE}）、<code className="text-xs">mx_category_code</code>
+          等。若生产库尚未执行对应 SQL，导入会按 PostgREST 报错自动略过缺失列并重试；根治请在 Supabase 对齐{' '}
+          <code className="text-xs">20260413120000_add_jobs_b_same_as.sql</code>、
+          <code className="text-xs">20260413140000_add_jobs_street_address.sql</code>、
+          <code className="text-xs">20260513190000_ok_mx_jobs_and_resume_export.sql</code>。
         </p>
         {mxImportProgress?.isRunning || (!mxImportProgress?.isRunning && mxImportProgress && mxImportProgress.total > 0) ? (
           <div className="space-y-2">
