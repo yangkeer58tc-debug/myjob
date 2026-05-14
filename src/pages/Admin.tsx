@@ -7,10 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { LogOut, Plus, Pencil, Upload, Download, Pause, Play } from 'lucide-react';
+import { LogOut, Plus, Pencil, Upload, Download, Pause, Play, Search } from 'lucide-react';
 import OkComMxPanel from '@/components/admin/OkComMxPanel';
 import WhatsAppBotPanel from '@/components/admin/WhatsAppBotPanel';
 import { isResumeAdminEnabled } from '@/lib/featureFlags';
@@ -203,6 +210,20 @@ const ADMIN_JOBS_PAGE_SIZE = 25;
 const ADMIN_JOB_SELECT =
   'id,b_name,b_logo_url,title,category,salary_amount,payment_frequency,location,job_type,workplace_type,summary,description,requirements,highlights,education_level,industry,language_req,experience,is_active';
 
+/** PostgREST `.or()` for admin job search — title / company / id / city (sanitized). */
+function adminJobsSearchOrFilter(searchRaw: string): string | null {
+  const normalized = searchRaw
+    .trim()
+    .replace(/,/g, ' ')
+    .replace(/%/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+  if (!normalized) return null;
+  const p = `%${normalized.replace(/"/g, '')}%`;
+  return `title.ilike.${p},b_name.ilike.${p},id.ilike.${p},location.ilike.${p}`;
+}
+
 type JobCsvPayloadRow = {
   id: string;
   b_name: string;
@@ -349,6 +370,10 @@ const Admin = () => {
   const [jobImportProgress, setJobImportProgress] = useState<JobImportProgressState | null>(null);
   const jobImportPauseRef = useRef(false);
   const [adminJobsPage, setAdminJobsPage] = useState(1);
+  const [jobSearchInput, setJobSearchInput] = useState('');
+  const [jobSearchDebounced, setJobSearchDebounced] = useState('');
+  const [jobActiveFilter, setJobActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [jobCategoryFilter, setJobCategoryFilter] = useState<string>('');
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [jobOpLogs, setJobOpLogs] = useState<JobOperationLog[]>([]);
 
@@ -432,16 +457,28 @@ const Admin = () => {
     return out;
   };
 
+  useEffect(() => {
+    const t = window.setTimeout(() => setJobSearchDebounced(jobSearchInput), 400);
+    return () => window.clearTimeout(t);
+  }, [jobSearchInput]);
+
+  useEffect(() => {
+    setAdminJobsPage(1);
+    setSelectedJobIds([]);
+  }, [jobSearchDebounced, jobActiveFilter, jobCategoryFilter]);
+
   const { data: adminJobsData, isLoading, error: jobsError } = useQuery({
-    queryKey: ['adminJobs', adminJobsPage],
+    queryKey: ['adminJobs', adminJobsPage, jobSearchDebounced, jobActiveFilter, jobCategoryFilter],
     queryFn: async () => {
       const from = (adminJobsPage - 1) * ADMIN_JOBS_PAGE_SIZE;
       const to = from + ADMIN_JOBS_PAGE_SIZE - 1;
-      const { data, error, count } = await supabase
-        .from('jobs')
-        .select(ADMIN_JOB_SELECT, { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      let q = supabase.from('jobs').select(ADMIN_JOB_SELECT, { count: 'exact' });
+      if (jobActiveFilter === 'active') q = q.eq('is_active', true);
+      else if (jobActiveFilter === 'inactive') q = q.eq('is_active', false);
+      if (jobCategoryFilter) q = q.eq('category', jobCategoryFilter);
+      const orFilter = adminJobsSearchOrFilter(jobSearchDebounced);
+      if (orFilter) q = q.or(orFilter);
+      const { data, error, count } = await q.order('created_at', { ascending: false }).range(from, to);
       if (error) throw error;
       return {
         rows: data || [],
@@ -1273,63 +1310,86 @@ const Admin = () => {
           </div>
         ) : activeTab === 'jobs' ? (
           <>
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> CSV Template
-                </Button>
-                <Button variant="outline" onClick={downloadImcExportTemplate} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> IMC Template
-                </Button>
-                <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-2" /> Options CSV
-                </Button>
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                />
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  className="hidden"
-                  ref={deactivateIdsFileInputRef}
-                  onChange={handleDeactivateIdsFileUpload}
-                />
-                <Button
-                  variant="secondary"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="rounded-xl"
-                  disabled={Boolean(jobImportProgress?.isRunning)}
-                >
-                  <Upload className="h-4 w-4 mr-2" /> Import CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => deactivateIdsFileInputRef.current?.click()}
-                  className="rounded-xl"
-                  disabled={Boolean(jobImportProgress?.isRunning)}
-                >
-                  <Upload className="h-4 w-4 mr-2" /> Bulk Disable by ID
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="rounded-xl"
-                  disabled={deleteAllJobsMutation.isPending}
-                  onClick={() => {
-                    const v = window.prompt('Type DELETE to remove all jobs');
-                    if (v !== 'DELETE') return;
-                    deleteAllJobsMutation.mutate();
-                  }}
-                >
-                  Delete All Jobs
+            <div className="bg-card rounded-2xl border border-border p-4 mb-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">找职位</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    标题、公司、职位 ID、城市模糊匹配；可与上架状态、品类组合筛选。
+                  </p>
+                </div>
+                <Button onClick={openNew} className="rounded-xl shrink-0 w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-1" /> {t('admin.addJob')}
                 </Button>
               </div>
-              <Button onClick={openNew} className="rounded-xl">
-                <Plus className="h-4 w-4 mr-1" /> {t('admin.addJob')}
-              </Button>
+              <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
+                <div className="flex-1 min-w-0 max-w-full sm:max-w-md">
+                  <Label htmlFor="admin-job-search" className="text-xs text-muted-foreground">
+                    关键词
+                  </Label>
+                  <div className="relative mt-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="admin-job-search"
+                      value={jobSearchInput}
+                      onChange={(e) => setJobSearchInput(e.target.value)}
+                      placeholder="职位标题、公司名、ID 或城市…"
+                      className="rounded-xl pl-9"
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+                <div className="w-full sm:w-40">
+                  <Label className="text-xs text-muted-foreground">上架状态</Label>
+                  <Select
+                    value={jobActiveFilter}
+                    onValueChange={(v) => setJobActiveFilter(v as 'all' | 'active' | 'inactive')}
+                  >
+                    <SelectTrigger className="rounded-xl mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="active">仅在职</SelectItem>
+                      <SelectItem value="inactive">仅下架</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-full sm:min-w-[12rem] sm:max-w-xs">
+                  <Label className="text-xs text-muted-foreground">品类</Label>
+                  <Select
+                    value={jobCategoryFilter || '__all__'}
+                    onValueChange={(v) => setJobCategoryFilter(v === '__all__' ? '' : v)}
+                  >
+                    <SelectTrigger className="rounded-xl mt-1">
+                      <SelectValue placeholder="全部品类" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="__all__">全部品类</SelectItem>
+                      {CATEGORY_OPTIONS.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl lg:mb-0.5"
+                  onClick={() => {
+                    setJobSearchInput('');
+                    setJobActiveFilter('all');
+                    setJobCategoryFilter('');
+                  }}
+                >
+                  清除筛选
+                </Button>
+              </div>
+              {jobSearchInput !== jobSearchDebounced ? (
+                <p className="text-xs text-muted-foreground mt-2">正在更新搜索…</p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 mb-3 text-sm">
               <span className="text-muted-foreground">{selectedJobIds.length} selected</span>
@@ -1364,47 +1424,7 @@ const Admin = () => {
                 Clear Selection
               </Button>
             </div>
-            <OkComMxPanel />
-            <div className="bg-card rounded-2xl shadow-sm p-4 mb-3 border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">Upload History</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-xl"
-                  onClick={() => {
-                    setJobOpLogs([]);
-                    localStorage.removeItem(JOB_UPLOAD_LOG_STORAGE_KEY);
-                  }}
-                >
-                  Clear
-                </Button>
-              </div>
-              {jobOpLogs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No history yet.</p>
-              ) : (
-                <div className="space-y-2 max-h-56 overflow-auto">
-                  {jobOpLogs.map((log) => (
-                    <div key={log.id} className="text-xs border border-border rounded-lg p-2">
-                      <div className="font-medium">
-                        {log.operation === 'deactivate_by_id_csv' ? 'Disable by ID' : 'Job Import'} ·{' '}
-                        {new Date(log.created_at).toLocaleString()}
-                      </div>
-                      <div className="text-muted-foreground">
-                        Online before: {log.online_before}, online after: {log.online_after}, input: {log.total_input}, processed:{' '}
-                        {log.total_processed}, succeeded: {log.success}, failed: {log.failed}, skipped: {log.skipped}
-                      </div>
-                      {log.failed_records.length > 0 ? (
-                        <div className="text-destructive mt-1">
-                          Failed records: {log.failed_records.slice(0, 3).map((r) => `${r.id}(${r.error})`).join(' ; ')}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="bg-card rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-card rounded-2xl shadow-sm overflow-hidden mb-4">
               <table className="w-full text-sm">
                 <thead className="bg-secondary text-muted-foreground">
                   <tr>
@@ -1471,17 +1491,18 @@ const Admin = () => {
                   {jobs.length === 0 && !isLoading && (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No jobs found.
+                        {jobSearchDebounced.trim() || jobActiveFilter !== 'all' || jobCategoryFilter
+                          ? '当前筛选条件下没有职位。'
+                          : 'No jobs found.'}
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
-              {adminJobsTotalCount > 0 ? (
+              {!isLoading ? (
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border text-sm text-muted-foreground">
                   <span>
-                    Page {adminJobsPage} of {adminJobsMaxPage} · {adminJobsTotalCount} job(s) ·{' '}
-                    {ADMIN_JOBS_PAGE_SIZE} per page
+                    第 {adminJobsPage} / {adminJobsMaxPage} 页 · 共 {adminJobsTotalCount} 条 · 每页 {ADMIN_JOBS_PAGE_SIZE} 条
                   </span>
                   <div className="flex gap-2">
                     <Button
@@ -1489,24 +1510,121 @@ const Admin = () => {
                       variant="outline"
                       size="sm"
                       className="rounded-xl"
-                      disabled={adminJobsPage <= 1}
+                      disabled={adminJobsPage <= 1 || adminJobsTotalCount === 0}
                       onClick={() => setAdminJobsPage((p) => Math.max(1, p - 1))}
                     >
-                      Previous
+                      上一页
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       className="rounded-xl"
-                      disabled={adminJobsPage >= adminJobsMaxPage}
+                      disabled={adminJobsPage >= adminJobsMaxPage || adminJobsTotalCount === 0}
                       onClick={() => setAdminJobsPage((p) => Math.min(adminJobsMaxPage, p + 1))}
                     >
-                      Next
+                      下一页
                     </Button>
                   </div>
                 </div>
               ) : null}
+            </div>
+
+            <p className="text-xs font-medium text-muted-foreground mb-2 mt-6">数据导入与模板</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={downloadTemplate} className="rounded-xl">
+                  <Download className="h-4 w-4 mr-2" /> CSV Template
+                </Button>
+                <Button variant="outline" onClick={downloadImcExportTemplate} className="rounded-xl">
+                  <Download className="h-4 w-4 mr-2" /> IMC Template
+                </Button>
+                <Button variant="outline" onClick={downloadOptionsCsv} className="rounded-xl">
+                  <Download className="h-4 w-4 mr-2" /> Options CSV
+                </Button>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                />
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  className="hidden"
+                  ref={deactivateIdsFileInputRef}
+                  onChange={handleDeactivateIdsFileUpload}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-xl"
+                  disabled={Boolean(jobImportProgress?.isRunning)}
+                >
+                  <Upload className="h-4 w-4 mr-2" /> Import CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => deactivateIdsFileInputRef.current?.click()}
+                  className="rounded-xl"
+                  disabled={Boolean(jobImportProgress?.isRunning)}
+                >
+                  <Upload className="h-4 w-4 mr-2" /> Bulk Disable by ID
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="rounded-xl"
+                  disabled={deleteAllJobsMutation.isPending}
+                  onClick={() => {
+                    const v = window.prompt('Type DELETE to remove all jobs');
+                    if (v !== 'DELETE') return;
+                    deleteAllJobsMutation.mutate();
+                  }}
+                >
+                  Delete All Jobs
+                </Button>
+              </div>
+            </div>
+            <OkComMxPanel />
+            <div className="bg-card rounded-2xl shadow-sm p-4 mb-3 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">Upload History</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => {
+                    setJobOpLogs([]);
+                    localStorage.removeItem(JOB_UPLOAD_LOG_STORAGE_KEY);
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+              {jobOpLogs.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No history yet.</p>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-auto">
+                  {jobOpLogs.map((log) => (
+                    <div key={log.id} className="text-xs border border-border rounded-lg p-2">
+                      <div className="font-medium">
+                        {log.operation === 'deactivate_by_id_csv' ? 'Disable by ID' : 'Job Import'} ·{' '}
+                        {new Date(log.created_at).toLocaleString()}
+                      </div>
+                      <div className="text-muted-foreground">
+                        Online before: {log.online_before}, online after: {log.online_after}, input: {log.total_input}, processed:{' '}
+                        {log.total_processed}, succeeded: {log.success}, failed: {log.failed}, skipped: {log.skipped}
+                      </div>
+                      {log.failed_records.length > 0 ? (
+                        <div className="text-destructive mt-1">
+                          Failed records: {log.failed_records.slice(0, 3).map((r) => `${r.id}(${r.error})`).join(' ; ')}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         ) : activeTab === 'whatsapp' ? (
