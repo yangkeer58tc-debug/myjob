@@ -69,7 +69,11 @@ type RewritePreview = {
   warnings: string[];
 };
 
-const DEFAULT_MAX_ROWS = 15;
+function parseMaxRows(): number {
+  const raw = Number.parseInt(String(import.meta.env.VITE_JOB_REWRITE_MAX_ROWS || ''), 10);
+  if (Number.isFinite(raw) && raw > 0) return Math.min(raw, 500);
+  return 200;
+}
 
 type JobRewriteUploadPanelProps = {
   /** Disable while main CSV import is running */
@@ -79,19 +83,24 @@ type JobRewriteUploadPanelProps = {
 export default function JobRewriteUploadPanel({ importBusy = false }: JobRewriteUploadPanelProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [llmConfigured, setLlmConfigured] = useState<boolean | null>(null);
-  const [llmModel, setLlmModel] = useState<string | null>(null);
+  const [llmStatus, setLlmStatus] = useState<Awaited<ReturnType<typeof fetchJobRewriteStatus>> | null>(null);
+  const maxRows = parseMaxRows();
   const [progress, setProgress] = useState<RewriteProgress | null>(null);
   const [previews, setPreviews] = useState<RewritePreview[]>([]);
 
   const busy = importBusy || Boolean(progress?.isRunning);
 
   useEffect(() => {
-    fetchJobRewriteStatus().then((s) => {
-      setLlmConfigured(s.configured);
-      setLlmModel(s.model ?? null);
-    });
+    fetchJobRewriteStatus().then(setLlmStatus);
   }, []);
+
+  const llmConfigured = llmStatus?.configured ?? null;
+  const channelLabel =
+    llmStatus?.channel === 'edge'
+      ? 'Cloudflare 函数'
+      : llmStatus?.channel === 'browser'
+        ? '浏览器（构建时 LLM_*）'
+        : '未配置';
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,8 +114,10 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           toast.error('请先登录 Admin 后再上传。');
           return;
         }
-        if (!llmConfigured) {
-          toast.error('未配置 LLM_API_KEY / LLM_BASE_URL（请在 Cloudflare Pages 环境变量中设置）。');
+        if (!llmStatus?.configured) {
+          toast.error(
+            '未检测到 LLM：请在 Cloudflare Pages 为 Functions 配置 LLM_API_KEY、LLM_BASE_URL、LLM_MODEL，或在构建环境注入同名变量。',
+          );
           return;
         }
 
@@ -121,9 +132,9 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
         const fieldNames = results.meta?.fields || [];
         const imcShape = isImcExportCsv(fieldNames);
         const prepared = rows.map((r) => prepareRowForRewriteImport(r as Record<string, string>, imcShape));
-        const capped = prepared.slice(0, DEFAULT_MAX_ROWS);
-        if (prepared.length > DEFAULT_MAX_ROWS) {
-          toast.message(`仅处理前 ${DEFAULT_MAX_ROWS} 条（共 ${prepared.length} 条），避免一次打满 API 配额。`);
+        const capped = prepared.slice(0, maxRows);
+        if (prepared.length > maxRows) {
+          toast.message(`仅处理前 ${maxRows} 条（共 ${prepared.length} 条）。可在 VITE_JOB_REWRITE_MAX_ROWS 调高上限（最大 500）。`);
         }
 
         const total = capped.length;
@@ -211,9 +222,12 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           AI 改写导入
         </div>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-          上传后由 Cloudflare <code className="text-[11px]">LLM_*</code>
-          {llmConfigured === null ? '（检测中…）' : llmConfigured ? `（已配置${llmModel ? ` · ${llmModel}` : ''}）` : '（未配置）'}
-          按改写方案生成 SEO 标题与正文，并直接写入 <code className="text-[11px]">jobs</code>。CSV 格式同「导入主 CSV」。
+          改写通道：
+          {llmConfigured === null ? ' 检测中…' : ` ${channelLabel}${llmStatus?.model ? ` · ${llmStatus.model}` : ''}`}
+          。生成 SEO 标题与正文后直接写入 <code className="text-[11px]">jobs</code>（CSV 同「导入主 CSV」）。
+          {llmStatus?.serverConfigured === false && llmStatus?.clientConfigured
+            ? ' 提示：Pages 函数未读到 LLM_*，当前走浏览器密钥（仅测试环境建议）。'
+            : null}
         </p>
       </div>
 
@@ -222,7 +236,7 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           type="button"
           variant="secondary"
           className="rounded-xl"
-          disabled={!llmConfigured || busy}
+          disabled={llmConfigured === false || busy}
           onClick={() => fileInputRef.current?.click()}
         >
           {progress?.isRunning ? (
@@ -232,7 +246,7 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           )}
           导入 CSV（AI 改写）
         </Button>
-        <span className="text-xs text-muted-foreground">单次最多 {DEFAULT_MAX_ROWS} 条 · 并发 2</span>
+        <span className="text-xs text-muted-foreground">单次最多 {maxRows} 条 · 并发 2</span>
       </div>
 
       <input
