@@ -111,6 +111,10 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      whatsapp_admin_funnel_range_summary_cn: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       whatsapp_admin_wa_directory_cn: {
         Args: { p_search?: string; p_limit?: number; p_offset?: number }
         Returns: Json

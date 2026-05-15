@@ -77,7 +77,19 @@ type FunnelDailyRow = {
   exposure_opt_in_uv: number;
 };
 
+/** Single-row range summary from `whatsapp_admin_funnel_range_summary_cn`. */
+type FunnelRangeSummary = {
+  day_count: number;
+  session_uv_period: number;
+  resume_pv: number;
+  application_pv: number;
+  exposure_opt_in_pv: number;
+  exposure_opt_in_uv_period: number;
+};
+
 const DIR_PAGE_SIZE = 25;
+/** Funnel daily table: client-side page size (RPC still returns full range). */
+const FUNNEL_PAGE_SIZE = 15;
 
 const WA_CONV_SELECT =
   'id, wa_user_id, state, candidate_name, rmc_sync_status, rmc_sync_error, opt_in_clarify_count, last_resume_storage_path, resume_storage_path, last_resume_received_at, completed_at, archived_at, created_at, last_message_at, applying_job_id, applying_job_title, applying_job_company';
@@ -485,6 +497,20 @@ function parseFunnelDailyRows(raw: unknown): FunnelDailyRow[] {
   return out;
 }
 
+function parseFunnelRangeSummary(raw: unknown): FunnelRangeSummary | null {
+  const row = Array.isArray(raw) ? raw[0] : raw;
+  if (!row || typeof row !== 'object') return null;
+  const r = row as Record<string, unknown>;
+  return {
+    day_count: num(r.day_count),
+    session_uv_period: num(r.session_uv_period),
+    resume_pv: num(r.resume_pv),
+    application_pv: num(r.application_pv),
+    exposure_opt_in_pv: num(r.exposure_opt_in_pv),
+    exposure_opt_in_uv_period: num(r.exposure_opt_in_uv_period),
+  };
+}
+
 export default function WhatsAppBotPanel() {
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
@@ -492,6 +518,7 @@ export default function WhatsAppBotPanel() {
   const [rangeStartInput, setRangeStartInput] = useState(() => defaultLastNDaysInclusiveShanghai(30).start);
   const [rangeEndInput, setRangeEndInput] = useState(() => defaultLastNDaysInclusiveShanghai(30).end);
   const [dirPage, setDirPage] = useState(1);
+  const [funnelPage, setFunnelPage] = useState(1);
   const [selectedPhoneKey, setSelectedPhoneKey] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messagesExporting, setMessagesExporting] = useState(false);
@@ -561,6 +588,10 @@ export default function WhatsAppBotPanel() {
     setDirPage(1);
   }, [searchDebounced]);
 
+  useEffect(() => {
+    setFunnelPage(1);
+  }, [funnelDateBounds.p_from, funnelDateBounds.p_to]);
+
   const handleExportAllMessages = async () => {
     setMessagesExporting(true);
     setMessagesExportError(null);
@@ -586,6 +617,20 @@ export default function WhatsAppBotPanel() {
       });
       if (error) throw error;
       return parseFunnelDailyRows(data);
+    },
+    refetchInterval: 30_000,
+  });
+
+  const funnelSummaryQuery = useQuery({
+    queryKey: ['waFunnelRangeSummaryCn', funnelDateBounds.p_from, funnelDateBounds.p_to],
+    enabled: !funnelQuery.isError,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('whatsapp_admin_funnel_range_summary_cn', {
+        p_from: funnelDateBounds.p_from,
+        p_to: funnelDateBounds.p_to,
+      });
+      if (error) throw error;
+      return parseFunnelRangeSummary(data);
     },
     refetchInterval: 30_000,
   });
@@ -639,6 +684,33 @@ export default function WhatsAppBotPanel() {
   });
 
   const funnelRows = funnelQuery.data ?? [];
+
+  const funnelMaxPage = Math.max(1, Math.ceil(funnelRows.length / FUNNEL_PAGE_SIZE));
+
+  useEffect(() => {
+    setFunnelPage((p) => Math.min(Math.max(1, p), funnelMaxPage));
+  }, [funnelMaxPage]);
+
+  const funnelPageRows = useMemo(() => {
+    const start = (funnelPage - 1) * FUNNEL_PAGE_SIZE;
+    return funnelRows.slice(start, start + FUNNEL_PAGE_SIZE);
+  }, [funnelRows, funnelPage]);
+
+  const funnelPvSumsFromDaily = useMemo(
+    () =>
+      funnelRows.reduce(
+        (acc, r) => {
+          acc.resume_pv += r.resume_pv;
+          acc.application_pv += r.application_pv;
+          acc.exposure_opt_in_pv += r.exposure_opt_in_pv;
+          return acc;
+        },
+        { resume_pv: 0, application_pv: 0, exposure_opt_in_pv: 0 },
+      ),
+    [funnelRows],
+  );
+
+  const funnelSummary = funnelSummaryQuery.data;
   const dirPayload = directoryQuery.data ?? { total: 0, rows: [] };
   const dirRows = dirPayload.rows;
   const dirTotal = dirPayload.total;
@@ -690,6 +762,7 @@ export default function WhatsAppBotPanel() {
   };
 
   const funnelErr = funnelQuery.error ? (funnelQuery.error as Error).message : null;
+  const funnelSummaryErr = funnelSummaryQuery.error ? (funnelSummaryQuery.error as Error).message : null;
   const directoryErr = directoryQuery.error ? (directoryQuery.error as Error).message : null;
 
   const onSelectDirectoryRow = (r: WaDirectoryRow) => {
@@ -708,11 +781,12 @@ export default function WhatsAppBotPanel() {
             className="rounded-xl"
             onClick={() => {
               void funnelQuery.refetch();
+              void funnelSummaryQuery.refetch();
               void directoryQuery.refetch();
               void selectedConvQuery.refetch();
               void messagesQuery.refetch();
             }}
-            disabled={funnelQuery.isFetching || directoryQuery.isFetching}
+            disabled={funnelQuery.isFetching || funnelSummaryQuery.isFetching || directoryQuery.isFetching}
           >
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
@@ -788,13 +862,25 @@ export default function WhatsAppBotPanel() {
         </Alert>
       )}
 
+      {funnelSummaryErr && !funnelErr && funnelRows.length > 0 && (
+        <Alert>
+          <AlertTitle>周期汇总未加载</AlertTitle>
+          <AlertDescription className="text-xs space-y-1">
+            <p>{funnelSummaryErr}</p>
+            <p>
+              当前下方「范围内合计」中的<strong>简历 / 申请 / 同意曝光 PV</strong>仍可由日表加总得到；<strong>周期内号码去重（会话 UV、同意曝光 UV）</strong>需执行迁移{' '}
+              <code className="rounded bg-muted px-1 py-0.5">20260518120000_whatsapp_admin_funnel_range_summary_cn.sql</code>。
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {directoryErr && (
         <Alert variant="destructive">
           <AlertTitle>账号目录加载失败</AlertTitle>
           <AlertDescription>{directoryErr}</AlertDescription>
         </Alert>
       )}
-
       <Card className="border-primary/15 shadow-sm">
         <CardHeader className="pb-3 space-y-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -876,13 +962,100 @@ export default function WhatsAppBotPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">漏斗看板（按日 · 中国）</CardTitle>
           <CardDescription>
-            列含义：会话数 = 当日有消息的 WhatsApp 号码去重；简历数 = 当日用户发送的带附件简历类消息条数；申请数 ={' '}
+            按日倒序展示；上方为<strong>范围内合计</strong>（整段日期汇总）。日表明细支持分页（每页 {FUNNEL_PAGE_SIZE} 天）。列含义：会话数 = 当日有消息的
+            WhatsApp 号码去重；简历数 = 当日用户发送的带附件简历类消息条数；申请数 ={' '}
             <code className="text-xs rounded bg-muted px-1">whatsapp_applications</code> 中带{' '}
             <code className="text-xs rounded bg-muted px-1">job_id</code> 的创建条数；同意曝光 ={' '}
             <code className="text-xs rounded bg-muted px-1">opt_in_status = opted_in</code> 的 PV / 号码 UV。
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {!funnelQuery.isLoading && funnelRows.length > 0 && (
+            <>
+              <div className="rounded-2xl border border-border bg-muted/25 p-4">
+                <p className="text-xs font-medium text-muted-foreground mb-3">范围内合计（与上方日期一致 · 中国日）</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">统计天数</div>
+                    <div className="text-lg font-semibold tabular-nums">
+                      {(funnelSummary?.day_count ?? funnelRows.length).toLocaleString('zh-CN')}
+                    </div>
+                  </div>
+                  <div title="整个区间内至少有一天发过消息的 WhatsApp 号码去重">
+                    <div className="text-[11px] text-muted-foreground">会话数（周期 UV）</div>
+                    <div className="text-lg font-semibold tabular-nums">
+                      {funnelSummary != null
+                        ? funnelSummary.session_uv_period.toLocaleString('zh-CN')
+                        : '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">简历数合计</div>
+                    <div className="text-lg font-semibold tabular-nums">
+                      {(funnelSummary?.resume_pv ?? funnelPvSumsFromDaily.resume_pv).toLocaleString('zh-CN')}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">申请数合计</div>
+                    <div className="text-lg font-semibold tabular-nums">
+                      {(funnelSummary?.application_pv ?? funnelPvSumsFromDaily.application_pv).toLocaleString(
+                        'zh-CN',
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">同意曝光 PV 合计</div>
+                    <div className="text-lg font-semibold tabular-nums">
+                      {(funnelSummary?.exposure_opt_in_pv ?? funnelPvSumsFromDaily.exposure_opt_in_pv).toLocaleString(
+                        'zh-CN',
+                      )}
+                    </div>
+                  </div>
+                  <div title="整个区间内 opted_in 的号码去重">
+                    <div className="text-[11px] text-muted-foreground">同意曝光 UV（周期）</div>
+                    <div className="text-lg font-semibold tabular-nums">
+                      {funnelSummary != null
+                        ? funnelSummary.exposure_opt_in_uv_period.toLocaleString('zh-CN')
+                        : '—'}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+                  日表中的「会话数 / 同意曝光 UV」为<strong>当日</strong>去重；上排「周期 UV」为整段日期内去重，一般<strong>小于</strong>各日 UV 相加。
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>
+                  日明细：第 {funnelPage} / {funnelMaxPage} 页 · 每页 {FUNNEL_PAGE_SIZE} 天 · 共{' '}
+                  {funnelRows.length.toLocaleString('zh-CN')} 天
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={funnelPage <= 1 || funnelQuery.isFetching}
+                    onClick={() => setFunnelPage((p) => Math.max(1, p - 1))}
+                  >
+                    上一页
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={funnelPage >= funnelMaxPage || funnelQuery.isFetching || funnelRows.length === 0}
+                    onClick={() => setFunnelPage((p) => Math.min(funnelMaxPage, p + 1))}
+                  >
+                    下一页
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
           {funnelQuery.isLoading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">加载中…</p>
           ) : funnelRows.length === 0 ? (
@@ -913,7 +1086,7 @@ export default function WhatsAppBotPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {funnelRows.map((row) => (
+                  {funnelPageRows.map((row) => (
                     <tr key={row.day_cn} className="border-b tabular-nums">
                       <td className="py-2 pr-3 whitespace-nowrap">{row.day_cn}</td>
                       <td className="py-2 pr-3">{row.session_uv.toLocaleString('zh-CN')}</td>
