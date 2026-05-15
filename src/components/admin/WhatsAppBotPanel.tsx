@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Download, Loader2, RefreshCw } from 'lucide-react';
+import { Download, Loader2, RefreshCw, CalendarRange } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 
 type ConversationRow = {
   id: string;
@@ -91,6 +94,7 @@ type PvUvBucket = { pv: number; uv: number };
 type DashboardRpcPayload = {
   funnel: FunnelStats;
   inbound_pv_uv: {
+    range: PvUvBucket;
     h24: PvUvBucket;
     d7: PvUvBucket;
     d30: PvUvBucket;
@@ -112,11 +116,13 @@ function parseDashboardPayload(raw: unknown): DashboardRpcPayload | null {
     return { pv: num(x.pv), uv: num(x.uv) };
   };
   const inboundObj = inbound as Record<string, unknown>;
+  const range = bucket(inboundObj.range);
   const h24 = bucket(inboundObj.h24);
   const d7 = bucket(inboundObj.d7);
   const d30 = bucket(inboundObj.d30);
   const all = bucket(inboundObj.all);
   if (!h24 || !d7 || !d30 || !all) return null;
+  const rangeFinal = range ?? all;
   return {
     funnel: {
       total: num(f.total),
@@ -131,9 +137,54 @@ function parseDashboardPayload(raw: unknown): DashboardRpcPayload | null {
       rmcFailed: num(f.rmc_failed),
       rmcSkipped: num(f.rmc_skipped),
     },
-    inbound_pv_uv: { h24, d7, d30, all },
+    inbound_pv_uv: { range: rangeFinal, h24, d7, d30, all },
   };
 }
+
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+/** Local calendar day → yyyy-mm-dd (for input type="date"). */
+function formatDateInputLocal(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function parseDateInputLocal(ymd: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const da = Number(m[3]);
+  const d = new Date(y, mo, da);
+  if (d.getFullYear() !== y || d.getMonth() !== mo || d.getDate() !== da) return null;
+  return d;
+}
+
+function startOfLocalDayFromInput(ymd: string): Date | null {
+  const d = parseDateInputLocal(ymd);
+  if (!d) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfLocalDayFromInput(ymd: string): Date | null {
+  const d = parseDateInputLocal(ymd);
+  if (!d) return null;
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+/** Inclusive last N calendar days ending today (local). */
+function defaultLastNDaysInclusive(n: number): { start: string; end: string } {
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  const start = new Date(end);
+  start.setDate(start.getDate() - (n - 1));
+  return { start: formatDateInputLocal(start), end: formatDateInputLocal(end) };
+}
+
+type WaRangePreset = 'today' | 'd7' | 'd30' | 'all' | 'custom';
 
 const STATE_LABEL: Record<string, string> = {
   new: 'New',
@@ -266,7 +317,10 @@ async function fetchAllPaged<T>(
   return all;
 }
 
-async function fetchAllConversationsMatchingSearch(searchRaw: string): Promise<ConversationRow[]> {
+async function fetchAllConversationsMatchingSearch(
+  searchRaw: string,
+  dateOpts?: { allTime: boolean; fromIso: string | null; toIso: string | null },
+): Promise<ConversationRow[]> {
   const orf = buildConversationSearchOr(searchRaw);
   const all: ConversationRow[] = [];
   let from = 0;
@@ -278,6 +332,8 @@ async function fetchAllConversationsMatchingSearch(searchRaw: string): Promise<C
       .select(WA_CONV_SELECT)
       .order('last_message_at', { ascending: false });
     if (orf) q = q.or(orf);
+    if (dateOpts && !dateOpts.allTime && dateOpts.fromIso) q = q.gte('last_message_at', dateOpts.fromIso);
+    if (dateOpts && !dateOpts.allTime && dateOpts.toIso) q = q.lte('last_message_at', dateOpts.toIso);
     const { data, error } = await q.range(from, from + pageSize - 1);
     if (error) throw error;
     const batch = (data ?? []) as ConversationRow[];
@@ -454,6 +510,9 @@ const TRAFFIC_PERIOD_LABEL: Record<'h24' | 'd7' | 'd30' | 'all', string> = {
 export default function WhatsAppBotPanel() {
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
+  const [rangePreset, setRangePreset] = useState<WaRangePreset>('d30');
+  const [rangeStartInput, setRangeStartInput] = useState(() => defaultLastNDaysInclusive(30).start);
+  const [rangeEndInput, setRangeEndInput] = useState(() => defaultLastNDaysInclusive(30).end);
   const [convPage, setConvPage] = useState(1);
   const [appPage, setAppPage] = useState(1);
   const [selected, setSelected] = useState<ConversationRow | null>(null);
@@ -463,6 +522,58 @@ export default function WhatsAppBotPanel() {
   const [convCsvExporting, setConvCsvExporting] = useState(false);
   const [appCsvExporting, setAppCsvExporting] = useState(false);
 
+  const rangeAllTime = rangePreset === 'all';
+
+  const dashboardRpcBounds = useMemo(() => {
+    if (rangeAllTime) return { p_from: null as string | null, p_to: null as string | null };
+    const s = startOfLocalDayFromInput(rangeStartInput);
+    const e = endOfLocalDayFromInput(rangeEndInput);
+    if (!s || !e) return { p_from: null as string | null, p_to: null as string | null };
+    if (s.getTime() > e.getTime()) {
+      const a = startOfLocalDayFromInput(rangeEndInput);
+      const b = endOfLocalDayFromInput(rangeStartInput);
+      if (!a || !b) return { p_from: null, p_to: null };
+      return { p_from: a.toISOString(), p_to: b.toISOString() };
+    }
+    return { p_from: s.toISOString(), p_to: e.toISOString() };
+  }, [rangeAllTime, rangeStartInput, rangeEndInput]);
+
+  const listDateOpts = useMemo(
+    () =>
+      rangeAllTime
+        ? { allTime: true as const, fromIso: null as string | null, toIso: null as string | null }
+        : { allTime: false as const, fromIso: dashboardRpcBounds.p_from, toIso: dashboardRpcBounds.p_to },
+    [rangeAllTime, dashboardRpcBounds.p_from, dashboardRpcBounds.p_to],
+  );
+
+  const applyRangePreset = (preset: WaRangePreset) => {
+    setRangePreset(preset);
+    if (preset === 'all') return;
+    if (preset === 'today') {
+      const t = formatDateInputLocal(new Date());
+      setRangeStartInput(t);
+      setRangeEndInput(t);
+      return;
+    }
+    if (preset === 'd7') {
+      const r = defaultLastNDaysInclusive(7);
+      setRangeStartInput(r.start);
+      setRangeEndInput(r.end);
+      return;
+    }
+    if (preset === 'd30') {
+      const r = defaultLastNDaysInclusive(30);
+      setRangeStartInput(r.start);
+      setRangeEndInput(r.end);
+    }
+  };
+
+  const rangeSummaryLabel = useMemo(() => {
+    if (rangeAllTime) return '全部时间';
+    if (rangePreset === 'today') return '今天';
+    return `${rangeStartInput} ~ ${rangeEndInput}`;
+  }, [rangeAllTime, rangePreset, rangeStartInput, rangeEndInput]);
+
   useEffect(() => {
     const t = window.setTimeout(() => setSearchDebounced(search), 400);
     return () => window.clearTimeout(t);
@@ -470,7 +581,8 @@ export default function WhatsAppBotPanel() {
 
   useEffect(() => {
     setConvPage(1);
-  }, [searchDebounced]);
+    setAppPage(1);
+  }, [searchDebounced, listDateOpts.allTime, listDateOpts.fromIso, listDateOpts.toIso]);
 
   const handleExportAllMessages = async () => {
     setMessagesExporting(true);
@@ -489,9 +601,12 @@ export default function WhatsAppBotPanel() {
   };
 
   const dashboardQuery = useQuery({
-    queryKey: ['waDashboardStats'],
+    queryKey: ['waDashboardStats', rangeAllTime, dashboardRpcBounds.p_from, dashboardRpcBounds.p_to],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('whatsapp_admin_dashboard_stats');
+      const { data, error } = await supabase.rpc('whatsapp_admin_dashboard_stats', {
+        p_from: dashboardRpcBounds.p_from,
+        p_to: dashboardRpcBounds.p_to,
+      });
       if (error) throw error;
       const parsed = parseDashboardPayload(data);
       if (!parsed) throw new Error('Invalid dashboard stats payload');
@@ -501,7 +616,14 @@ export default function WhatsAppBotPanel() {
   });
 
   const conversationsQuery = useQuery({
-    queryKey: ['waConversations', convPage, searchDebounced],
+    queryKey: [
+      'waConversations',
+      convPage,
+      searchDebounced,
+      listDateOpts.allTime,
+      listDateOpts.fromIso,
+      listDateOpts.toIso,
+    ],
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<{ rows: ConversationRow[]; total: number }> => {
       const from = (convPage - 1) * CONV_PAGE_SIZE;
@@ -512,6 +634,8 @@ export default function WhatsAppBotPanel() {
         .order('last_message_at', { ascending: false });
       const orf = buildConversationSearchOr(searchDebounced);
       if (orf) q = q.or(orf);
+      if (!listDateOpts.allTime && listDateOpts.fromIso) q = q.gte('last_message_at', listDateOpts.fromIso);
+      if (!listDateOpts.allTime && listDateOpts.toIso) q = q.lte('last_message_at', listDateOpts.toIso);
       const { data, error, count } = await q.range(from, to);
       if (error) throw error;
       return { rows: (data ?? []) as ConversationRow[], total: count ?? 0 };
@@ -520,19 +644,21 @@ export default function WhatsAppBotPanel() {
   });
 
   const applicationsQuery = useQuery({
-    queryKey: ['waApplications', appPage],
+    queryKey: ['waApplications', appPage, listDateOpts.allTime, listDateOpts.fromIso, listDateOpts.toIso],
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<{ rows: ApplicationRow[]; total: number }> => {
       const from = (appPage - 1) * APP_PAGE_SIZE;
       const to = from + APP_PAGE_SIZE - 1;
-      const { data, error, count } = await supabase
+      let q = supabase
         .from('whatsapp_applications')
         .select(
           'id, conversation_id, wa_user_id, rmc_resume_id, job_id, job_title, job_company, reused_existing_cv, opt_in_status, created_at',
           { count: 'exact' },
         )
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        .order('created_at', { ascending: false });
+      if (!listDateOpts.allTime && listDateOpts.fromIso) q = q.gte('created_at', listDateOpts.fromIso);
+      if (!listDateOpts.allTime && listDateOpts.toIso) q = q.lte('created_at', listDateOpts.toIso);
+      const { data, error, count } = await q.range(from, to);
       if (error) throw error;
       return { rows: (data ?? []) as ApplicationRow[], total: count ?? 0 };
     },
@@ -557,6 +683,7 @@ export default function WhatsAppBotPanel() {
 
   const stats: FunnelStats = dashboardQuery.data?.funnel ?? EMPTY_FUNNEL;
   const traffic = dashboardQuery.data?.inbound_pv_uv;
+  const dashboardNeverSucceeded = Boolean(dashboardQuery.isError) && !dashboardQuery.data;
 
   const convRows = conversationsQuery.data?.rows ?? [];
   const convTotal = conversationsQuery.data?.total ?? 0;
@@ -577,7 +704,7 @@ export default function WhatsAppBotPanel() {
   const handleExportConversationsCsv = async () => {
     setConvCsvExporting(true);
     try {
-      const rows = await fetchAllConversationsMatchingSearch(searchDebounced);
+      const rows = await fetchAllConversationsMatchingSearch(searchDebounced, listDateOpts);
       downloadCsv(rows);
     } finally {
       setConvCsvExporting(false);
@@ -587,22 +714,38 @@ export default function WhatsAppBotPanel() {
   const handleExportApplicationsCsv = async () => {
     setAppCsvExporting(true);
     try {
-      const rows = await fetchAllPaged<ApplicationRow>(
-        'whatsapp_applications',
-        'id, conversation_id, wa_user_id, rmc_resume_id, job_id, job_title, job_company, reused_existing_cv, opt_in_status, created_at',
-        [{ column: 'created_at', ascending: false }],
-      );
-      downloadApplicationsCsv(rows);
+      const all: ApplicationRow[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      const HARD_CAP = 50_000;
+      while (all.length < HARD_CAP) {
+        let q = supabase
+          .from('whatsapp_applications')
+          .select(
+            'id, conversation_id, wa_user_id, rmc_resume_id, job_id, job_title, job_company, reused_existing_cv, opt_in_status, created_at',
+          )
+          .order('created_at', { ascending: false });
+        if (!listDateOpts.allTime && listDateOpts.fromIso) q = q.gte('created_at', listDateOpts.fromIso);
+        if (!listDateOpts.allTime && listDateOpts.toIso) q = q.lte('created_at', listDateOpts.toIso);
+        const { data, error } = await q.range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = (data ?? []) as ApplicationRow[];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      downloadApplicationsCsv(all);
     } finally {
       setAppCsvExporting(false);
     }
   };
 
-  const errorMsg = conversationsQuery.error
-    ? (conversationsQuery.error as Error).message
-    : dashboardQuery.error
-      ? (dashboardQuery.error as Error).message
-      : null;
+  const dashboardErr = dashboardQuery.error ? (dashboardQuery.error as Error).message : null;
+  const conversationsErr = conversationsQuery.error ? (conversationsQuery.error as Error).message : null;
+  const applicationsErr = applicationsQuery.error ? (applicationsQuery.error as Error).message : null;
+  const rpcMissingHint =
+    dashboardErr &&
+    /whatsapp_admin_dashboard_stats|schema cache|Could not find the function/i.test(dashboardErr);
 
   return (
     <div className="space-y-4">
@@ -685,71 +828,210 @@ export default function WhatsAppBotPanel() {
         </div>
       )}
 
-      {errorMsg && (
-        <div className="bg-card rounded-2xl shadow-sm p-4 text-sm text-destructive">
-          {errorMsg}
-        </div>
+      {dashboardErr && (
+        <Alert variant="destructive">
+          <AlertTitle>统计接口不可用</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>{dashboardErr}</p>
+            {rpcMissingHint ? (
+              <p className="text-xs opacity-90">
+                请在 Supabase 执行仓库内迁移 SQL（含{' '}
+                <code className="rounded bg-background/80 px-1 py-0.5">20260516120000_whatsapp_admin_dashboard_stats.sql</code>{' '}
+                与{' '}
+                <code className="rounded bg-background/80 px-1 py-0.5">20260516140000_whatsapp_admin_dashboard_stats_args.sql</code>
+                ），或通过 CLI <code className="rounded bg-background/80 px-1 py-0.5">supabase db push</code> 同步后再刷新。下方列表与导出在多数情况下仍可使用。
+              </p>
+            ) : null}
+          </AlertDescription>
+        </Alert>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        <StatCard label="Conversations" value={stats.total} subtitle="库内全部" />
-        <StatCard label="Awaiting Resume" value={stats.awaitingResume} />
-        <StatCard label="Existing / New Resume" value={stats.awaitingReturningCv} />
-        <StatCard label="Awaiting Highlights Opt-In" value={stats.awaitingOptIn} />
-        <StatCard label="Resume Received" value={stats.resumeReceived} subtitle="有简历路径" />
-        <StatCard label="Accepted Highlights" value={stats.optedIn} />
-        <StatCard label="Declined" value={stats.declined} />
-      </div>
+      {conversationsErr && (
+        <Alert variant="destructive">
+          <AlertTitle>会话列表加载失败</AlertTitle>
+          <AlertDescription>{conversationsErr}</AlertDescription>
+        </Alert>
+      )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="No Resume (Closed)" value={stats.completedNoCv} />
-        <StatCard label="RMC OK" value={stats.rmcSuccess} />
-        <StatCard label="RMC Error" value={stats.rmcFailed} />
-        <StatCard label="RMC Skipped" value={stats.rmcSkipped} subtitle="no config / staging" />
-      </div>
+      {applicationsErr && (
+        <Alert variant="destructive">
+          <AlertTitle>申请列表加载失败</AlertTitle>
+          <AlertDescription>{applicationsErr}</AlertDescription>
+        </Alert>
+      )}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">用户消息流量（Inbound）</CardTitle>
-          <CardDescription>
-            PV = 用户发送的 inbound 消息条数；UV = 按号码去重（仅保留数字后的 wa_user_id，COUNT DISTINCT）。
-          </CardDescription>
+      <Card className="border-primary/15 shadow-sm">
+        <CardHeader className="pb-3 space-y-0">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <CalendarRange className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <CardTitle className="text-base">时间与范围</CardTitle>
+                <CardDescription className="mt-1">
+                  上方 PV/UV 按所选日期过滤用户 inbound 消息；会话列表按<strong>最后消息时间</strong>、申请列表按<strong>创建时间</strong>过滤。漏斗卡片为<strong>全库当前快照</strong>。
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { id: 'today' as const, label: '今天' },
+                  { id: 'd7' as const, label: '近 7 天' },
+                  { id: 'd30' as const, label: '近 30 天' },
+                  { id: 'all' as const, label: '全部' },
+                ] as const
+              ).map((p) => (
+                <Button
+                  key={p.id}
+                  type="button"
+                  size="sm"
+                  variant={rangePreset === p.id ? 'default' : 'outline'}
+                  className="rounded-xl"
+                  onClick={() => applyRangePreset(p.id)}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          {dashboardQuery.isLoading && !traffic ? (
-            <p className="text-sm text-muted-foreground">加载统计数据…</p>
-          ) : traffic ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {(['h24', 'd7', 'd30', 'all'] as const).map((key) => {
-                const b = traffic[key];
-                return (
-                  <div key={key} className="rounded-xl border border-border bg-muted/20 p-3">
-                    <div className="text-xs font-medium text-muted-foreground">{TRAFFIC_PERIOD_LABEL[key]}</div>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                      <div>
-                        <span className="text-xs text-muted-foreground">PV</span>
-                        <div className="text-lg font-semibold tabular-nums">{b.pv.toLocaleString()}</div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">UV</span>
-                        <div className="text-lg font-semibold tabular-nums">{b.uv.toLocaleString()}</div>
-                      </div>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-range-start" className="text-xs text-muted-foreground">
+                开始日期
+              </Label>
+              <Input
+                id="wa-range-start"
+                type="date"
+                className="rounded-xl w-full sm:w-auto min-w-[10.5rem]"
+                value={rangeStartInput}
+                disabled={rangeAllTime}
+                onChange={(e) => {
+                  setRangeStartInput(e.target.value);
+                  setRangePreset('custom');
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-range-end" className="text-xs text-muted-foreground">
+                结束日期
+              </Label>
+              <Input
+                id="wa-range-end"
+                type="date"
+                className="rounded-xl w-full sm:w-auto min-w-[10.5rem]"
+                value={rangeEndInput}
+                disabled={rangeAllTime}
+                onChange={(e) => {
+                  setRangeEndInput(e.target.value);
+                  setRangePreset('custom');
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground sm:ml-auto sm:pb-2">
+              当前：{rangeSummaryLabel}
+              {rangePreset === 'custom' ? '（自定义）' : null}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-gradient-to-br from-muted/40 to-muted/10 p-4 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  所选范围内 · 用户 inbound
+                </p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                  PV = 消息条数；UV = 号码去重（wa_user_id 去掉非数字后 DISTINCT）。
+                </p>
+              </div>
+              {dashboardQuery.isFetching && !traffic ? (
+                <p className="text-sm text-muted-foreground">加载中…</p>
+              ) : traffic && !dashboardErr ? (
+                <div className="flex flex-wrap gap-8 lg:gap-12">
+                  <div>
+                    <div className="text-xs text-muted-foreground">PV</div>
+                    <div className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-foreground">
+                      {traffic.range.pv.toLocaleString()}
                     </div>
                   </div>
-                );
-              })}
+                  <div>
+                    <div className="text-xs text-muted-foreground">UV</div>
+                    <div className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-primary">
+                      {traffic.range.uv.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">部署统计 RPC 后可显示 PV/UV。</p>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">暂无流量数据。</p>
-          )}
+            {traffic && !dashboardErr ? (
+              <div className="mt-5 pt-4 border-t border-border/80">
+                <p className="text-xs font-medium text-muted-foreground mb-2">滚动窗口对比（与上方日期无关）</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(['h24', 'd7', 'd30', 'all'] as const).map((key) => {
+                    const b = traffic[key];
+                    return (
+                      <div
+                        key={key}
+                        className="rounded-xl border border-border/80 bg-card/80 px-3 py-2.5 text-sm"
+                      >
+                        <div className="text-[11px] font-medium text-muted-foreground">{TRAFFIC_PERIOD_LABEL[key]}</div>
+                        <div className="mt-1 flex gap-3 tabular-nums">
+                          <span>
+                            <span className="text-muted-foreground text-xs">PV </span>
+                            <span className="font-semibold">{b.pv.toLocaleString()}</span>
+                          </span>
+                          <span>
+                            <span className="text-muted-foreground text-xs">UV </span>
+                            <span className="font-semibold">{b.uv.toLocaleString()}</span>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
+
+      {dashboardNeverSucceeded ? (
+        <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+          漏斗与上方 PV/UV 依赖数据库函数；部署迁移成功后将自动显示。下方会话与申请列表可照常使用。
+        </div>
+      ) : (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            漏斗快照（全库）
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
+            <StatCard label="Conversations" value={stats.total} subtitle="库内全部" />
+            <StatCard label="Awaiting Resume" value={stats.awaitingResume} />
+            <StatCard label="Existing / New Resume" value={stats.awaitingReturningCv} />
+            <StatCard label="Awaiting Highlights Opt-In" value={stats.awaitingOptIn} />
+            <StatCard label="Resume Received" value={stats.resumeReceived} subtitle="有简历路径" />
+            <StatCard label="Accepted Highlights" value={stats.optedIn} />
+            <StatCard label="Declined" value={stats.declined} />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-2 sm:mt-3">
+            <StatCard label="No Resume (Closed)" value={stats.completedNoCv} />
+            <StatCard label="RMC OK" value={stats.rmcSuccess} />
+            <StatCard label="RMC Error" value={stats.rmcFailed} />
+            <StatCard label="RMC Skipped" value={stats.rmcSkipped} subtitle="no config / staging" />
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Conversations</CardTitle>
           <CardDescription>
-            按最后消息时间倒序；服务端分页（每页 {CONV_PAGE_SIZE} 条）。点击行查看消息。
+            按最后消息时间倒序；服务端分页（每页 {CONV_PAGE_SIZE} 条）
+            {rangeAllTime ? '；未按日期筛选。' : '；仅显示所选日期范围内最后一条消息落在区间内的会话。'}
+            点击行查看消息。
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -856,6 +1138,7 @@ export default function WhatsAppBotPanel() {
           <CardTitle className="text-base">Applications (whatsapp_applications)</CardTitle>
           <CardDescription>
             按创建时间倒序；服务端分页（每页 {APP_PAGE_SIZE} 条），共 {appTotal.toLocaleString()} 条。
+            {rangeAllTime ? ' 未按日期筛选。' : ' 仅所选日期范围内创建的申请。'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -998,15 +1281,17 @@ function StatCard({
   label,
   value,
   subtitle,
+  className,
 }: {
   label: string;
   value: number;
   subtitle?: string;
+  className?: string;
 }) {
   return (
-    <div className="bg-card rounded-2xl shadow-sm p-4 border border-border">
+    <div className={cn('bg-card rounded-2xl shadow-sm p-4 border border-border', className)}>
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold mt-1">{value.toLocaleString('en-US')}</div>
+      <div className="text-2xl font-semibold mt-1 tabular-nums">{value.toLocaleString('en-US')}</div>
       {subtitle && <div className="text-xs text-muted-foreground mt-1">{subtitle}</div>}
     </div>
   );

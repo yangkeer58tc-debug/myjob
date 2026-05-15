@@ -104,7 +104,7 @@ export type Database = {
     }
     Functions: {
       whatsapp_admin_dashboard_stats: {
-        Args: Record<PropertyKey, never>
+        Args: { p_from?: string | null; p_to?: string | null }
         Returns: Json
       }
     }
