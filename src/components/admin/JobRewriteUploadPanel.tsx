@@ -5,12 +5,9 @@ import { Loader2, Sparkles, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { decodeCsvFile } from '@/lib/csvFileDecode';
-import { isImcExportCsv, normalizeCsvRecordKeys } from '@/lib/imcCsvImport';
+import { isImcExportCsv } from '@/lib/imcCsvImport';
 import { buildJobUpsertAfterRewrite } from '@/lib/jobContentRewriteApply';
 import {
   buildJobRewriteInputFromRow,
@@ -74,14 +71,20 @@ type RewritePreview = {
 
 const DEFAULT_MAX_ROWS = 15;
 
-export default function JobRewriteUploadPanel() {
+type JobRewriteUploadPanelProps = {
+  /** Disable while main CSV import is running */
+  importBusy?: boolean;
+};
+
+export default function JobRewriteUploadPanel({ importBusy = false }: JobRewriteUploadPanelProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [llmConfigured, setLlmConfigured] = useState<boolean | null>(null);
   const [llmModel, setLlmModel] = useState<string | null>(null);
-  const [dryRun, setDryRun] = useState(true);
   const [progress, setProgress] = useState<RewriteProgress | null>(null);
   const [previews, setPreviews] = useState<RewritePreview[]>([]);
+
+  const busy = importBusy || Boolean(progress?.isRunning);
 
   useEffect(() => {
     fetchJobRewriteStatus().then((s) => {
@@ -93,7 +96,7 @@ export default function JobRewriteUploadPanel() {
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (progress?.isRunning) return;
+    if (busy) return;
 
     (async () => {
       try {
@@ -103,7 +106,7 @@ export default function JobRewriteUploadPanel() {
           return;
         }
         if (!llmConfigured) {
-          toast.error('测试环境未配置 LLM_API_KEY / LLM_BASE_URL（Cloudflare Pages 变量）。');
+          toast.error('未配置 LLM_API_KEY / LLM_BASE_URL（请在 Cloudflare Pages 环境变量中设置）。');
           return;
         }
 
@@ -158,14 +161,10 @@ export default function JobRewriteUploadPanel() {
               warnings: qa.warnings,
             });
 
-            if (!dryRun) {
-              const payload = buildJobUpsertAfterRewrite(row, data);
-              const { error } = await supabase.from('jobs').upsert([payload]);
-              if (error) throw new Error(error.message);
-              saved += 1;
-            } else {
-              saved += 1;
-            }
+            const payload = buildJobUpsertAfterRewrite(row, data);
+            const { error } = await supabase.from('jobs').upsert([payload]);
+            if (error) throw new Error(error.message);
+            saved += 1;
           } catch (err: unknown) {
             failed += 1;
             lastError = String((err as { message?: unknown })?.message || err).slice(0, 160);
@@ -188,14 +187,11 @@ export default function JobRewriteUploadPanel() {
 
         setPreviews(previewAcc.slice(0, 20));
         setProgress((prev) => (prev ? { ...prev, isRunning: false } : null));
+        await queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
 
-        if (dryRun) {
-          toast.success(`试跑完成：${saved} 条改写成功，${failed} 条失败（未写入数据库）。`);
-        } else if (failed === 0) {
-          await queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+        if (failed === 0) {
           toast.success(`已导入 ${saved} 条 AI 改写职位。`);
         } else {
-          await queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
           toast.error(`完成：成功 ${saved}，失败 ${failed}。`);
         }
       } catch (err: unknown) {
@@ -208,88 +204,77 @@ export default function JobRewriteUploadPanel() {
   };
 
   return (
-    <Card className="rounded-2xl border-primary/20 shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Sparkles className="h-5 w-5 text-primary" />
-          AI 改写上传（测试）
-        </CardTitle>
-        <CardDescription className="text-sm leading-relaxed">
-          使用 Cloudflare 上的 <code className="text-xs">LLM_*</code>（当前
-          {llmConfigured === null ? ' 检测中…' : llmConfigured ? ` 已配置${llmModel ? ` · ${llmModel}` : ''}` : ' 未配置'}
-          ）按{' '}
-          <code className="text-xs">docs/job-content-rewrite-plan-zh.md</code> 改写正文与 SEO 标题，再写入{' '}
-          <code className="text-xs">jobs</code>。格式与「导入主 CSV」相同（标准模板或 IMC 导出）。
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3">
-          <Switch id="rewrite-dry-run" checked={dryRun} onCheckedChange={setDryRun} />
-          <Label htmlFor="rewrite-dry-run" className="text-sm cursor-pointer">
-            仅试跑（不改库）— 建议先开着看改写效果，确认后再关闭并重新上传
-          </Label>
+    <div className="rounded-xl border border-primary/25 bg-primary/[0.04] p-4 space-y-3">
+      <div>
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Sparkles className="h-4 w-4 text-primary" />
+          AI 改写导入
         </div>
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          上传后由 Cloudflare <code className="text-[11px]">LLM_*</code>
+          {llmConfigured === null ? '（检测中…）' : llmConfigured ? `（已配置${llmModel ? ` · ${llmModel}` : ''}）` : '（未配置）'}
+          按改写方案生成 SEO 标题与正文，并直接写入 <code className="text-[11px]">jobs</code>。CSV 格式同「导入主 CSV」。
+        </p>
+      </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
-          <Button
-            type="button"
-            className="rounded-xl"
-            disabled={!llmConfigured || Boolean(progress?.isRunning)}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {progress?.isRunning ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            选择 CSV 并开始 AI 改写
-          </Button>
-          <span className="text-xs text-muted-foreground">单次最多 {DEFAULT_MAX_ROWS} 条 · 并发 2</span>
+      <div className="flex flex-wrap gap-2 items-center">
+        <Button
+          type="button"
+          variant="secondary"
+          className="rounded-xl"
+          disabled={!llmConfigured || busy}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {progress?.isRunning ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Upload className="h-4 w-4 mr-2" />
+          )}
+          导入 CSV（AI 改写）
+        </Button>
+        <span className="text-xs text-muted-foreground">单次最多 {DEFAULT_MAX_ROWS} 条 · 并发 2</span>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,.txt"
+        className="hidden"
+        onChange={handleUpload}
+      />
+
+      {progress ? (
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>{progress.isRunning ? '改写并保存中…' : '已完成'}</span>
+            <span className="text-muted-foreground">
+              {progress.done}/{progress.total} · 成功 {progress.saved} · 失败 {progress.failed}
+            </span>
+          </div>
+          <Progress value={progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0} />
+          {progress.lastTitle ? (
+            <p className="text-xs text-muted-foreground truncate">最近：{progress.lastTitle}</p>
+          ) : null}
+          {progress.lastError ? <p className="text-xs text-destructive truncate">{progress.lastError}</p> : null}
         </div>
+      ) : null}
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.txt"
-          className="hidden"
-          onChange={handleUpload}
-        />
-
-        {progress ? (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>{progress.isRunning ? '改写中…' : '已完成'}</span>
-              <span className="text-muted-foreground">
-                {progress.done}/{progress.total} · 成功 {progress.saved} · 失败 {progress.failed}
-              </span>
-            </div>
-            <Progress value={progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0} />
-            {progress.lastTitle ? (
-              <p className="text-xs text-muted-foreground truncate">最近：{progress.lastTitle}</p>
-            ) : null}
-            {progress.lastError ? (
-              <p className="text-xs text-destructive truncate">{progress.lastError}</p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {previews.length > 0 ? (
-          <div className="rounded-xl border border-border p-3 bg-card max-h-48 overflow-auto">
-            <p className="text-xs font-medium mb-2">改写预览（标题）</p>
-            <ul className="text-xs space-y-1 text-muted-foreground">
-              {previews.map((p) => (
-                <li key={p.id}>
-                  <span className="text-foreground font-medium">{p.title}</span>
-                  {p.duplicateRatio != null ? (
-                    <span> · 重复率约 {Math.round(p.duplicateRatio * 100)}%</span>
-                  ) : null}
-                  {p.warnings.length > 0 ? <span className="text-amber-600"> · {p.warnings[0]}</span> : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+      {previews.length > 0 ? (
+        <div className="rounded-lg border border-border p-2 bg-card max-h-40 overflow-auto">
+          <p className="text-xs font-medium mb-1">最近改写标题</p>
+          <ul className="text-xs space-y-0.5 text-muted-foreground">
+            {previews.map((p) => (
+              <li key={p.id}>
+                <span className="text-foreground">{p.title}</span>
+                {p.duplicateRatio != null ? (
+                  <span> · 重复率约 {Math.round(p.duplicateRatio * 100)}%</span>
+                ) : null}
+                {p.warnings.length > 0 ? <span className="text-amber-600"> · {p.warnings[0]}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }

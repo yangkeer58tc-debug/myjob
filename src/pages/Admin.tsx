@@ -371,7 +371,7 @@ const Admin = () => {
   const resumeAdminEnabled = isResumeAdminEnabled();
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp' | 'rewrite'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp'>('jobs');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deactivateIdsFileInputRef = useRef<HTMLInputElement>(null);
@@ -1191,17 +1191,6 @@ const Admin = () => {
           >
             WhatsApp Bot
           </Button>
-          <Button
-            variant={activeTab === 'rewrite' ? 'default' : 'outline'}
-            className="rounded-xl"
-            onClick={() => {
-              setActiveTab('rewrite');
-              setShowForm(false);
-              setEditing(null);
-            }}
-          >
-            AI 改写
-          </Button>
           {resumeAdminEnabled ? (
             <Button
               variant={location.pathname.startsWith('/admin/resumes') ? 'default' : 'outline'}
@@ -1571,7 +1560,7 @@ const Admin = () => {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-foreground">数据导入与模板</div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    模板下载 · 主 CSV 导入 · 按 ID 下架 · MX 专用 · 上传记录
+                    模板下载 · 主 CSV 导入 · AI 改写导入 · 按 ID 下架 · MX 专用 · 上传记录
                   </p>
                 </div>
                 <ChevronDown
@@ -1633,6 +1622,7 @@ const Admin = () => {
                       </Button>
                     </div>
                   </div>
+                  <JobRewriteUploadPanel importBusy={Boolean(jobImportProgress?.isRunning)} />
                   <div className="rounded-xl border border-destructive/25 bg-destructive/[0.06] p-3">
                     <p className="text-xs font-medium text-destructive mb-2">危险操作</p>
                     <div className="flex flex-wrap gap-2 items-center">
@@ -1697,8 +1687,6 @@ const Admin = () => {
           </>
         ) : activeTab === 'whatsapp' ? (
           <WhatsAppBotPanel />
-        ) : activeTab === 'rewrite' ? (
-          <JobRewriteUploadPanel />
         ) : (
           <>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
