@@ -22,14 +22,6 @@ import { isPlaceholderSalaryText } from '@/lib/salaryUtils';
 import type { JobRewriteLlmOutput } from '@/lib/jobContentRewriteTypes';
 import { splitRewriteBodyMarkdown } from '@/lib/jobContentRewriteSplit';
 
-const parseBoolean = (value: unknown, defaultValue: boolean) => {
-  if (value == null || value === '') return defaultValue;
-  const s = String(value).trim().toLowerCase();
-  if (['true', '1', 'yes', 'y', 'sim', 'sí', 'si'].includes(s)) return true;
-  if (['false', '0', 'no', 'n', 'nao', 'não'].includes(s)) return false;
-  return defaultValue;
-};
-
 const normalizeSalaryInput = (value: string) => stripCsvCellDecorations(value).trim();
 
 /** Merge LLM rewrite into CSV row, then build Supabase upsert payload (one row). */
@@ -113,6 +105,8 @@ export function buildJobUpsertAfterRewrite(
     industry: mergedRow.industry ? normalizeIndustryLabelForMexico(mergedRow.industry) : null,
     language_req: mergedRow.language_req || null,
     experience: mergedRow.experience ? normalizeOptionId(mergedRow.experience, EXPERIENCE_OPTIONS) : null,
-    is_active: parseBoolean(mergedRow.is_active, true),
+    /** AI rewrite import always publishes; CSV is_active is ignored so /empleos matches success count. */
+    is_active: true,
+    created_at: new Date().toISOString(),
   };
 }

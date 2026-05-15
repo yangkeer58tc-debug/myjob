@@ -199,9 +199,10 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
         setPreviews(previewAcc.slice(0, 20));
         setProgress((prev) => (prev ? { ...prev, isRunning: false } : null));
         await queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
 
         if (failed === 0) {
-          toast.success(`已导入 ${saved} 条 AI 改写职位。`);
+          toast.success(`已导入并上架 ${saved} 条（/empleos 仅显示在架职位，每页 30 条，可按标题搜索）。`);
         } else {
           toast.error(`完成：成功 ${saved}，失败 ${failed}。`);
         }
