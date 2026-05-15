@@ -20,6 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { LogOut, Plus, Pencil, Upload, Download, Pause, Play, Search, ChevronDown } from 'lucide-react';
 import OkComMxPanel from '@/components/admin/OkComMxPanel';
+import JobRewriteUploadPanel from '@/components/admin/JobRewriteUploadPanel';
 import WhatsAppBotPanel from '@/components/admin/WhatsAppBotPanel';
 import { isResumeAdminEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
@@ -370,7 +371,7 @@ const Admin = () => {
   const resumeAdminEnabled = isResumeAdminEnabled();
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'whatsapp' | 'rewrite'>('jobs');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deactivateIdsFileInputRef = useRef<HTMLInputElement>(null);
@@ -1190,6 +1191,17 @@ const Admin = () => {
           >
             WhatsApp Bot
           </Button>
+          <Button
+            variant={activeTab === 'rewrite' ? 'default' : 'outline'}
+            className="rounded-xl"
+            onClick={() => {
+              setActiveTab('rewrite');
+              setShowForm(false);
+              setEditing(null);
+            }}
+          >
+            AI 改写
+          </Button>
           {resumeAdminEnabled ? (
             <Button
               variant={location.pathname.startsWith('/admin/resumes') ? 'default' : 'outline'}
@@ -1685,6 +1697,8 @@ const Admin = () => {
           </>
         ) : activeTab === 'whatsapp' ? (
           <WhatsAppBotPanel />
+        ) : activeTab === 'rewrite' ? (
+          <JobRewriteUploadPanel />
         ) : (
           <>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4">
