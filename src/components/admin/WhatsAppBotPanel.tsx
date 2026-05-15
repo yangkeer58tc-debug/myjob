@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { cn } from '@/lib/utils';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,8 +52,32 @@ type MessageRow = {
   created_at: string;
 };
 
-const CONV_PAGE_SIZE = 25;
-const APP_PAGE_SIZE = 25;
+/** One logical WhatsApp account (digit-normalized), from `whatsapp_admin_wa_directory_cn`. */
+type WaDirectoryRow = {
+  latest_conversation_id: string;
+  phone_key: string;
+  wa_display: string;
+  candidate_name: string | null;
+  last_state: string;
+  last_message_at: string;
+  applying_job_title: string | null;
+  applying_job_company: string | null;
+  conversation_row_count: number;
+  resume_send_count: number;
+  application_count: number;
+  has_opted_in_exposure: boolean;
+};
+
+type FunnelDailyRow = {
+  day_cn: string;
+  session_uv: number;
+  resume_pv: number;
+  application_pv: number;
+  exposure_opt_in_pv: number;
+  exposure_opt_in_uv: number;
+};
+
+const DIR_PAGE_SIZE = 25;
 
 const WA_CONV_SELECT =
   'id, wa_user_id, state, candidate_name, rmc_sync_status, rmc_sync_error, opt_in_clarify_count, last_resume_storage_path, resume_storage_path, last_resume_received_at, completed_at, archived_at, created_at, last_message_at, applying_job_id, applying_job_title, applying_job_company';
@@ -75,273 +98,44 @@ function buildConversationSearchOr(searchRaw: string): string | null {
   ].join(',');
 }
 
-type FunnelStats = {
-  total: number;
-  awaitingResume: number;
-  awaitingReturningCv: number;
-  awaitingOptIn: number;
-  completedNoCv: number;
-  resumeReceived: number;
-  optedIn: number;
-  declined: number;
-  rmcSuccess: number;
-  rmcFailed: number;
-  rmcSkipped: number;
-};
-
-type PvUvBucket = { pv: number; uv: number | null };
-
-type DashboardRpcPayload = {
-  funnel: FunnelStats;
-  inbound_pv_uv: {
-    range: PvUvBucket;
-    h24: PvUvBucket;
-    d7: PvUvBucket;
-    d30: PvUvBucket;
-    all: PvUvBucket;
-  };
-};
-
-function parseDashboardPayload(raw: unknown): DashboardRpcPayload | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const o = raw as Record<string, unknown>;
-  const funnel = o.funnel;
-  const inbound = o.inbound_pv_uv;
-  if (!funnel || typeof funnel !== 'object' || !inbound || typeof inbound !== 'object') return null;
-  const f = funnel as Record<string, unknown>;
-  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0);
-  const bucket = (b: unknown): PvUvBucket | null => {
-    if (!b || typeof b !== 'object') return null;
-    const x = b as Record<string, unknown>;
-    const pv = num(x.pv);
-    const uvRaw = x.uv;
-    let uv: number | null;
-    if (uvRaw === null || uvRaw === undefined) uv = null;
-    else if (typeof uvRaw === 'number' && Number.isFinite(uvRaw)) uv = uvRaw;
-    else uv = num(uvRaw);
-    return { pv, uv };
-  };
-  const inboundObj = inbound as Record<string, unknown>;
-  const range = bucket(inboundObj.range);
-  const h24 = bucket(inboundObj.h24);
-  const d7 = bucket(inboundObj.d7);
-  const d30 = bucket(inboundObj.d30);
-  const all = bucket(inboundObj.all);
-  if (!h24 || !d7 || !d30 || !all) return null;
-  const rangeFinal = range ?? { pv: all.pv, uv: all.uv };
-  return {
-    funnel: {
-      total: num(f.total),
-      awaitingResume: num(f.awaiting_resume),
-      awaitingReturningCv: num(f.awaiting_returning_cv),
-      awaitingOptIn: num(f.awaiting_opt_in),
-      completedNoCv: num(f.completed_no_cv),
-      resumeReceived: num(f.resume_received),
-      optedIn: num(f.opted_in),
-      declined: num(f.declined),
-      rmcSuccess: num(f.rmc_success),
-      rmcFailed: num(f.rmc_failed),
-      rmcSkipped: num(f.rmc_skipped),
-    },
-    inbound_pv_uv: { range: rangeFinal, h24, d7, d30, all },
-  };
+/** Calendar day in Asia/Shanghai as `YYYY-MM-DD` (for `<input type="date">` and funnel RPC). */
+function shanghaiYmd(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
 }
 
-/** When RPC is missing, aggregate via PostgREST (funnel + PV; range UV by scanning rows, capped). */
-const REST_UV_SCAN_ROW_CAP = 80_000;
-
-function waDigitsKey(waUserId: string | null | undefined): string | null {
-  if (!waUserId) return null;
-  const d = waUserId.replace(/\D/g, '');
-  return d.length ? d : null;
-}
-
-async function countTable(
-  table: 'whatsapp_conversations' | 'whatsapp_messages',
-  build: (q: any) => any,
-): Promise<number> {
-  let q = supabase.from(table).select('*', { count: 'exact', head: true });
-  q = build(q);
-  const { count, error } = await q;
-  if (error) throw error;
-  return count ?? 0;
-}
-
-async function countInboundMessages(pFrom: string | null, pTo: string | null): Promise<number> {
-  return countTable('whatsapp_messages', (q) => {
-    let x = q.eq('direction', 'inbound');
-    if (pFrom) x = x.gte('created_at', pFrom);
-    if (pTo) x = x.lte('created_at', pTo);
-    return x;
-  });
-}
-
-/**
- * Distinct digit-only wa_user_id among inbound rows in range, scanning up to REST_UV_SCAN_ROW_CAP rows.
- * If capped before end of table, returns capped=true (UV is a lower bound within the scan).
- */
-async function distinctInboundUvScanned(
-  pFrom: string | null,
-  pTo: string | null,
-): Promise<{ uv: number; capped: boolean }> {
-  const keys = new Set<string>();
-  let offset = 0;
-  const PAGE = 1000;
-  let capped = false;
-  while (offset < REST_UV_SCAN_ROW_CAP) {
-    const remain = REST_UV_SCAN_ROW_CAP - offset;
-    const lim = Math.min(PAGE, remain);
-    let q = supabase
-      .from('whatsapp_messages')
-      .select('wa_user_id')
-      .eq('direction', 'inbound')
-      .order('id', { ascending: true })
-      .range(offset, offset + lim - 1);
-    if (pFrom) q = q.gte('created_at', pFrom);
-    if (pTo) q = q.lte('created_at', pTo);
-    const { data, error } = await q;
-    if (error) throw error;
-    const rows = data ?? [];
-    if (rows.length === 0) break;
-    for (const r of rows) {
-      const k = waDigitsKey((r as { wa_user_id?: string }).wa_user_id);
-      if (k) keys.add(k);
-    }
-    offset += rows.length;
-    if (offset >= REST_UV_SCAN_ROW_CAP) {
-      capped = true;
-      break;
-    }
-    if (rows.length < lim) break;
-  }
-  return { uv: keys.size, capped };
-}
-
-async function fetchWaDashboardViaRest(
-  pFrom: string | null,
-  pTo: string | null,
-  rangeAllTime: boolean,
-): Promise<{ dashboard: DashboardRpcPayload; uvRangeCapped: boolean }> {
-  const now = Date.now();
-  const iso24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-  const iso7d = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const iso30d = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-  const [
-    total,
-    awaitingResume,
-    awaitingReturningCv,
-    awaitingOptIn,
-    completedNoCv,
-    resumeReceived,
-    optedIn,
-    declined,
-    rmcSuccess,
-    rmcFailed,
-    rmcSkipped,
-    pvRange,
-    pvH24,
-    pvD7,
-    pvD30,
-    pvAll,
-    uvRangeResult,
-  ] = await Promise.all([
-    countTable('whatsapp_conversations', (q) => q),
-    countTable('whatsapp_conversations', (q) => q.in('state', ['awaiting_resume', 'awaiting_name'])),
-    countTable('whatsapp_conversations', (q) => q.eq('state', 'awaiting_returning_cv_choice')),
-    countTable('whatsapp_conversations', (q) => q.eq('state', 'awaiting_opt_in')),
-    countTable('whatsapp_conversations', (q) => q.eq('state', 'completed_no_cv')),
-    countTable('whatsapp_conversations', (q) =>
-      q.or('last_resume_storage_path.not.is.null,resume_storage_path.not.is.null'),
-    ),
-    countTable('whatsapp_conversations', (q) => q.eq('state', 'completed_opt_in')),
-    countTable('whatsapp_conversations', (q) => q.eq('state', 'completed_declined')),
-    countTable('whatsapp_conversations', (q) => q.eq('rmc_sync_status', 'success')),
-    countTable('whatsapp_conversations', (q) => q.eq('rmc_sync_status', 'failed')),
-    countTable('whatsapp_conversations', (q) =>
-      q.in('rmc_sync_status', ['skipped_no_config', 'skipped_staging']),
-    ),
-    countInboundMessages(rangeAllTime ? null : pFrom, rangeAllTime ? null : pTo),
-    countInboundMessages(iso24h, null),
-    countInboundMessages(iso7d, null),
-    countInboundMessages(iso30d, null),
-    countInboundMessages(null, null),
-    distinctInboundUvScanned(rangeAllTime ? null : pFrom, rangeAllTime ? null : pTo),
-  ]);
-
-  return {
-    dashboard: {
-      funnel: {
-        total,
-        awaitingResume,
-        awaitingReturningCv,
-        awaitingOptIn,
-        completedNoCv,
-        resumeReceived,
-        optedIn,
-        declined,
-        rmcSuccess,
-        rmcFailed,
-        rmcSkipped,
-      },
-      inbound_pv_uv: {
-        range: { pv: pvRange, uv: uvRangeResult.uv },
-        h24: { pv: pvH24, uv: null },
-        d7: { pv: pvD7, uv: null },
-        d30: { pv: pvD30, uv: null },
-        all: { pv: pvAll, uv: null },
-      },
-    },
-    uvRangeCapped: uvRangeResult.capped,
-  };
-}
-
-type WaDashboardQueryResult = DashboardRpcPayload & {
-  _source: 'rpc' | 'rest';
-  _restUvRangeCapped?: boolean;
-};
-
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : String(n);
-}
-
-/** Local calendar day → yyyy-mm-dd (for input type="date"). */
-function formatDateInputLocal(d: Date): string {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function parseDateInputLocal(ymd: string): Date | null {
+function shanghaiAddCalendarDays(ymd: string, deltaDays: number): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim());
-  if (!m) return null;
+  if (!m) return ymd;
   const y = Number(m[1]);
   const mo = Number(m[2]) - 1;
   const da = Number(m[3]);
-  const d = new Date(y, mo, da);
-  if (d.getFullYear() !== y || d.getMonth() !== mo || d.getDate() !== da) return null;
-  return d;
+  const noonUtcMs = Date.UTC(y, mo, da, 4, 0, 0);
+  const t = noonUtcMs + deltaDays * 86400000;
+  return shanghaiYmd(new Date(t));
 }
 
-function startOfLocalDayFromInput(ymd: string): Date | null {
-  const d = parseDateInputLocal(ymd);
-  if (!d) return null;
-  d.setHours(0, 0, 0, 0);
-  return d;
+/** Inclusive last N calendar days ending today (Shanghai). */
+function defaultLastNDaysInclusiveShanghai(n: number): { start: string; end: string } {
+  const end = shanghaiYmd(new Date());
+  if (n <= 1) return { start: end, end };
+  const start = shanghaiAddCalendarDays(end, -(n - 1));
+  return { start, end };
 }
 
-function endOfLocalDayFromInput(ymd: string): Date | null {
-  const d = parseDateInputLocal(ymd);
-  if (!d) return null;
-  d.setHours(23, 59, 59, 999);
-  return d;
-}
-
-/** Inclusive last N calendar days ending today (local). */
-function defaultLastNDaysInclusive(n: number): { start: string; end: string } {
-  const end = new Date();
-  end.setHours(0, 0, 0, 0);
-  const start = new Date(end);
-  start.setDate(start.getDate() - (n - 1));
-  return { start: formatDateInputLocal(start), end: formatDateInputLocal(end) };
+/** Shanghai calendar bounds → UTC ISO for filtering `timestamptz` columns on exports / legacy lists. */
+function shanghaiYmdRangeToIsoUtc(ymdStart: string, ymdEnd: string): { fromIso: string; toIso: string } | null {
+  const m1 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdStart.trim());
+  const m2 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdEnd.trim());
+  if (!m1 || !m2) return null;
+  const from = new Date(`${m1[0]}T00:00:00+08:00`);
+  const to = new Date(`${m2[0]}T23:59:59.999+08:00`);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
+  return { fromIso: from.toISOString(), toIso: to.toISOString() };
 }
 
 type WaRangePreset = 'today' | 'd7' | 'd30' | 'all' | 'custom';
@@ -357,12 +151,6 @@ const STATE_LABEL: Record<string, string> = {
   completed_no_cv: 'No resume (closed)',
 };
 
-const OPT_IN_LABEL: Record<string, string> = {
-  opted_in: 'Opted in',
-  declined: 'Declined',
-  pending: 'Pending',
-};
-
 const RMC_LABEL: Record<string, string> = {
   none: '—',
   pending: 'Pending',
@@ -376,7 +164,8 @@ const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return '—';
   try {
     const d = new Date(iso);
-    return d.toLocaleString('en-US', {
+    return d.toLocaleString('zh-CN', {
+      timeZone: 'Asia/Shanghai',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -444,16 +233,12 @@ const downloadCsv = (rows: ConversationRow[]) => {
   URL.revokeObjectURL(url);
 };
 
-// CSV escape shared by the messages exporter.
 const csvEscape = (v: unknown): string => {
   const s = v == null ? '' : String(v);
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 };
 
-// Page through a Supabase table to bypass PostgREST's default 1000-row cap.
-// We don't accept a `query` callback; pass the table name and the SELECT
-// projection, plus an ORDER BY pair to keep paging deterministic.
 async function fetchAllPaged<T>(
   table: string,
   selectCols: string,
@@ -462,7 +247,6 @@ async function fetchAllPaged<T>(
 ): Promise<T[]> {
   const all: T[] = [];
   let from = 0;
-  // 50k cap is a safety net so a bad query can't blow up the browser.
   const HARD_CAP = 50_000;
   while (all.length < HARD_CAP) {
     let q = supabase.from(table).select(selectCols);
@@ -526,8 +310,6 @@ type ConvExportLite = {
   applying_job_company: string | null;
 };
 
-// Pull every whatsapp_messages row (paged) + minimal conversation context,
-// then emit a CSV with one row per message.
 const downloadAllMessagesCsv = async (): Promise<{ messages: number; conversations: number }> => {
   const [messages, conversations] = await Promise.all([
     fetchAllPaged<MessageExportRow>(
@@ -646,36 +428,72 @@ const downloadApplicationsCsv = (rows: ApplicationRow[]) => {
   URL.revokeObjectURL(url);
 };
 
-const EMPTY_FUNNEL: FunnelStats = {
-  total: 0,
-  awaitingResume: 0,
-  awaitingReturningCv: 0,
-  awaitingOptIn: 0,
-  completedNoCv: 0,
-  resumeReceived: 0,
-  optedIn: 0,
-  declined: 0,
-  rmcSuccess: 0,
-  rmcFailed: 0,
-  rmcSkipped: 0,
-};
+function num(v: unknown): number {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
-const TRAFFIC_PERIOD_LABEL: Record<'h24' | 'd7' | 'd30' | 'all', string> = {
-  h24: '近 24 小时',
-  d7: '近 7 天',
-  d30: '近 30 天',
-  all: '全部时间',
-};
+function parseWaDirectoryPayload(raw: unknown): { total: number; rows: WaDirectoryRow[] } {
+  if (!raw || typeof raw !== 'object') return { total: 0, rows: [] };
+  const o = raw as Record<string, unknown>;
+  const total = num(o.total);
+  const rowsRaw = o.rows;
+  if (!Array.isArray(rowsRaw)) return { total, rows: [] };
+  const rows: WaDirectoryRow[] = [];
+  for (const item of rowsRaw) {
+    if (!item || typeof item !== 'object') continue;
+    const r = item as Record<string, unknown>;
+    const latest_conversation_id = String(r.latest_conversation_id ?? '');
+    const phone_key = String(r.phone_key ?? '');
+    if (!latest_conversation_id || !phone_key) continue;
+    rows.push({
+      latest_conversation_id,
+      phone_key,
+      wa_display: String(r.wa_display ?? ''),
+      candidate_name: (r.candidate_name as string | null) ?? null,
+      last_state: String(r.last_state ?? ''),
+      last_message_at: String(r.last_message_at ?? ''),
+      applying_job_title: (r.applying_job_title as string | null) ?? null,
+      applying_job_company: (r.applying_job_company as string | null) ?? null,
+      conversation_row_count: num(r.conversation_row_count),
+      resume_send_count: num(r.resume_send_count),
+      application_count: num(r.application_count),
+      has_opted_in_exposure: Boolean(r.has_opted_in_exposure),
+    });
+  }
+  return { total, rows };
+}
+
+function parseFunnelDailyRows(raw: unknown): FunnelDailyRow[] {
+  if (!Array.isArray(raw)) return [];
+  const out: FunnelDailyRow[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const r = item as Record<string, unknown>;
+    const day_cn = String(r.day_cn ?? '').slice(0, 10);
+    if (!day_cn) continue;
+    out.push({
+      day_cn,
+      session_uv: num(r.session_uv),
+      resume_pv: num(r.resume_pv),
+      application_pv: num(r.application_pv),
+      exposure_opt_in_pv: num(r.exposure_opt_in_pv),
+      exposure_opt_in_uv: num(r.exposure_opt_in_uv),
+    });
+  }
+  return out;
+}
 
 export default function WhatsAppBotPanel() {
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
   const [rangePreset, setRangePreset] = useState<WaRangePreset>('d30');
-  const [rangeStartInput, setRangeStartInput] = useState(() => defaultLastNDaysInclusive(30).start);
-  const [rangeEndInput, setRangeEndInput] = useState(() => defaultLastNDaysInclusive(30).end);
-  const [convPage, setConvPage] = useState(1);
-  const [appPage, setAppPage] = useState(1);
-  const [selected, setSelected] = useState<ConversationRow | null>(null);
+  const [rangeStartInput, setRangeStartInput] = useState(() => defaultLastNDaysInclusiveShanghai(30).start);
+  const [rangeEndInput, setRangeEndInput] = useState(() => defaultLastNDaysInclusiveShanghai(30).end);
+  const [dirPage, setDirPage] = useState(1);
+  const [selectedPhoneKey, setSelectedPhoneKey] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messagesExporting, setMessagesExporting] = useState(false);
   const [messagesExportError, setMessagesExportError] = useState<string | null>(null);
   const [messagesExportInfo, setMessagesExportInfo] = useState<string | null>(null);
@@ -684,55 +502,55 @@ export default function WhatsAppBotPanel() {
 
   const rangeAllTime = rangePreset === 'all';
 
-  const dashboardRpcBounds = useMemo(() => {
-    if (rangeAllTime) return { p_from: null as string | null, p_to: null as string | null };
-    const s = startOfLocalDayFromInput(rangeStartInput);
-    const e = endOfLocalDayFromInput(rangeEndInput);
-    if (!s || !e) return { p_from: null as string | null, p_to: null as string | null };
-    if (s.getTime() > e.getTime()) {
-      const a = startOfLocalDayFromInput(rangeEndInput);
-      const b = endOfLocalDayFromInput(rangeStartInput);
-      if (!a || !b) return { p_from: null, p_to: null };
-      return { p_from: a.toISOString(), p_to: b.toISOString() };
+  const funnelDateBounds = useMemo(() => {
+    if (rangeAllTime) {
+      const end = shanghaiYmd(new Date());
+      return { p_from: '2020-01-01', p_to: end };
     }
-    return { p_from: s.toISOString(), p_to: e.toISOString() };
+    let a = rangeStartInput.trim();
+    let b = rangeEndInput.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(a) || !/^\d{4}-\d{2}-\d{2}$/.test(b)) {
+      const d = defaultLastNDaysInclusiveShanghai(30);
+      return { p_from: d.start, p_to: d.end };
+    }
+    if (a > b) [a, b] = [b, a];
+    return { p_from: a, p_to: b };
   }, [rangeAllTime, rangeStartInput, rangeEndInput]);
 
-  const listDateOpts = useMemo(
-    () =>
-      rangeAllTime
-        ? { allTime: true as const, fromIso: null as string | null, toIso: null as string | null }
-        : { allTime: false as const, fromIso: dashboardRpcBounds.p_from, toIso: dashboardRpcBounds.p_to },
-    [rangeAllTime, dashboardRpcBounds.p_from, dashboardRpcBounds.p_to],
-  );
+  const listDateOpts = useMemo(() => {
+    if (rangeAllTime) return { allTime: true as const, fromIso: null as string | null, toIso: null as string | null };
+    const iso = shanghaiYmdRangeToIsoUtc(funnelDateBounds.p_from, funnelDateBounds.p_to);
+    if (!iso) return { allTime: true as const, fromIso: null, toIso: null };
+    return { allTime: false as const, fromIso: iso.fromIso, toIso: iso.toIso };
+  }, [rangeAllTime, funnelDateBounds.p_from, funnelDateBounds.p_to]);
 
   const applyRangePreset = (preset: WaRangePreset) => {
     setRangePreset(preset);
     if (preset === 'all') return;
     if (preset === 'today') {
-      const t = formatDateInputLocal(new Date());
+      const t = shanghaiYmd(new Date());
       setRangeStartInput(t);
       setRangeEndInput(t);
       return;
     }
     if (preset === 'd7') {
-      const r = defaultLastNDaysInclusive(7);
+      const r = defaultLastNDaysInclusiveShanghai(7);
       setRangeStartInput(r.start);
       setRangeEndInput(r.end);
       return;
     }
     if (preset === 'd30') {
-      const r = defaultLastNDaysInclusive(30);
+      const r = defaultLastNDaysInclusiveShanghai(30);
       setRangeStartInput(r.start);
       setRangeEndInput(r.end);
     }
   };
 
   const rangeSummaryLabel = useMemo(() => {
-    if (rangeAllTime) return '全部时间';
-    if (rangePreset === 'today') return '今天';
-    return `${rangeStartInput} ~ ${rangeEndInput}`;
-  }, [rangeAllTime, rangePreset, rangeStartInput, rangeEndInput]);
+    if (rangeAllTime) return '全部（漏斗：2020-01-01 起至今日 · 中国日）';
+    if (rangePreset === 'today') return '今天（中国）';
+    return `${funnelDateBounds.p_from} ~ ${funnelDateBounds.p_to}（中国日历日）`;
+  }, [rangeAllTime, rangePreset, funnelDateBounds.p_from, funnelDateBounds.p_to]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setSearchDebounced(search), 400);
@@ -740,9 +558,8 @@ export default function WhatsAppBotPanel() {
   }, [search]);
 
   useEffect(() => {
-    setConvPage(1);
-    setAppPage(1);
-  }, [searchDebounced, listDateOpts.allTime, listDateOpts.fromIso, listDateOpts.toIso]);
+    setDirPage(1);
+  }, [searchDebounced]);
 
   const handleExportAllMessages = async () => {
     setMessagesExporting(true);
@@ -751,7 +568,7 @@ export default function WhatsAppBotPanel() {
     try {
       const r = await downloadAllMessagesCsv();
       setMessagesExportInfo(
-        `Exported ${r.messages.toLocaleString('en-US')} messages across ${r.conversations.toLocaleString('en-US')} conversations.`,
+        `已导出 ${r.messages.toLocaleString('zh-CN')} 条消息，覆盖 ${r.conversations.toLocaleString('zh-CN')} 个会话 ID。`,
       );
     } catch (e) {
       setMessagesExportError(e instanceof Error ? e.message : String(e));
@@ -760,95 +577,60 @@ export default function WhatsAppBotPanel() {
     }
   };
 
-  const dashboardQuery = useQuery<WaDashboardQueryResult>({
-    queryKey: ['waDashboardStats', rangeAllTime, dashboardRpcBounds.p_from, dashboardRpcBounds.p_to],
+  const funnelQuery = useQuery({
+    queryKey: ['waFunnelDailyCn', funnelDateBounds.p_from, funnelDateBounds.p_to],
     queryFn: async () => {
-      const args = {
-        p_from: dashboardRpcBounds.p_from,
-        p_to: dashboardRpcBounds.p_to,
-      };
-      const { data, error } = await supabase.rpc('whatsapp_admin_dashboard_stats', args);
-      const msg = error?.message ?? '';
-      const missingFn =
-        /whatsapp_admin_dashboard_stats|PGRST202|Could not find the function|schema cache/i.test(msg) ||
-        error?.code === 'PGRST202';
-
-      if (!error && data != null) {
-        const parsed = parseDashboardPayload(data);
-        if (parsed) return { ...parsed, _source: 'rpc' as const };
-      }
-
-      if (error && !missingFn) throw error;
-
-      const rest = await fetchWaDashboardViaRest(args.p_from, args.p_to, rangeAllTime);
-      return {
-        ...rest.dashboard,
-        _source: 'rest' as const,
-        _restUvRangeCapped: rest.uvRangeCapped,
-      };
+      const { data, error } = await supabase.rpc('whatsapp_admin_funnel_daily_cn', {
+        p_from: funnelDateBounds.p_from,
+        p_to: funnelDateBounds.p_to,
+      });
+      if (error) throw error;
+      return parseFunnelDailyRows(data);
     },
     refetchInterval: 30_000,
   });
 
-  const conversationsQuery = useQuery({
-    queryKey: [
-      'waConversations',
-      convPage,
-      searchDebounced,
-      listDateOpts.allTime,
-      listDateOpts.fromIso,
-      listDateOpts.toIso,
-    ],
+  const dirOffset = (dirPage - 1) * DIR_PAGE_SIZE;
+
+  const directoryQuery = useQuery({
+    queryKey: ['waWaDirectoryCn', searchDebounced, dirOffset],
     placeholderData: keepPreviousData,
-    queryFn: async (): Promise<{ rows: ConversationRow[]; total: number }> => {
-      const from = (convPage - 1) * CONV_PAGE_SIZE;
-      const to = from + CONV_PAGE_SIZE - 1;
-      let q = supabase
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('whatsapp_admin_wa_directory_cn', {
+        p_search: searchDebounced,
+        p_limit: DIR_PAGE_SIZE,
+        p_offset: dirOffset,
+      });
+      if (error) throw error;
+      return parseWaDirectoryPayload(data);
+    },
+    refetchInterval: 30_000,
+  });
+
+  const selectedConvQuery = useQuery({
+    queryKey: ['waConvDetail', selectedConversationId],
+    enabled: !!selectedConversationId,
+    queryFn: async (): Promise<ConversationRow | null> => {
+      if (!selectedConversationId) return null;
+      const { data, error } = await supabase
         .from('whatsapp_conversations')
-        .select(WA_CONV_SELECT, { count: 'exact' })
-        .order('last_message_at', { ascending: false });
-      const orf = buildConversationSearchOr(searchDebounced);
-      if (orf) q = q.or(orf);
-      if (!listDateOpts.allTime && listDateOpts.fromIso) q = q.gte('last_message_at', listDateOpts.fromIso);
-      if (!listDateOpts.allTime && listDateOpts.toIso) q = q.lte('last_message_at', listDateOpts.toIso);
-      const { data, error, count } = await q.range(from, to);
+        .select(WA_CONV_SELECT)
+        .eq('id', selectedConversationId)
+        .maybeSingle();
       if (error) throw error;
-      return { rows: (data ?? []) as ConversationRow[], total: count ?? 0 };
+      return (data as ConversationRow | null) ?? null;
     },
-    refetchInterval: 30_000,
-  });
-
-  const applicationsQuery = useQuery({
-    queryKey: ['waApplications', appPage, listDateOpts.allTime, listDateOpts.fromIso, listDateOpts.toIso],
-    placeholderData: keepPreviousData,
-    queryFn: async (): Promise<{ rows: ApplicationRow[]; total: number }> => {
-      const from = (appPage - 1) * APP_PAGE_SIZE;
-      const to = from + APP_PAGE_SIZE - 1;
-      let q = supabase
-        .from('whatsapp_applications')
-        .select(
-          'id, conversation_id, wa_user_id, rmc_resume_id, job_id, job_title, job_company, reused_existing_cv, opt_in_status, created_at',
-          { count: 'exact' },
-        )
-        .order('created_at', { ascending: false });
-      if (!listDateOpts.allTime && listDateOpts.fromIso) q = q.gte('created_at', listDateOpts.fromIso);
-      if (!listDateOpts.allTime && listDateOpts.toIso) q = q.lte('created_at', listDateOpts.toIso);
-      const { data, error, count } = await q.range(from, to);
-      if (error) throw error;
-      return { rows: (data ?? []) as ApplicationRow[], total: count ?? 0 };
-    },
-    refetchInterval: 30_000,
   });
 
   const messagesQuery = useQuery<MessageRow[]>({
-    queryKey: ['waMessages', selected?.id ?? null],
-    enabled: !!selected?.id,
+    queryKey: ['waMessages', selectedConversationId],
+    enabled: !!selectedConversationId,
     queryFn: async () => {
-      if (!selected?.id) return [] as MessageRow[];
+      if (!selectedConversationId) return [] as MessageRow[];
       const { data, error } = await supabase
         .from('whatsapp_messages')
         .select('id, conversation_id, wa_user_id, direction, message_type, body, media_mime, created_at')
-        .eq('conversation_id', selected.id)
+        .eq('conversation_id', selectedConversationId)
         .order('created_at', { ascending: true })
         .limit(200);
       if (error) throw error;
@@ -856,28 +638,17 @@ export default function WhatsAppBotPanel() {
     },
   });
 
-  const dashData = dashboardQuery.data;
-  const stats: FunnelStats = dashData?.funnel ?? EMPTY_FUNNEL;
-  const traffic = dashData?.inbound_pv_uv;
-  const dashboardSource = dashData?._source;
-  const restUvRangeCapped = dashData?._restUvRangeCapped;
-  const dashboardNeverSucceeded = Boolean(dashboardQuery.isError) && !dashData;
+  const funnelRows = funnelQuery.data ?? [];
+  const dirPayload = directoryQuery.data ?? { total: 0, rows: [] };
+  const dirRows = dirPayload.rows;
+  const dirTotal = dirPayload.total;
+  const dirMaxPage = Math.max(1, Math.ceil(dirTotal / DIR_PAGE_SIZE));
 
-  const convRows = conversationsQuery.data?.rows ?? [];
-  const convTotal = conversationsQuery.data?.total ?? 0;
-  const convMaxPage = Math.max(1, Math.ceil(convTotal / CONV_PAGE_SIZE));
-
-  const appRows = applicationsQuery.data?.rows ?? [];
-  const appTotal = applicationsQuery.data?.total ?? 0;
-  const appMaxPage = Math.max(1, Math.ceil(appTotal / APP_PAGE_SIZE));
+  const selectedConv = selectedConvQuery.data;
 
   useEffect(() => {
-    setConvPage((p) => Math.min(Math.max(1, p), convMaxPage));
-  }, [convMaxPage]);
-
-  useEffect(() => {
-    setAppPage((p) => Math.min(Math.max(1, p), appMaxPage));
-  }, [appMaxPage]);
+    setDirPage((p) => Math.min(Math.max(1, p), dirMaxPage));
+  }, [dirMaxPage]);
 
   const handleExportConversationsCsv = async () => {
     setConvCsvExporting(true);
@@ -918,8 +689,13 @@ export default function WhatsAppBotPanel() {
     }
   };
 
-  const conversationsErr = conversationsQuery.error ? (conversationsQuery.error as Error).message : null;
-  const applicationsErr = applicationsQuery.error ? (applicationsQuery.error as Error).message : null;
+  const funnelErr = funnelQuery.error ? (funnelQuery.error as Error).message : null;
+  const directoryErr = directoryQuery.error ? (directoryQuery.error as Error).message : null;
+
+  const onSelectDirectoryRow = (r: WaDirectoryRow) => {
+    setSelectedPhoneKey(r.phone_key);
+    setSelectedConversationId(r.latest_conversation_id);
+  };
 
   return (
     <div className="space-y-4">
@@ -931,15 +707,12 @@ export default function WhatsAppBotPanel() {
             size="sm"
             className="rounded-xl"
             onClick={() => {
-              void dashboardQuery.refetch();
-              void conversationsQuery.refetch();
-              void applicationsQuery.refetch();
+              void funnelQuery.refetch();
+              void directoryQuery.refetch();
+              void selectedConvQuery.refetch();
+              void messagesQuery.refetch();
             }}
-            disabled={
-              dashboardQuery.isFetching ||
-              conversationsQuery.isFetching ||
-              applicationsQuery.isFetching
-            }
+            disabled={funnelQuery.isFetching || directoryQuery.isFetching}
           >
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
@@ -949,7 +722,7 @@ export default function WhatsAppBotPanel() {
             className="rounded-xl"
             onClick={() => void handleExportConversationsCsv()}
             disabled={convCsvExporting}
-            title="按当前搜索条件导出全部匹配会话（分页拉取，最多约 5 万条）。"
+            title="按当前搜索与日期范围导出匹配会话（原始表，多会话不合并）。"
           >
             {convCsvExporting ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -963,8 +736,8 @@ export default function WhatsAppBotPanel() {
             size="sm"
             className="rounded-xl"
             onClick={() => void handleExportApplicationsCsv()}
-            disabled={appCsvExporting || appTotal === 0}
-            title="导出全部申请记录（分页拉取，最多约 5 万条）。"
+            disabled={appCsvExporting}
+            title="导出申请记录（按创建时间过滤；与上方日期范围一致）。"
           >
             {appCsvExporting ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -979,7 +752,7 @@ export default function WhatsAppBotPanel() {
             className="rounded-xl"
             onClick={() => void handleExportAllMessages()}
             disabled={messagesExporting}
-            title="Export every WhatsApp message (inbound + outbound) with conversation context."
+            title="导出全库消息（含会话上下文）。"
           >
             {messagesExporting ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -992,60 +765,33 @@ export default function WhatsAppBotPanel() {
       </div>
 
       {messagesExportInfo && (
-        <div className="bg-card rounded-2xl shadow-sm p-3 text-xs text-muted-foreground">
-          {messagesExportInfo}
-        </div>
+        <div className="bg-card rounded-2xl shadow-sm p-3 text-xs text-muted-foreground">{messagesExportInfo}</div>
       )}
       {messagesExportError && (
         <div className="bg-card rounded-2xl shadow-sm p-3 text-xs text-destructive">
-          Messages export failed: {messagesExportError}
+          消息导出失败：{messagesExportError}
         </div>
       )}
 
-      {dashboardNeverSucceeded && (
+      {funnelErr && (
         <Alert variant="destructive">
-          <AlertTitle>看板数据加载失败</AlertTitle>
+          <AlertTitle>漏斗数据加载失败</AlertTitle>
           <AlertDescription className="space-y-2">
-            <p>{(dashboardQuery.error as Error)?.message ?? '未知错误'}</p>
+            <p>{funnelErr}</p>
             <p className="text-xs opacity-90">
-              已尝试离线聚合仍失败时，请检查网络、RLS 与表权限。若数据库已部署{' '}
-              <code className="rounded bg-background/80 px-1 py-0.5">whatsapp_admin_dashboard_stats</code>，可刷新重试。
+              请确认已在 Supabase 执行迁移{' '}
+              <code className="rounded bg-background/80 px-1 py-0.5">20260517100000_whatsapp_admin_funnel_and_directory.sql</code>
+              ，并对 <code className="rounded bg-background/80 px-1 py-0.5">authenticated</code> 授予{' '}
+              <code className="rounded bg-background/80 px-1 py-0.5">EXECUTE</code>；必要时刷新 PostgREST schema cache。
             </p>
           </AlertDescription>
         </Alert>
       )}
 
-      {dashboardSource === 'rest' && !dashboardNeverSucceeded && (
-        <Alert>
-          <AlertTitle>离线统计模式</AlertTitle>
-          <AlertDescription className="text-xs space-y-2 leading-relaxed">
-            <p>
-              未检测到可用的数据库聚合函数，当前由多条查询在浏览器侧汇总。漏斗与所选范围 PV 为准确计数；所选范围 UV
-              为对最多 {REST_UV_SCAN_ROW_CAP.toLocaleString()} 条 inbound 消息扫描后的去重用户数，超过该行数未扫描到的用户未计入
-              {restUvRangeCapped ? '（本次已达扫描上限，真实 UV 可能更大）。' : '。'}
-            </p>
-            <p>
-              下方「近 24 小时 / 7 天 / 30 天 / 全部」对比格仅展示 PV；UV 显示为 —。在 Supabase 执行迁移
-              <code className="mx-0.5 rounded bg-muted px-1 py-0.5">20260516120000_whatsapp_admin_dashboard_stats.sql</code>
-              与
-              <code className="mx-0.5 rounded bg-muted px-1 py-0.5">20260516140000_whatsapp_admin_dashboard_stats_args.sql</code>
-              后可切换为服务端统计。
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {conversationsErr && (
+      {directoryErr && (
         <Alert variant="destructive">
-          <AlertTitle>会话列表加载失败</AlertTitle>
-          <AlertDescription>{conversationsErr}</AlertDescription>
-        </Alert>
-      )}
-
-      {applicationsErr && (
-        <Alert variant="destructive">
-          <AlertTitle>申请列表加载失败</AlertTitle>
-          <AlertDescription>{applicationsErr}</AlertDescription>
+          <AlertTitle>账号目录加载失败</AlertTitle>
+          <AlertDescription>{directoryErr}</AlertDescription>
         </Alert>
       )}
 
@@ -1055,9 +801,9 @@ export default function WhatsAppBotPanel() {
             <div className="flex items-start gap-2">
               <CalendarRange className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <CardTitle className="text-base">时间与范围</CardTitle>
+                <CardTitle className="text-base">日期范围（中国）</CardTitle>
                 <CardDescription className="mt-1">
-                  上方 PV/UV 按所选日期过滤用户 inbound 消息；会话列表按<strong>最后消息时间</strong>、申请列表按<strong>创建时间</strong>过滤。漏斗卡片为<strong>全库当前快照</strong>。
+                  漏斗按 <strong>Asia/Shanghai</strong> 自然日汇总；导出会话/申请时，用同一范围的 UTC 边界过滤时间戳。
                 </CardDescription>
               </div>
             </div>
@@ -1123,118 +869,79 @@ export default function WhatsAppBotPanel() {
               {rangePreset === 'custom' ? '（自定义）' : null}
             </p>
           </div>
-
-          <div className="rounded-2xl border border-border bg-gradient-to-br from-muted/40 to-muted/10 p-4 sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  所选范围内 · 用户 inbound
-                </p>
-                <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-                  PV = 消息条数；UV = 号码去重（wa_user_id 去掉非数字后 DISTINCT）。
-                </p>
-              </div>
-              {dashboardQuery.isFetching && !traffic ? (
-                <p className="text-sm text-muted-foreground">加载中…</p>
-              ) : traffic && !dashboardNeverSucceeded ? (
-                <div className="flex flex-wrap gap-8 lg:gap-12">
-                  <div>
-                    <div className="text-xs text-muted-foreground">PV</div>
-                    <div className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-foreground">
-                      {traffic.range.pv.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">UV</div>
-                    <div className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-primary">
-                      {traffic.range.uv != null ? traffic.range.uv.toLocaleString() : '—'}
-                    </div>
-                    {restUvRangeCapped ? (
-                      <p className="text-[11px] text-amber-700 dark:text-amber-500 mt-1 max-w-[14rem]">
-                        已达扫描上限，UV 为下限估计。
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">暂无 PV/UV 数据。</p>
-              )}
-            </div>
-            {traffic && !dashboardNeverSucceeded ? (
-              <div className="mt-5 pt-4 border-t border-border/80">
-                <p className="text-xs font-medium text-muted-foreground mb-2">滚动窗口对比（与上方日期无关）</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {(['h24', 'd7', 'd30', 'all'] as const).map((key) => {
-                    const b = traffic[key];
-                    return (
-                      <div
-                        key={key}
-                        className="rounded-xl border border-border/80 bg-card/80 px-3 py-2.5 text-sm"
-                      >
-                        <div className="text-[11px] font-medium text-muted-foreground">{TRAFFIC_PERIOD_LABEL[key]}</div>
-                        <div className="mt-1 flex gap-3 tabular-nums">
-                          <span>
-                            <span className="text-muted-foreground text-xs">PV </span>
-                            <span className="font-semibold">{b.pv.toLocaleString()}</span>
-                          </span>
-                          <span>
-                            <span className="text-muted-foreground text-xs">UV </span>
-                            <span className="font-semibold">
-                              {b.uv != null ? b.uv.toLocaleString() : '—'}
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-          </div>
         </CardContent>
       </Card>
 
-      {dashboardNeverSucceeded ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
-          看板聚合失败（含离线回退）。请检查网络与表权限后刷新；下方会话与申请列表仍可尝试使用。
-        </div>
-      ) : (
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-            漏斗快照（全库）
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
-            <StatCard label="Conversations" value={stats.total} subtitle="库内全部" />
-            <StatCard label="Awaiting Resume" value={stats.awaitingResume} />
-            <StatCard label="Existing / New Resume" value={stats.awaitingReturningCv} />
-            <StatCard label="Awaiting Highlights Opt-In" value={stats.awaitingOptIn} />
-            <StatCard label="Resume Received" value={stats.resumeReceived} subtitle="有简历路径" />
-            <StatCard label="Accepted Highlights" value={stats.optedIn} />
-            <StatCard label="Declined" value={stats.declined} />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-2 sm:mt-3">
-            <StatCard label="No Resume (Closed)" value={stats.completedNoCv} />
-            <StatCard label="RMC OK" value={stats.rmcSuccess} />
-            <StatCard label="RMC Error" value={stats.rmcFailed} />
-            <StatCard label="RMC Skipped" value={stats.rmcSkipped} subtitle="no config / staging" />
-          </div>
-        </div>
-      )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">漏斗看板（按日 · 中国）</CardTitle>
+          <CardDescription>
+            列含义：会话数 = 当日有消息的 WhatsApp 号码去重；简历数 = 当日用户发送的带附件简历类消息条数；申请数 ={' '}
+            <code className="text-xs rounded bg-muted px-1">whatsapp_applications</code> 中带{' '}
+            <code className="text-xs rounded bg-muted px-1">job_id</code> 的创建条数；同意曝光 ={' '}
+            <code className="text-xs rounded bg-muted px-1">opt_in_status = opted_in</code> 的 PV / 号码 UV。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {funnelQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">加载中…</p>
+          ) : funnelRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">暂无数据或 RPC 未返回行。</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted-foreground border-b">
+                    <th className="py-2 pr-3 whitespace-nowrap" title="timezone(Asia/Shanghai, created_at)::date">
+                      日期
+                    </th>
+                    <th className="py-2 pr-3 whitespace-nowrap" title="当日任意消息的 wa 号码（去非数字后 DISTINCT）">
+                      会话数（号码 UV）
+                    </th>
+                    <th className="py-2 pr-3 whitespace-nowrap" title="Inbound + media + document/image/video">
+                      简历数（PV）
+                    </th>
+                    <th className="py-2 pr-3 whitespace-nowrap" title="申请记录条数，每条对应一个岗位">
+                      申请数
+                    </th>
+                    <th className="py-2 pr-3 whitespace-nowrap" title="opted_in 记录条数">
+                      同意曝光 PV
+                    </th>
+                    <th className="py-2 pr-3 whitespace-nowrap" title="opted_in 的号码去重">
+                      同意曝光 UV
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {funnelRows.map((row) => (
+                    <tr key={row.day_cn} className="border-b tabular-nums">
+                      <td className="py-2 pr-3 whitespace-nowrap">{row.day_cn}</td>
+                      <td className="py-2 pr-3">{row.session_uv.toLocaleString('zh-CN')}</td>
+                      <td className="py-2 pr-3">{row.resume_pv.toLocaleString('zh-CN')}</td>
+                      <td className="py-2 pr-3">{row.application_pv.toLocaleString('zh-CN')}</td>
+                      <td className="py-2 pr-3">{row.exposure_opt_in_pv.toLocaleString('zh-CN')}</td>
+                      <td className="py-2 pr-3">{row.exposure_opt_in_uv.toLocaleString('zh-CN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Conversations</CardTitle>
+          <CardTitle className="text-base">WhatsApp 账号（一行一号）</CardTitle>
           <CardDescription>
-            按最后消息时间倒序；服务端分页（每页 {CONV_PAGE_SIZE} 条）
-            {rangeAllTime ? '；未按日期筛选。' : '；仅显示所选日期范围内最后一条消息落在区间内的会话。'}
-            点击行查看消息。
+            同一号码下多段会话合并为一行；累计简历/申请为<strong>全库至今</strong>口径。点击行在下方加载<strong>最近活跃会话</strong>的消息。
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-sm w-full">
               <Input
-                placeholder="号码、姓名、状态、职位关键词…"
+                placeholder="号码、显示名、候选人、职位关键词…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="rounded-xl"
@@ -1243,56 +950,72 @@ export default function WhatsAppBotPanel() {
                 <p className="text-xs text-muted-foreground mt-1">正在更新搜索…</p>
               ) : null}
             </div>
-            <p className="text-xs text-muted-foreground">
-              共 {convTotal.toLocaleString()} 条匹配
-            </p>
+            <p className="text-xs text-muted-foreground">共 {dirTotal.toLocaleString('zh-CN')} 个号码</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase text-muted-foreground border-b">
-                  <th className="py-2 pr-3">Number</th>
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Job</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">RMC</th>
-                  <th className="py-2 pr-3">Last Message</th>
-                  <th className="py-2 pr-3">Archived</th>
+                <tr className="text-left text-xs text-muted-foreground border-b">
+                  <th className="py-2 pr-3 min-w-[7rem]" title="原始 wa_user_id 或号码展示">
+                    WhatsApp
+                  </th>
+                  <th className="py-2 pr-3">候选人</th>
+                  <th className="py-2 pr-3 whitespace-nowrap" title="该号码在库中的会话行数">
+                    会话段数
+                  </th>
+                  <th className="py-2 pr-3 whitespace-nowrap" title="累计发送简历类附件消息条数">
+                    累计简历
+                  </th>
+                  <th className="py-2 pr-3 whitespace-nowrap" title="累计带 job_id 的申请条数">
+                    累计申请
+                  </th>
+                  <th className="py-2 pr-3 whitespace-nowrap" title="是否曾有过 opted_in">
+                    同意曝光
+                  </th>
+                  <th className="py-2 pr-3">最新状态</th>
+                  <th className="py-2 pr-3 min-w-[8rem]" title="最近一条会话上的在投职位">
+                    最近在投职位
+                  </th>
+                  <th className="py-2 pr-3 whitespace-nowrap" title="最近活跃会话的最后消息时间（中国）">
+                    最近活跃
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {conversationsQuery.isLoading ? (
+                {directoryQuery.isLoading ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
-                      Loading...
+                    <td colSpan={9} className="py-6 text-center text-muted-foreground">
+                      加载中…
                     </td>
                   </tr>
-                ) : convRows.length === 0 ? (
+                ) : dirRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
-                      没有匹配的会话。
+                    <td colSpan={9} className="py-6 text-center text-muted-foreground">
+                      没有匹配的号码。
                     </td>
                   </tr>
                 ) : (
-                  convRows.map((r) => (
+                  dirRows.map((r) => (
                     <tr
-                      key={r.id}
-                      onClick={() => setSelected(r)}
+                      key={r.phone_key}
+                      onClick={() => onSelectDirectoryRow(r)}
                       className={`border-b cursor-pointer hover:bg-secondary/60 ${
-                        selected?.id === r.id ? 'bg-secondary/80' : ''
+                        selectedPhoneKey === r.phone_key ? 'bg-secondary/80' : ''
                       }`}
                     >
-                      <td className="py-2 pr-3 font-mono text-xs">{r.wa_user_id}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">{r.wa_display || r.phone_key}</td>
                       <td className="py-2 pr-3">{r.candidate_name ?? '—'}</td>
-                      <td className="py-2 pr-3 max-w-[140px] truncate" title={r.applying_job_title ?? ''}>
+                      <td className="py-2 pr-3">{r.conversation_row_count.toLocaleString('zh-CN')}</td>
+                      <td className="py-2 pr-3">{r.resume_send_count.toLocaleString('zh-CN')}</td>
+                      <td className="py-2 pr-3">{r.application_count.toLocaleString('zh-CN')}</td>
+                      <td className="py-2 pr-3">{r.has_opted_in_exposure ? '是' : '否'}</td>
+                      <td className="py-2 pr-3">{STATE_LABEL[r.last_state] ?? r.last_state}</td>
+                      <td className="py-2 pr-3 max-w-[160px] truncate" title={r.applying_job_title ?? ''}>
                         {r.applying_job_title
                           ? `${r.applying_job_title}${r.applying_job_company ? ` · ${r.applying_job_company}` : ''}`
                           : '—'}
                       </td>
-                      <td className="py-2 pr-3">{STATE_LABEL[r.state] ?? r.state}</td>
-                      <td className="py-2 pr-3">{RMC_LABEL[r.rmc_sync_status ?? 'none'] ?? r.rmc_sync_status}</td>
-                      <td className="py-2 pr-3">{formatDate(r.last_message_at)}</td>
-                      <td className="py-2 pr-3">{r.archived_at ? 'Yes' : 'No'}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap">{formatDate(r.last_message_at)}</td>
                     </tr>
                   ))
                 )}
@@ -1301,7 +1024,7 @@ export default function WhatsAppBotPanel() {
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
             <span>
-              第 {convPage} / {convMaxPage} 页 · 每页 {CONV_PAGE_SIZE} 条
+              第 {dirPage} / {dirMaxPage} 页 · 每页 {DIR_PAGE_SIZE} 条
             </span>
             <div className="flex gap-2">
               <Button
@@ -1309,8 +1032,8 @@ export default function WhatsAppBotPanel() {
                 variant="outline"
                 size="sm"
                 className="rounded-xl"
-                disabled={convPage <= 1 || conversationsQuery.isFetching}
-                onClick={() => setConvPage((p) => Math.max(1, p - 1))}
+                disabled={dirPage <= 1 || directoryQuery.isFetching}
+                onClick={() => setDirPage((p) => Math.max(1, p - 1))}
               >
                 上一页
               </Button>
@@ -1319,8 +1042,8 @@ export default function WhatsAppBotPanel() {
                 variant="outline"
                 size="sm"
                 className="rounded-xl"
-                disabled={convPage >= convMaxPage || conversationsQuery.isFetching || convTotal === 0}
-                onClick={() => setConvPage((p) => Math.min(convMaxPage, p + 1))}
+                disabled={dirPage >= dirMaxPage || directoryQuery.isFetching || dirTotal === 0}
+                onClick={() => setDirPage((p) => Math.min(dirMaxPage, p + 1))}
               >
                 下一页
               </Button>
@@ -1329,128 +1052,57 @@ export default function WhatsAppBotPanel() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Applications (whatsapp_applications)</CardTitle>
-          <CardDescription>
-            按创建时间倒序；服务端分页（每页 {APP_PAGE_SIZE} 条），共 {appTotal.toLocaleString()} 条。
-            {rangeAllTime ? ' 未按日期筛选。' : ' 仅所选日期范围内创建的申请。'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-muted-foreground border-b">
-                  <th className="py-2 pr-3">Date</th>
-                  <th className="py-2 pr-3">Number</th>
-                  <th className="py-2 pr-3">Job</th>
-                  <th className="py-2 pr-3">Opt-in</th>
-                  <th className="py-2 pr-3">Existing Resume</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applicationsQuery.isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : appRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
-                      No applications yet.
-                    </td>
-                  </tr>
-                ) : (
-                  appRows.map((a) => (
-                    <tr key={a.id} className="border-b">
-                      <td className="py-2 pr-3 whitespace-nowrap">{formatDate(a.created_at)}</td>
-                      <td className="py-2 pr-3 font-mono text-xs">{a.wa_user_id}</td>
-                      <td className="py-2 pr-3 max-w-[200px]">
-                        {a.job_title || a.job_id || '—'}
-                        {a.job_company ? (
-                          <span className="text-muted-foreground"> · {a.job_company}</span>
-                        ) : null}
-                      </td>
-                      <td className="py-2 pr-3">{OPT_IN_LABEL[a.opt_in_status] ?? a.opt_in_status}</td>
-                      <td className="py-2 pr-3">{a.reused_existing_cv ? 'Yes' : 'No'}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
-            <span>
-              第 {appPage} / {appMaxPage} 页 · 每页 {APP_PAGE_SIZE} 条
-            </span>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-xl"
-                disabled={appPage <= 1 || applicationsQuery.isFetching}
-                onClick={() => setAppPage((p) => Math.max(1, p - 1))}
-              >
-                上一页
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-xl"
-                disabled={appPage >= appMaxPage || applicationsQuery.isFetching || appTotal === 0}
-                onClick={() => setAppPage((p) => Math.min(appMaxPage, p + 1))}
-              >
-                下一页
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {selected && (
+      {selectedConversationId && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              Messages — {selected.candidate_name ?? selected.wa_user_id}
+              消息 —{' '}
+              {selectedConv?.candidate_name ??
+                selectedConv?.wa_user_id ??
+                dirRows.find((x) => x.phone_key === selectedPhoneKey)?.wa_display ??
+                selectedPhoneKey}
             </CardTitle>
             <CardDescription className="flex flex-wrap gap-x-3 gap-y-1">
-              <span>Status: {STATE_LABEL[selected.state] ?? selected.state}</span>
-              <span>RMC: {RMC_LABEL[selected.rmc_sync_status ?? 'none']}</span>
-              {selected.applying_job_id && (
-                <span>
-                  Job: {selected.applying_job_title ?? selected.applying_job_id}
-                  {selected.applying_job_company ? ` (${selected.applying_job_company})` : ''}
-                </span>
-              )}
-              {selected.rmc_sync_error && (
-                <span className="text-destructive">Error: {selected.rmc_sync_error}</span>
+              {selectedConvQuery.isLoading ? (
+                <span>正在加载会话详情…</span>
+              ) : selectedConv ? (
+                <>
+                  <span>状态：{STATE_LABEL[selectedConv.state] ?? selectedConv.state}</span>
+                  <span>RMC：{RMC_LABEL[selectedConv.rmc_sync_status ?? 'none']}</span>
+                  {selectedConv.applying_job_id && (
+                    <span>
+                      职位：{selectedConv.applying_job_title ?? selectedConv.applying_job_id}
+                      {selectedConv.applying_job_company ? `（${selectedConv.applying_job_company}）` : ''}
+                    </span>
+                  )}
+                  {selectedConv.rmc_sync_error && (
+                    <span className="text-destructive">错误：{selectedConv.rmc_sync_error}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    conversation_id: {selectedConversationId}
+                  </span>
+                </>
+              ) : (
+                <span className="text-destructive">未找到会话行（可能已被删除）。</span>
               )}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {messagesQuery.isLoading ? (
-              <div className="text-sm text-muted-foreground">Loading messages...</div>
+              <div className="text-sm text-muted-foreground">加载消息…</div>
             ) : (messagesQuery.data?.length ?? 0) === 0 ? (
-              <div className="text-sm text-muted-foreground">No messages.</div>
+              <div className="text-sm text-muted-foreground">暂无消息。</div>
             ) : (
               <div className="space-y-2">
                 {messagesQuery.data!.map((m) => (
                   <div
                     key={m.id}
                     className={`rounded-xl p-3 text-sm border ${
-                      m.direction === 'inbound'
-                        ? 'bg-secondary/40'
-                        : 'bg-primary/5 border-primary/30'
+                      m.direction === 'inbound' ? 'bg-secondary/40' : 'bg-primary/5 border-primary/30'
                     }`}
                   >
                     <div className="text-xs text-muted-foreground mb-1">
-                      <span className="font-medium">
-                        {m.direction === 'inbound' ? 'User' : 'Bot'}
-                      </span>
+                      <span className="font-medium">{m.direction === 'inbound' ? '用户' : 'Bot'}</span>
                       {' · '}
                       <span>{m.message_type}</span>
                       {' · '}
@@ -1458,9 +1110,7 @@ export default function WhatsAppBotPanel() {
                     </div>
                     {m.body && <div className="whitespace-pre-wrap">{m.body}</div>}
                     {!m.body && m.media_mime && (
-                      <div className="text-muted-foreground italic">
-                        [attachment: {m.media_mime}]
-                      </div>
+                      <div className="text-muted-foreground italic">[附件：{m.media_mime}]</div>
                     )}
                   </div>
                 ))}
@@ -1469,26 +1119,6 @@ export default function WhatsAppBotPanel() {
           </CardContent>
         </Card>
       )}
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  subtitle,
-  className,
-}: {
-  label: string;
-  value: number;
-  subtitle?: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn('bg-card rounded-2xl shadow-sm p-4 border border-border', className)}>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold mt-1 tabular-nums">{value.toLocaleString('en-US')}</div>
-      {subtitle && <div className="text-xs text-muted-foreground mt-1">{subtitle}</div>}
     </div>
   );
 }

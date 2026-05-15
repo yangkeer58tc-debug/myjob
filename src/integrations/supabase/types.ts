@@ -107,6 +107,14 @@ export type Database = {
         Args: { p_from?: string | null; p_to?: string | null }
         Returns: Json
       }
+      whatsapp_admin_funnel_daily_cn: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      whatsapp_admin_wa_directory_cn: {
+        Args: { p_search?: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
