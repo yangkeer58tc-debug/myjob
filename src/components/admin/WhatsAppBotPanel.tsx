@@ -89,7 +89,7 @@ type FunnelStats = {
   rmcSkipped: number;
 };
 
-type PvUvBucket = { pv: number; uv: number };
+type PvUvBucket = { pv: number; uv: number | null };
 
 type DashboardRpcPayload = {
   funnel: FunnelStats;
@@ -113,7 +113,13 @@ function parseDashboardPayload(raw: unknown): DashboardRpcPayload | null {
   const bucket = (b: unknown): PvUvBucket | null => {
     if (!b || typeof b !== 'object') return null;
     const x = b as Record<string, unknown>;
-    return { pv: num(x.pv), uv: num(x.uv) };
+    const pv = num(x.pv);
+    const uvRaw = x.uv;
+    let uv: number | null;
+    if (uvRaw === null || uvRaw === undefined) uv = null;
+    else if (typeof uvRaw === 'number' && Number.isFinite(uvRaw)) uv = uvRaw;
+    else uv = num(uvRaw);
+    return { pv, uv };
   };
   const inboundObj = inbound as Record<string, unknown>;
   const range = bucket(inboundObj.range);
@@ -122,7 +128,7 @@ function parseDashboardPayload(raw: unknown): DashboardRpcPayload | null {
   const d30 = bucket(inboundObj.d30);
   const all = bucket(inboundObj.all);
   if (!h24 || !d7 || !d30 || !all) return null;
-  const rangeFinal = range ?? all;
+  const rangeFinal = range ?? { pv: all.pv, uv: all.uv };
   return {
     funnel: {
       total: num(f.total),
@@ -140,6 +146,160 @@ function parseDashboardPayload(raw: unknown): DashboardRpcPayload | null {
     inbound_pv_uv: { range: rangeFinal, h24, d7, d30, all },
   };
 }
+
+/** When RPC is missing, aggregate via PostgREST (funnel + PV; range UV by scanning rows, capped). */
+const REST_UV_SCAN_ROW_CAP = 80_000;
+
+function waDigitsKey(waUserId: string | null | undefined): string | null {
+  if (!waUserId) return null;
+  const d = waUserId.replace(/\D/g, '');
+  return d.length ? d : null;
+}
+
+async function countTable(
+  table: 'whatsapp_conversations' | 'whatsapp_messages',
+  build: (q: any) => any,
+): Promise<number> {
+  let q = supabase.from(table).select('*', { count: 'exact', head: true });
+  q = build(q);
+  const { count, error } = await q;
+  if (error) throw error;
+  return count ?? 0;
+}
+
+async function countInboundMessages(pFrom: string | null, pTo: string | null): Promise<number> {
+  return countTable('whatsapp_messages', (q) => {
+    let x = q.eq('direction', 'inbound');
+    if (pFrom) x = x.gte('created_at', pFrom);
+    if (pTo) x = x.lte('created_at', pTo);
+    return x;
+  });
+}
+
+/**
+ * Distinct digit-only wa_user_id among inbound rows in range, scanning up to REST_UV_SCAN_ROW_CAP rows.
+ * If capped before end of table, returns capped=true (UV is a lower bound within the scan).
+ */
+async function distinctInboundUvScanned(
+  pFrom: string | null,
+  pTo: string | null,
+): Promise<{ uv: number; capped: boolean }> {
+  const keys = new Set<string>();
+  let offset = 0;
+  const PAGE = 1000;
+  let capped = false;
+  while (offset < REST_UV_SCAN_ROW_CAP) {
+    const remain = REST_UV_SCAN_ROW_CAP - offset;
+    const lim = Math.min(PAGE, remain);
+    let q = supabase
+      .from('whatsapp_messages')
+      .select('wa_user_id')
+      .eq('direction', 'inbound')
+      .order('id', { ascending: true })
+      .range(offset, offset + lim - 1);
+    if (pFrom) q = q.gte('created_at', pFrom);
+    if (pTo) q = q.lte('created_at', pTo);
+    const { data, error } = await q;
+    if (error) throw error;
+    const rows = data ?? [];
+    if (rows.length === 0) break;
+    for (const r of rows) {
+      const k = waDigitsKey((r as { wa_user_id?: string }).wa_user_id);
+      if (k) keys.add(k);
+    }
+    offset += rows.length;
+    if (offset >= REST_UV_SCAN_ROW_CAP) {
+      capped = true;
+      break;
+    }
+    if (rows.length < lim) break;
+  }
+  return { uv: keys.size, capped };
+}
+
+async function fetchWaDashboardViaRest(
+  pFrom: string | null,
+  pTo: string | null,
+  rangeAllTime: boolean,
+): Promise<{ dashboard: DashboardRpcPayload; uvRangeCapped: boolean }> {
+  const now = Date.now();
+  const iso24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+  const iso7d = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const iso30d = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [
+    total,
+    awaitingResume,
+    awaitingReturningCv,
+    awaitingOptIn,
+    completedNoCv,
+    resumeReceived,
+    optedIn,
+    declined,
+    rmcSuccess,
+    rmcFailed,
+    rmcSkipped,
+    pvRange,
+    pvH24,
+    pvD7,
+    pvD30,
+    pvAll,
+    uvRangeResult,
+  ] = await Promise.all([
+    countTable('whatsapp_conversations', (q) => q),
+    countTable('whatsapp_conversations', (q) => q.in('state', ['awaiting_resume', 'awaiting_name'])),
+    countTable('whatsapp_conversations', (q) => q.eq('state', 'awaiting_returning_cv_choice')),
+    countTable('whatsapp_conversations', (q) => q.eq('state', 'awaiting_opt_in')),
+    countTable('whatsapp_conversations', (q) => q.eq('state', 'completed_no_cv')),
+    countTable('whatsapp_conversations', (q) =>
+      q.or('last_resume_storage_path.not.is.null,resume_storage_path.not.is.null'),
+    ),
+    countTable('whatsapp_conversations', (q) => q.eq('state', 'completed_opt_in')),
+    countTable('whatsapp_conversations', (q) => q.eq('state', 'completed_declined')),
+    countTable('whatsapp_conversations', (q) => q.eq('rmc_sync_status', 'success')),
+    countTable('whatsapp_conversations', (q) => q.eq('rmc_sync_status', 'failed')),
+    countTable('whatsapp_conversations', (q) =>
+      q.in('rmc_sync_status', ['skipped_no_config', 'skipped_staging']),
+    ),
+    countInboundMessages(rangeAllTime ? null : pFrom, rangeAllTime ? null : pTo),
+    countInboundMessages(iso24h, null),
+    countInboundMessages(iso7d, null),
+    countInboundMessages(iso30d, null),
+    countInboundMessages(null, null),
+    distinctInboundUvScanned(rangeAllTime ? null : pFrom, rangeAllTime ? null : pTo),
+  ]);
+
+  return {
+    dashboard: {
+      funnel: {
+        total,
+        awaitingResume,
+        awaitingReturningCv,
+        awaitingOptIn,
+        completedNoCv,
+        resumeReceived,
+        optedIn,
+        declined,
+        rmcSuccess,
+        rmcFailed,
+        rmcSkipped,
+      },
+      inbound_pv_uv: {
+        range: { pv: pvRange, uv: uvRangeResult.uv },
+        h24: { pv: pvH24, uv: null },
+        d7: { pv: pvD7, uv: null },
+        d30: { pv: pvD30, uv: null },
+        all: { pv: pvAll, uv: null },
+      },
+    },
+    uvRangeCapped: uvRangeResult.capped,
+  };
+}
+
+type WaDashboardQueryResult = DashboardRpcPayload & {
+  _source: 'rpc' | 'rest';
+  _restUvRangeCapped?: boolean;
+};
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
@@ -600,17 +760,32 @@ export default function WhatsAppBotPanel() {
     }
   };
 
-  const dashboardQuery = useQuery({
+  const dashboardQuery = useQuery<WaDashboardQueryResult>({
     queryKey: ['waDashboardStats', rangeAllTime, dashboardRpcBounds.p_from, dashboardRpcBounds.p_to],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('whatsapp_admin_dashboard_stats', {
+      const args = {
         p_from: dashboardRpcBounds.p_from,
         p_to: dashboardRpcBounds.p_to,
-      });
-      if (error) throw error;
-      const parsed = parseDashboardPayload(data);
-      if (!parsed) throw new Error('Invalid dashboard stats payload');
-      return parsed;
+      };
+      const { data, error } = await supabase.rpc('whatsapp_admin_dashboard_stats', args);
+      const msg = error?.message ?? '';
+      const missingFn =
+        /whatsapp_admin_dashboard_stats|PGRST202|Could not find the function|schema cache/i.test(msg) ||
+        error?.code === 'PGRST202';
+
+      if (!error && data != null) {
+        const parsed = parseDashboardPayload(data);
+        if (parsed) return { ...parsed, _source: 'rpc' as const };
+      }
+
+      if (error && !missingFn) throw error;
+
+      const rest = await fetchWaDashboardViaRest(args.p_from, args.p_to, rangeAllTime);
+      return {
+        ...rest.dashboard,
+        _source: 'rest' as const,
+        _restUvRangeCapped: rest.uvRangeCapped,
+      };
     },
     refetchInterval: 30_000,
   });
@@ -681,9 +856,12 @@ export default function WhatsAppBotPanel() {
     },
   });
 
-  const stats: FunnelStats = dashboardQuery.data?.funnel ?? EMPTY_FUNNEL;
-  const traffic = dashboardQuery.data?.inbound_pv_uv;
-  const dashboardNeverSucceeded = Boolean(dashboardQuery.isError) && !dashboardQuery.data;
+  const dashData = dashboardQuery.data;
+  const stats: FunnelStats = dashData?.funnel ?? EMPTY_FUNNEL;
+  const traffic = dashData?.inbound_pv_uv;
+  const dashboardSource = dashData?._source;
+  const restUvRangeCapped = dashData?._restUvRangeCapped;
+  const dashboardNeverSucceeded = Boolean(dashboardQuery.isError) && !dashData;
 
   const convRows = conversationsQuery.data?.rows ?? [];
   const convTotal = conversationsQuery.data?.total ?? 0;
@@ -740,12 +918,8 @@ export default function WhatsAppBotPanel() {
     }
   };
 
-  const dashboardErr = dashboardQuery.error ? (dashboardQuery.error as Error).message : null;
   const conversationsErr = conversationsQuery.error ? (conversationsQuery.error as Error).message : null;
   const applicationsErr = applicationsQuery.error ? (applicationsQuery.error as Error).message : null;
-  const rpcMissingHint =
-    dashboardErr &&
-    /whatsapp_admin_dashboard_stats|schema cache|Could not find the function/i.test(dashboardErr);
 
   return (
     <div className="space-y-4">
@@ -828,20 +1002,35 @@ export default function WhatsAppBotPanel() {
         </div>
       )}
 
-      {dashboardErr && (
+      {dashboardNeverSucceeded && (
         <Alert variant="destructive">
-          <AlertTitle>统计接口不可用</AlertTitle>
+          <AlertTitle>看板数据加载失败</AlertTitle>
           <AlertDescription className="space-y-2">
-            <p>{dashboardErr}</p>
-            {rpcMissingHint ? (
-              <p className="text-xs opacity-90">
-                请在 Supabase 执行仓库内迁移 SQL（含{' '}
-                <code className="rounded bg-background/80 px-1 py-0.5">20260516120000_whatsapp_admin_dashboard_stats.sql</code>{' '}
-                与{' '}
-                <code className="rounded bg-background/80 px-1 py-0.5">20260516140000_whatsapp_admin_dashboard_stats_args.sql</code>
-                ），或通过 CLI <code className="rounded bg-background/80 px-1 py-0.5">supabase db push</code> 同步后再刷新。下方列表与导出在多数情况下仍可使用。
-              </p>
-            ) : null}
+            <p>{(dashboardQuery.error as Error)?.message ?? '未知错误'}</p>
+            <p className="text-xs opacity-90">
+              已尝试离线聚合仍失败时，请检查网络、RLS 与表权限。若数据库已部署{' '}
+              <code className="rounded bg-background/80 px-1 py-0.5">whatsapp_admin_dashboard_stats</code>，可刷新重试。
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {dashboardSource === 'rest' && !dashboardNeverSucceeded && (
+        <Alert>
+          <AlertTitle>离线统计模式</AlertTitle>
+          <AlertDescription className="text-xs space-y-2 leading-relaxed">
+            <p>
+              未检测到可用的数据库聚合函数，当前由多条查询在浏览器侧汇总。漏斗与所选范围 PV 为准确计数；所选范围 UV
+              为对最多 {REST_UV_SCAN_ROW_CAP.toLocaleString()} 条 inbound 消息扫描后的去重用户数，超过该行数未扫描到的用户未计入
+              {restUvRangeCapped ? '（本次已达扫描上限，真实 UV 可能更大）。' : '。'}
+            </p>
+            <p>
+              下方「近 24 小时 / 7 天 / 30 天 / 全部」对比格仅展示 PV；UV 显示为 —。在 Supabase 执行迁移
+              <code className="mx-0.5 rounded bg-muted px-1 py-0.5">20260516120000_whatsapp_admin_dashboard_stats.sql</code>
+              与
+              <code className="mx-0.5 rounded bg-muted px-1 py-0.5">20260516140000_whatsapp_admin_dashboard_stats_args.sql</code>
+              后可切换为服务端统计。
+            </p>
           </AlertDescription>
         </Alert>
       )}
@@ -947,7 +1136,7 @@ export default function WhatsAppBotPanel() {
               </div>
               {dashboardQuery.isFetching && !traffic ? (
                 <p className="text-sm text-muted-foreground">加载中…</p>
-              ) : traffic && !dashboardErr ? (
+              ) : traffic && !dashboardNeverSucceeded ? (
                 <div className="flex flex-wrap gap-8 lg:gap-12">
                   <div>
                     <div className="text-xs text-muted-foreground">PV</div>
@@ -958,15 +1147,20 @@ export default function WhatsAppBotPanel() {
                   <div>
                     <div className="text-xs text-muted-foreground">UV</div>
                     <div className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-primary">
-                      {traffic.range.uv.toLocaleString()}
+                      {traffic.range.uv != null ? traffic.range.uv.toLocaleString() : '—'}
                     </div>
+                    {restUvRangeCapped ? (
+                      <p className="text-[11px] text-amber-700 dark:text-amber-500 mt-1 max-w-[14rem]">
+                        已达扫描上限，UV 为下限估计。
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">部署统计 RPC 后可显示 PV/UV。</p>
+                <p className="text-sm text-muted-foreground">暂无 PV/UV 数据。</p>
               )}
             </div>
-            {traffic && !dashboardErr ? (
+            {traffic && !dashboardNeverSucceeded ? (
               <div className="mt-5 pt-4 border-t border-border/80">
                 <p className="text-xs font-medium text-muted-foreground mb-2">滚动窗口对比（与上方日期无关）</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -985,7 +1179,9 @@ export default function WhatsAppBotPanel() {
                           </span>
                           <span>
                             <span className="text-muted-foreground text-xs">UV </span>
-                            <span className="font-semibold">{b.uv.toLocaleString()}</span>
+                            <span className="font-semibold">
+                              {b.uv != null ? b.uv.toLocaleString() : '—'}
+                            </span>
                           </span>
                         </div>
                       </div>
@@ -1000,7 +1196,7 @@ export default function WhatsAppBotPanel() {
 
       {dashboardNeverSucceeded ? (
         <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
-          漏斗与上方 PV/UV 依赖数据库函数；部署迁移成功后将自动显示。下方会话与申请列表可照常使用。
+          看板聚合失败（含离线回退）。请检查网络与表权限后刷新；下方会话与申请列表仍可尝试使用。
         </div>
       ) : (
         <div>
