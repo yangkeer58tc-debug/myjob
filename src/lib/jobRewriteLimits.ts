@@ -2,7 +2,7 @@
 export const JOB_REWRITE_MAX_ROWS_CAP = 10_000;
 
 /** Default when VITE_JOB_REWRITE_MAX_ROWS is unset. */
-export const JOB_REWRITE_MAX_ROWS_DEFAULT = 2_000;
+export const JOB_REWRITE_MAX_ROWS_DEFAULT = 5_000;
 
 export function jobRewriteMaxRows(): number {
   const raw = Number.parseInt(String(import.meta.env.VITE_JOB_REWRITE_MAX_ROWS || ''), 10);
