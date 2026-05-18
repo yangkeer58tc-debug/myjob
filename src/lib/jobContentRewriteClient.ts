@@ -51,8 +51,15 @@ export async function rewriteJobContent(input: JobRewriteInput): Promise<JobRewr
 
     if (data?.success) return data;
 
-    if (res.status === 501 || res.status === 502 || res.status === 404) {
-      if (hasClientJobRewriteLlm()) return rewriteJobContentViaClient(input);
+    const edgeAuthOrConfigFailed =
+      res.status === 501 || res.status === 502 || res.status === 404 || res.status === 401 || res.status === 403;
+    const edgeLlmError =
+      !data?.success &&
+      typeof data?.error === 'string' &&
+      /gemini_403|gemini_401|openai_401|openai_403|suspended|Permission denied/i.test(data.error);
+
+    if ((edgeAuthOrConfigFailed || edgeLlmError) && hasClientJobRewriteLlm()) {
+      return rewriteJobContentViaClient(input);
     }
 
     if (data && typeof data === 'object') return data;

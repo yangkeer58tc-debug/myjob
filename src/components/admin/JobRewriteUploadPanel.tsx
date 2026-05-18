@@ -231,6 +231,9 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           {llmStatus?.serverConfigured === false && llmStatus?.clientConfigured
             ? ' 提示：Pages 函数未读到 LLM_*，当前走浏览器密钥（仅测试环境建议）。'
             : null}
+          {llmStatus?.serverConfigured && llmStatus?.clientConfigured
+            ? ' 若函数侧 Key 报错但构建变量已换新，403 时会自动改用浏览器侧 LLM_*。'
+            : null}
         </p>
       </div>
 
