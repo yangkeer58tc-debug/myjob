@@ -98,6 +98,102 @@ export type Database = {
         }
         Relationships: []
       }
+      job_rewrite_batches: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          created_by: string
+          status: string
+          total_count: number
+          pending_count: number
+          saved_count: number
+          failed_count: number
+          source_filename: string | null
+          llm_model: string | null
+          error_summary: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          created_by: string
+          status?: string
+          total_count?: number
+          pending_count?: number
+          saved_count?: number
+          failed_count?: number
+          source_filename?: string | null
+          llm_model?: string | null
+          error_summary?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          created_by?: string
+          status?: string
+          total_count?: number
+          pending_count?: number
+          saved_count?: number
+          failed_count?: number
+          source_filename?: string | null
+          llm_model?: string | null
+          error_summary?: string | null
+        }
+        Relationships: []
+      }
+      job_rewrite_tasks: {
+        Row: {
+          id: string
+          batch_id: string
+          row_index: number
+          job_id: string
+          status: string
+          input: Json
+          row_snapshot: Json
+          result: Json | null
+          error: string | null
+          attempts: number
+          locked_at: string | null
+          locked_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          batch_id: string
+          row_index: number
+          job_id: string
+          status?: string
+          input: Json
+          row_snapshot: Json
+          result?: Json | null
+          error?: string | null
+          attempts?: number
+          locked_at?: string | null
+          locked_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          batch_id?: string
+          row_index?: number
+          job_id?: string
+          status?: string
+          input?: Json
+          row_snapshot?: Json
+          result?: Json | null
+          error?: string | null
+          attempts?: number
+          locked_at?: string | null
+          locked_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -118,6 +214,18 @@ export type Database = {
       whatsapp_admin_wa_directory_cn: {
         Args: { p_search?: string; p_limit?: number; p_offset?: number }
         Returns: Json
+      }
+      claim_job_rewrite_tasks: {
+        Args: { p_limit: number; p_worker: string }
+        Returns: Database['public']['Tables']['job_rewrite_tasks']['Row'][]
+      }
+      release_stale_job_rewrite_tasks: {
+        Args: { p_timeout_minutes?: number }
+        Returns: number
+      }
+      refresh_job_rewrite_batch_stats: {
+        Args: { p_batch_id: string }
+        Returns: undefined
       }
     }
     Enums: {

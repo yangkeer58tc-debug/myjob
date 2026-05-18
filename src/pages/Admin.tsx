@@ -20,7 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { LogOut, Plus, Pencil, Upload, Download, Pause, Play, Search, ChevronDown } from 'lucide-react';
 import OkComMxPanel from '@/components/admin/OkComMxPanel';
-import JobRewriteUploadPanel from '@/components/admin/JobRewriteUploadPanel';
+import JobRewriteBatchPanel from '@/components/admin/JobRewriteBatchPanel';
 import WhatsAppBotPanel from '@/components/admin/WhatsAppBotPanel';
 import { isResumeAdminEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
@@ -1622,7 +1622,7 @@ const Admin = () => {
                       </Button>
                     </div>
                   </div>
-                  <JobRewriteUploadPanel importBusy={Boolean(jobImportProgress?.isRunning)} />
+                  <JobRewriteBatchPanel importBusy={Boolean(jobImportProgress?.isRunning)} />
                   <div className="rounded-xl border border-destructive/25 bg-destructive/[0.06] p-3">
                     <p className="text-xs font-medium text-destructive mb-2">危险操作</p>
                     <div className="flex flex-wrap gap-2 items-center">

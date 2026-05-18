@@ -6,3 +6,6 @@ project_id = "ggydlqfkieerrzmszsbl"
 # See: https://supabase.com/docs/guides/functions/function-configuration
 [functions.whatsapp-webhook]
 verify_jwt = false
+
+[functions.job-rewrite-worker]
+verify_jwt = false
