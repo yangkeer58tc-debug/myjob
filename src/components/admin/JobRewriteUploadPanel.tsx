@@ -14,7 +14,8 @@ import {
   prepareRowForRewriteImport,
 } from '@/lib/jobContentRewriteBuild';
 import { fetchJobRewriteStatus, rewriteJobContent } from '@/lib/jobContentRewriteClient';
-import { jobImportUpsertOnlyConcurrency, runPool } from '@/lib/jobImportPool';
+import { runPool } from '@/lib/jobImportPool';
+import { jobRewriteAiConcurrency, jobRewriteMaxRows, JOB_REWRITE_MAX_ROWS_CAP } from '@/lib/jobRewriteLimits';
 import { supabase } from '@/integrations/supabase/client';
 
 const JOB_CSV_PARSE_BASE = { skipEmptyLines: true as const };
@@ -69,12 +70,6 @@ type RewritePreview = {
   warnings: string[];
 };
 
-function parseMaxRows(): number {
-  const raw = Number.parseInt(String(import.meta.env.VITE_JOB_REWRITE_MAX_ROWS || ''), 10);
-  if (Number.isFinite(raw) && raw > 0) return Math.min(raw, 500);
-  return 200;
-}
-
 type JobRewriteUploadPanelProps = {
   /** Disable while main CSV import is running */
   importBusy?: boolean;
@@ -84,7 +79,8 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [llmStatus, setLlmStatus] = useState<Awaited<ReturnType<typeof fetchJobRewriteStatus>> | null>(null);
-  const maxRows = parseMaxRows();
+  const maxRows = jobRewriteMaxRows();
+  const rewriteConcurrency = jobRewriteAiConcurrency();
   const [progress, setProgress] = useState<RewriteProgress | null>(null);
   const [previews, setPreviews] = useState<RewritePreview[]>([]);
 
@@ -134,7 +130,13 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
         const prepared = rows.map((r) => prepareRowForRewriteImport(r as Record<string, string>, imcShape));
         const capped = prepared.slice(0, maxRows);
         if (prepared.length > maxRows) {
-          toast.message(`仅处理前 ${maxRows} 条（共 ${prepared.length} 条）。可在 VITE_JOB_REWRITE_MAX_ROWS 调高上限（最大 500）。`);
+          toast.message(
+            `仅处理前 ${maxRows} 条（共 ${prepared.length} 条）。在构建环境设置 VITE_JOB_REWRITE_MAX_ROWS（最大 ${JOB_REWRITE_MAX_ROWS_CAP}）。`,
+          );
+        }
+        if (capped.length >= 80) {
+          const estMin = Math.ceil((capped.length / rewriteConcurrency) * 0.35);
+          toast.message(`约 ${capped.length} 条 · 并发 ${rewriteConcurrency}，预计 ${estMin}–${estMin * 2} 分钟，请勿关闭此标签页。`);
         }
 
         const total = capped.length;
@@ -146,7 +148,7 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
         setPreviews([]);
         setProgress({ isRunning: true, total, done: 0, saved: 0, failed: 0 });
 
-        const concurrency = Math.min(2, jobImportUpsertOnlyConcurrency());
+        const concurrency = rewriteConcurrency;
         const previewAcc: RewritePreview[] = [];
         let saved = 0;
         let failed = 0;
@@ -247,7 +249,9 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           )}
           导入 CSV（AI 改写）
         </Button>
-        <span className="text-xs text-muted-foreground">单次最多 {maxRows} 条 · 并发 2</span>
+        <span className="text-xs text-muted-foreground">
+          单次最多 {maxRows} 条（可配 VITE_JOB_REWRITE_MAX_ROWS，上限 {JOB_REWRITE_MAX_ROWS_CAP}）· 并发 {rewriteConcurrency}
+        </span>
       </div>
 
       <input
