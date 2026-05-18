@@ -135,7 +135,7 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           );
         }
         if (capped.length >= 80) {
-          const estMin = Math.ceil((capped.length / rewriteConcurrency) * 0.35);
+          const estMin = Math.max(1, Math.ceil((capped.length / rewriteConcurrency) * 0.12));
           toast.message(`约 ${capped.length} 条 · 并发 ${rewriteConcurrency}，预计 ${estMin}–${estMin * 2} 分钟，请勿关闭此标签页。`);
         }
 
@@ -167,12 +167,14 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
 
             const { data, qa } = res;
             lastTitle = data.title_rewritten;
-            previewAcc.push({
-              id: data.job_id,
-              title: data.title_rewritten,
-              duplicateRatio: qa.duplicateRatio,
-              warnings: qa.warnings,
-            });
+            if (previewAcc.length < 20) {
+              previewAcc.push({
+                id: data.job_id,
+                title: data.title_rewritten,
+                duplicateRatio: qa.duplicateRatio,
+                warnings: qa.warnings,
+              });
+            }
 
             const payload = buildJobUpsertAfterRewrite(row, data);
             const { error } = await supabase.from('jobs').upsert([payload]);

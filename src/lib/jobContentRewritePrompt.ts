@@ -5,7 +5,7 @@ INPUT: You receive a single JSON object with keys job_id, structured, raw_text, 
 
 OUTPUT: Return ONLY a valid JSON object with keys:
 - job_id (same as input)
-- title_rewritten (string, Mexican Spanish es-MX, SEO-friendly: role + city/region when structured provides city/location; 45-65 characters preferred; do not change job seniority or role meaning)
+- title_rewritten (string, Mexican Spanish es-MX, SHORT listing title: role + optional city; target 28-42 characters, HARD MAX 48 characters including spaces; do not change job seniority or role meaning)
 - body_markdown (string)
 - notes (string or null)
 
@@ -22,7 +22,8 @@ body_markdown rules:
 8) Length: normally aim for at least ~800 characters total in body_markdown (excluding markdown syntax). If short_source is true, aim for at least ~450 characters. If raw_text is longer, prefer ~120-250 Spanish words in Resumen + bullets combined—expand only by clarifying wording, never inventing facts.
 
 title_rewritten rules:
-- Natural es-MX; include city or metro name once when structured.city or structured.location is non-empty.
+- Natural es-MX; prefer "Rol en Ciudad" (e.g. "Asesor de ventas en CDMX") — omit company name, benefits, salary, and long location strings.
+- NEVER exceed 48 characters. If too long, drop secondary clauses and keep role + one short city token only.
 - Do not use ALL CAPS, emojis, or clickbait.
 - Keep the same job function as structured.title (e.g. do not turn "Asesor" into "Gerente" unless structured.title implies management).
 

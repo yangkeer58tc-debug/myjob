@@ -16,6 +16,6 @@ export function jobRewriteAiConcurrency(): number {
     import.meta.env.VITE_JOB_REWRITE_AI_CONCURRENCY ?? import.meta.env.VITE_JOB_IMPORT_AI_CONCURRENCY ?? '',
   ).trim();
   const n = Number.parseInt(raw, 10);
-  if (Number.isFinite(n) && n >= 1) return Math.min(n, 12);
-  return 4;
+  if (Number.isFinite(n) && n >= 1) return Math.min(n, 50);
+  return 32;
 }

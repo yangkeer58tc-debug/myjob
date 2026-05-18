@@ -11,7 +11,7 @@ OUTPUT: Return ONLY a valid JSON object with keys job_id, title_rewritten, body_
 
 body_markdown must use EXACTLY these five section headers in order: **Resumen del puesto**, **Qué harás**, **Requisitos**, **Ofrecemos**, **Detalles del trabajo**
 
-Follow length, salary, and anti-stuffing rules from the product spec. title_rewritten: SEO-friendly es-MX, role + city when available, 45-65 chars preferred, same job meaning as structured.title.
+Follow length, salary, and anti-stuffing rules from the product spec. title_rewritten: SHORT es-MX listing title, role + optional city, target 28-42 chars, HARD MAX 48 chars (no company/benefits/long address), same job meaning as structured.title.
 
 If any fact is missing, omit it rather than guessing.`;
 
@@ -42,6 +42,23 @@ function pickJsonObject(s: string) {
 
 function isGeminiBaseUrl(baseUrl: string): boolean {
   return /generativelanguage\.googleapis\.com/i.test(baseUrl);
+}
+
+const TITLE_MAX_CHARS = 48;
+
+function clampRewriteTitle(title: string): string {
+  let s = String(title || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (s.length <= TITLE_MAX_CHARS) return s;
+  const window = s.slice(0, TITLE_MAX_CHARS + 1);
+  for (const sep of [' - ', ' – ', ' | ', ', ', ' en ', ' · ', ' / ']) {
+    const idx = window.lastIndexOf(sep);
+    if (idx >= Math.floor(TITLE_MAX_CHARS * 0.45)) return s.slice(0, idx).trim();
+  }
+  const lastSpace = window.lastIndexOf(' ');
+  if (lastSpace >= Math.floor(TITLE_MAX_CHARS * 0.55)) return s.slice(0, lastSpace).trim();
+  return s.slice(0, TITLE_MAX_CHARS).trim();
 }
 
 function stripForCompare(s: string): string {
@@ -97,7 +114,11 @@ async function callGeminiTextJson(opts: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: `${JOB_REWRITE_SYSTEM_PROMPT}\n\n${opts.user}` }] }],
-      generationConfig: { temperature: opts.temperature, responseMimeType: 'application/json' },
+      generationConfig: {
+        temperature: opts.temperature,
+        responseMimeType: 'application/json',
+        maxOutputTokens: 2048,
+      },
     }),
   });
 
@@ -238,12 +259,13 @@ export async function onRequestPost(context: { request: Request; env: Record<str
 
     const parsed = JSON.parse(maybeJson) as Record<string, unknown>;
     const body_markdown = typeof parsed.body_markdown === 'string' ? parsed.body_markdown.trim() : '';
-    const title_rewritten =
+    const title_rewritten = clampRewriteTitle(
       typeof parsed.title_rewritten === 'string'
         ? parsed.title_rewritten.trim()
         : typeof parsed.title === 'string'
           ? parsed.title.trim()
-          : '';
+          : '',
+    );
     if (!body_markdown || !title_rewritten) {
       return json({ success: false, error: 'Missing title_rewritten or body_markdown', meta: { model, base_url: baseUrl, route } }, { status: 502 });
     }

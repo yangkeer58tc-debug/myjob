@@ -21,6 +21,7 @@ import {
 import { isPlaceholderSalaryText } from '@/lib/salaryUtils';
 import type { JobRewriteLlmOutput } from '@/lib/jobContentRewriteTypes';
 import { splitRewriteBodyMarkdown } from '@/lib/jobContentRewriteSplit';
+import { clampJobRewriteTitle } from '@/lib/jobRewriteTitle';
 
 const normalizeSalaryInput = (value: string) => stripCsvCellDecorations(value).trim();
 
@@ -53,7 +54,9 @@ export function buildJobUpsertAfterRewrite(
   const jdBlob = [normalizedText.summary, normalizedText.description, normalizedText.requirements]
     .filter(Boolean)
     .join('\n\n');
-  const titleNorm = normalizeJobTitle(stripCsvCellDecorations(llm.title_rewritten) || 'Sin título');
+  const titleNorm = clampJobRewriteTitle(
+    stripCsvCellDecorations(llm.title_rewritten) || 'Sin título',
+  );
   const categoryNorm = mergedRow.category ? normalizeOptionId(mergedRow.category, CATEGORY_OPTIONS) : null;
 
   let b_name = normalizeCompanyName(stripCsvCellDecorations(mergedRow.b_name || mergedRow.company || ''));

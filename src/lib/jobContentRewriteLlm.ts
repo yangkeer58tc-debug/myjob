@@ -3,6 +3,7 @@ import {
   buildJobRewriteUserMessage,
 } from '@/lib/jobContentRewritePrompt';
 import { validateJobRewriteOutput } from '@/lib/jobContentRewriteQa';
+import { clampJobRewriteTitle } from '@/lib/jobRewriteTitle';
 import type {
   JobRewriteApiResponse,
   JobRewriteInput,
@@ -52,7 +53,7 @@ function normalizeLlmOutput(obj: unknown, jobId: string): JobRewriteLlmOutput | 
   if (!body_markdown || !title_rewritten) return null;
   return {
     job_id: typeof o.job_id === 'string' ? o.job_id : jobId,
-    title_rewritten,
+    title_rewritten: clampJobRewriteTitle(title_rewritten),
     body_markdown,
     notes: typeof o.notes === 'string' ? o.notes : o.notes == null ? null : String(o.notes),
   };
@@ -77,7 +78,7 @@ async function callGeminiJson(user: string): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: `${JOB_REWRITE_SYSTEM_PROMPT}\n\n${user}` }] }],
-      generationConfig: { temperature: 0.4, responseMimeType: 'application/json' },
+      generationConfig: { temperature: 0.4, responseMimeType: 'application/json', maxOutputTokens: 2048 },
     }),
   });
   if (!res.ok) {
