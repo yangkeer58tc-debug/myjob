@@ -42,6 +42,6 @@ export function jobRewriteBatchPauseMs(): number {
 
 export function jobRewriteMaxRetries(): number {
   const raw = Number.parseInt(String(import.meta.env.VITE_JOB_REWRITE_MAX_RETRIES || ''), 10);
-  if (Number.isFinite(raw) && raw >= 0) return Math.min(raw, 8);
-  return 4;
+  if (Number.isFinite(raw) && raw >= 0) return Math.min(raw, 10);
+  return 6;
 }

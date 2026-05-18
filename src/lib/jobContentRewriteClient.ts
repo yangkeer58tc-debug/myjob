@@ -21,8 +21,16 @@ function isGeminiSuspended(msg: string): boolean {
   return /suspended|has been suspended|consumer 'api_key/i.test(msg);
 }
 
-function isRateLimited(msg: string): boolean {
-  return /429|rate.?limit|resource.?exhausted|quota|too many requests|overloaded/i.test(msg);
+function isTransientGeminiError(msg: string): boolean {
+  return (
+    /429|503|502|500|rate.?limit|resource.?exhausted|quota|too many requests|overloaded|unavailable|high demand|temporarily|try again/i.test(
+      msg,
+    )
+  );
+}
+
+function isHighDemand503(msg: string): boolean {
+  return /503|high demand|spikes in demand/i.test(msg);
 }
 
 export type JobRewriteStatus = {
@@ -82,15 +90,12 @@ export async function rewriteJobContent(input: JobRewriteInput): Promise<JobRewr
       );
     }
 
-    const edgeAuthOrConfigFailed =
-      res.status === 501 || res.status === 502 || res.status === 404 || res.status === 401;
-    if (edgeAuthOrConfigFailed && hasClientJobRewriteLlm()) {
+    // Only fall back when the edge function is missing — not on LLM 502/503 (avoids doubling load).
+    if ((res.status === 501 || res.status === 404) && hasClientJobRewriteLlm()) {
       return rewriteJobContentViaClient(input);
     }
 
     if (data && typeof data === 'object') return data;
-
-    if (hasClientJobRewriteLlm()) return rewriteJobContentViaClient(input);
     return { success: false, error: `Invalid response (${res.status})` };
   } catch {
     if (hasClientJobRewriteLlm()) return rewriteJobContentViaClient(input);
@@ -98,7 +103,7 @@ export async function rewriteJobContent(input: JobRewriteInput): Promise<JobRewr
   }
 }
 
-/** Rewrite with backoff on 429; never retries suspended keys or hammers a second channel. */
+/** Rewrite with backoff on 429/503; never retries suspended keys or hammers a second channel. */
 export async function rewriteJobContentWithRetry(input: JobRewriteInput): Promise<JobRewriteApiResponse> {
   const attempts = jobRewriteMaxRetries();
   let last: JobRewriteApiResponse = { success: false, error: 'LLM failed' };
@@ -109,9 +114,19 @@ export async function rewriteJobContentWithRetry(input: JobRewriteInput): Promis
 
     const msg = errorText(last);
     if (isGeminiSuspended(msg)) return last;
-    if (!isRateLimited(msg) || attempt >= attempts - 1) return last;
+    if (!isTransientGeminiError(msg) || attempt >= attempts - 1) {
+      if (isHighDemand503(msg)) {
+        return {
+          ...last,
+          error:
+            'Gemini 模型繁忙 (503)，已自动重试仍失败。请稍后再试、减小 CSV 批次，或在 LLM_MODEL 改用 gemini-2.0-flash。',
+        };
+      }
+      return last;
+    }
 
-    const backoff = Math.min(45_000, 2000 * 2 ** attempt) + Math.floor(Math.random() * 600);
+    const base = isHighDemand503(msg) ? 5000 : 2500;
+    const backoff = Math.min(90_000, base * 2 ** attempt) + Math.floor(Math.random() * 800);
     await sleep(backoff);
   }
 
