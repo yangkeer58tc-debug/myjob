@@ -32,6 +32,7 @@ export default function JobRewriteBatchPanel({ importBusy = false }: JobRewriteB
   const [batch, setBatch] = useState<JobRewriteBatchRow | null>(null);
   const [failedPreview, setFailedPreview] = useState<Array<{ job_id: string; error: string | null }>>([]);
   const [llmConfigured, setLlmConfigured] = useState<boolean | null>(null);
+  const [workerHint, setWorkerHint] = useState<string | null>(null);
   const maxRows = jobRewriteMaxRows();
 
   const refreshBatch = useCallback(async (id: string) => {
@@ -50,6 +51,24 @@ export default function JobRewriteBatchPanel({ importBusy = false }: JobRewriteB
     fetchJobRewriteStatus().then((s) => setLlmConfigured(s.configured));
   }, []);
 
+  const runWorker = useCallback(async (silent: boolean) => {
+    const res = await triggerJobRewriteWorker();
+    if (res.ok) {
+      setWorkerHint(
+        res.processed > 0
+          ? `Worker 已处理 ${res.processed} 条`
+          : 'Worker 已响应（当前无待领取任务或本批已满）',
+      );
+      if (!silent && res.processed > 0) {
+        toast.message(`Worker 已处理 ${res.processed} 条`);
+      }
+    } else {
+      setWorkerHint(`Worker 调用失败：${res.error}`);
+      if (!silent) toast.error(res.error);
+    }
+    return res;
+  }, []);
+
   useEffect(() => {
     if (!batchId) return;
     const tick = () => {
@@ -59,6 +78,19 @@ export default function JobRewriteBatchPanel({ importBusy = false }: JobRewriteB
     const t = window.setInterval(tick, 5000);
     return () => window.clearInterval(t);
   }, [batchId, refreshBatch]);
+
+  /** Cron 未配置时：有待处理任务则每 60s 自动触发 Worker */
+  useEffect(() => {
+    if (!batchId || !batch) return;
+    if (!['queued', 'running'].includes(batch.status)) return;
+    if (batch.pending_count <= 0) return;
+
+    void runWorker(true);
+    const t = window.setInterval(() => {
+      void runWorker(true).then(() => refreshBatch(batchId).catch(() => {}));
+    }, 60_000);
+    return () => window.clearInterval(t);
+  }, [batchId, batch?.status, batch?.pending_count, runWorker, refreshBatch]);
 
   useEffect(() => {
     if (!batch) return;
@@ -101,6 +133,7 @@ export default function JobRewriteBatchPanel({ importBusy = false }: JobRewriteB
 
         const id = await createJobRewriteBatchFromRows(rows, imcShape, file.name);
         setBatchId(id);
+        await runWorker(false);
         const row = await refreshBatch(id);
         toast.success(`已创建后台改写任务（${row?.total_count ?? 0} 条），可关闭本页。`);
       } catch (err: unknown) {
@@ -157,9 +190,10 @@ export default function JobRewriteBatchPanel({ importBusy = false }: JobRewriteB
           <Progress value={progressPct} />
           {isActive ? (
             <p className="text-xs text-muted-foreground">
-              后台处理中。可关闭页面；点「刷新 / 触发一批」可加快（仍受 Gemini 限流）。
+              后台处理中（约每分钟自动触发 Worker，无 Cron 也能跑）。可关页面；也可点「立即触发 Worker」。
             </p>
           ) : null}
+          {workerHint ? <p className="text-xs text-amber-700 dark:text-amber-400">{workerHint}</p> : null}
           <div className="flex flex-wrap gap-2">
             {batchId ? (
               <Button
@@ -167,13 +201,12 @@ export default function JobRewriteBatchPanel({ importBusy = false }: JobRewriteB
                 size="sm"
                 variant="outline"
                 className="rounded-lg"
-                onClick={() => {
-                  refreshBatch(batchId).catch((err) => toast.error(String(err)));
-                  triggerJobRewriteWorker().catch(() => {});
-                  toast.message('已刷新进度并触发 Worker');
+                onClick={async () => {
+                  await runWorker(false);
+                  await refreshBatch(batchId).catch((err) => toast.error(String(err)));
                 }}
               >
-                刷新 / 触发一批
+                立即触发 Worker
               </Button>
             ) : null}
             {isActive && batchId ? (

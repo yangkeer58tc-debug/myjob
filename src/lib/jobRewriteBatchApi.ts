@@ -82,11 +82,47 @@ export async function createJobRewriteBatchFromRows(
   return batchId;
 }
 
-export async function triggerJobRewriteWorker(): Promise<void> {
-  const { error } = await supabase.functions.invoke('job-rewrite-worker', { body: {} });
+export type WorkerInvokeResult =
+  | { ok: true; processed: number; worker?: string }
+  | { ok: false; error: string };
+
+export async function triggerJobRewriteWorker(): Promise<WorkerInvokeResult> {
+  const { data, error } = await supabase.functions.invoke('job-rewrite-worker', { body: {} });
+
   if (error) {
-    console.warn('[job-rewrite-worker invoke]', error.message);
+    return { ok: false, error: error.message };
   }
+
+  const body = (data ?? {}) as { ok?: boolean; error?: string; processed?: number; worker?: string };
+  if (body.error) {
+    return { ok: false, error: body.error };
+  }
+  if (body.ok === false) {
+    return { ok: false, error: 'Worker 返回失败' };
+  }
+  if (body.ok === true) {
+    return { ok: true, processed: Number(body.processed ?? 0), worker: body.worker };
+  }
+
+  return { ok: false, error: 'Worker 无有效响应（请检查 Supabase 是否已部署 job-rewrite-worker）' };
+}
+
+async function liveTaskCounts(batchId: string) {
+  const { data, error } = await supabase.from('job_rewrite_tasks').select('status').eq('batch_id', batchId);
+  if (error) throw new Error(error.message);
+  const rows = data || [];
+  let pending = 0;
+  let saved = 0;
+  let failed = 0;
+  let processing = 0;
+  for (const r of rows) {
+    const s = String(r.status);
+    if (s === 'pending') pending += 1;
+    else if (s === 'done') saved += 1;
+    else if (s === 'failed') failed += 1;
+    else if (s === 'processing') processing += 1;
+  }
+  return { pending, saved, failed, processing, total: rows.length };
 }
 
 export async function fetchJobRewriteBatch(batchId: string): Promise<JobRewriteBatchRow | null> {
@@ -98,7 +134,26 @@ export async function fetchJobRewriteBatch(batchId: string): Promise<JobRewriteB
     .eq('id', batchId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as JobRewriteBatchRow | null;
+  if (!data) return null;
+
+  const live = await liveTaskCounts(batchId);
+  let status = data.status as string;
+  if (status !== 'cancelled') {
+    if (live.pending === 0 && live.processing === 0 && live.total > 0) {
+      status = live.failed > 0 && live.saved === 0 ? 'failed' : 'completed';
+    } else if (live.saved > 0 || live.failed > 0 || live.processing > 0) {
+      status = 'running';
+    }
+  }
+
+  return {
+    ...(data as JobRewriteBatchRow),
+    status,
+    total_count: live.total || data.total_count,
+    pending_count: live.pending,
+    saved_count: live.saved,
+    failed_count: live.failed,
+  };
 }
 
 export async function fetchFailedRewriteTasks(batchId: string, limit = 15) {
