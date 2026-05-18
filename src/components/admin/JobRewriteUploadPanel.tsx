@@ -13,9 +13,17 @@ import {
   buildJobRewriteInputFromRow,
   prepareRowForRewriteImport,
 } from '@/lib/jobContentRewriteBuild';
-import { fetchJobRewriteStatus, rewriteJobContent } from '@/lib/jobContentRewriteClient';
+import { fetchJobRewriteStatus, rewriteJobContentWithRetry } from '@/lib/jobContentRewriteClient';
 import { runPool } from '@/lib/jobImportPool';
-import { jobRewriteAiConcurrency, jobRewriteMaxRows, JOB_REWRITE_MAX_ROWS_CAP } from '@/lib/jobRewriteLimits';
+import {
+  jobRewriteAiConcurrency,
+  jobRewriteBatchEvery,
+  jobRewriteBatchPauseMs,
+  jobRewriteMaxRows,
+  jobRewriteMinDelayMs,
+  JOB_REWRITE_AI_CONCURRENCY_CAP,
+  JOB_REWRITE_MAX_ROWS_CAP,
+} from '@/lib/jobRewriteLimits';
 import { supabase } from '@/integrations/supabase/client';
 
 const JOB_CSV_PARSE_BASE = { skipEmptyLines: true as const };
@@ -81,6 +89,9 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
   const [llmStatus, setLlmStatus] = useState<Awaited<ReturnType<typeof fetchJobRewriteStatus>> | null>(null);
   const maxRows = jobRewriteMaxRows();
   const rewriteConcurrency = jobRewriteAiConcurrency();
+  const rewriteDelayMs = jobRewriteMinDelayMs();
+  const batchEvery = jobRewriteBatchEvery();
+  const batchPauseMs = jobRewriteBatchPauseMs();
   const [progress, setProgress] = useState<RewriteProgress | null>(null);
   const [previews, setPreviews] = useState<RewritePreview[]>([]);
 
@@ -134,9 +145,15 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
             `仅处理前 ${maxRows} 条（共 ${prepared.length} 条）。在构建环境设置 VITE_JOB_REWRITE_MAX_ROWS（最大 ${JOB_REWRITE_MAX_ROWS_CAP}）。`,
           );
         }
-        if (capped.length >= 80) {
-          const estMin = Math.max(1, Math.ceil((capped.length / rewriteConcurrency) * 0.12));
-          toast.message(`约 ${capped.length} 条 · 并发 ${rewriteConcurrency}，预计 ${estMin}–${estMin * 2} 分钟，请勿关闭此标签页。`);
+        if (capped.length >= 50) {
+          const estMin = Math.max(
+            1,
+            Math.ceil((capped.length / Math.max(1, rewriteConcurrency)) * 0.45),
+          );
+          toast.message(
+            `约 ${capped.length} 条 · 并发 ${rewriteConcurrency}（限流保护）· 预计 ${estMin}–${estMin * 2} 分钟。过大批次建议拆成多个 CSV，避免 Gemini 封号。`,
+            { duration: 8000 },
+          );
         }
 
         const total = capped.length;
@@ -152,15 +169,19 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
         const previewAcc: RewritePreview[] = [];
         let saved = 0;
         let failed = 0;
+        let claimCount = 0;
 
-        await runPool(total, concurrency, async (i) => {
+        await runPool(
+          total,
+          concurrency,
+          async (i) => {
           const row = capped[i];
           const input = buildJobRewriteInputFromRow(row);
           let lastTitle = input.structured.title;
           let lastError: string | undefined;
 
           try {
-            const res = await rewriteJobContent(input);
+            const res = await rewriteJobContentWithRetry(input);
             if (!res.success) {
               throw new Error(res.error);
             }
@@ -198,7 +219,19 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
               lastError,
             };
           });
-        });
+          },
+          {
+            beforeClaimNext: async () => {
+              const n = claimCount++;
+              if (rewriteDelayMs > 0) {
+                await new Promise((r) => window.setTimeout(r, rewriteDelayMs));
+              }
+              if (batchEvery > 0 && batchPauseMs > 0 && n > 0 && n % batchEvery === 0) {
+                await new Promise((r) => window.setTimeout(r, batchPauseMs));
+              }
+            },
+          },
+        );
 
         setPreviews(previewAcc.slice(0, 20));
         setProgress((prev) => (prev ? { ...prev, isRunning: false } : null));
@@ -233,9 +266,10 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           {llmStatus?.serverConfigured === false && llmStatus?.clientConfigured
             ? ' 提示：Pages 函数未读到 LLM_*，当前走浏览器密钥（仅测试环境建议）。'
             : null}
-          {llmStatus?.serverConfigured && llmStatus?.clientConfigured
-            ? ' 若函数侧 Key 报错但构建变量已换新，403 时会自动改用浏览器侧 LLM_*。'
-            : null}
+          {' '}
+          为保护 Gemini 账号：默认并发 {rewriteConcurrency}、请求间隔约 {rewriteDelayMs}ms
+          {batchEvery > 0 ? `、每 ${batchEvery} 条暂停 ${(batchPauseMs / 1000).toFixed(0)}s` : ''}
+          （勿将 VITE_JOB_REWRITE_AI_CONCURRENCY 设超过 {JOB_REWRITE_AI_CONCURRENCY_CAP}）。
         </p>
       </div>
 
@@ -255,7 +289,7 @@ export default function JobRewriteUploadPanel({ importBusy = false }: JobRewrite
           导入 CSV（AI 改写）
         </Button>
         <span className="text-xs text-muted-foreground">
-          单次最多 {maxRows} 条（可配 VITE_JOB_REWRITE_MAX_ROWS，上限 {JOB_REWRITE_MAX_ROWS_CAP}）· 并发 {rewriteConcurrency}
+          单次最多 {maxRows} 条 · 安全并发 {rewriteConcurrency}
         </span>
       </div>
 
